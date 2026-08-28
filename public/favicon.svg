@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Repetix">
+  <!-- Motivet är spaced repetition självt: fyra repetitioner med växande
+       mellanrum. Avstånden är 2, 4 och 7 enheter — samma slags tillväxt som
+       kortens intervall gör mellan varje gång du ser dem.
+
+       Byggt av en enda primitiv, den fyllda stapeln, precis som resten av
+       gränssnittet ritas av linje, prick och ruta. Vid 16 pixlar faller
+       detaljer bort men rytmen står kvar, vilket är hela poängen med märket. -->
+  <rect width="32" height="32" rx="7" fill="#0E6A5E"/>
+  <g fill="#FAF9F7">
+    <rect x="4"  y="9" width="3" height="14" rx="1.5"/>
+    <rect x="9"  y="9" width="3" height="14" rx="1.5"/>
+    <rect x="16" y="9" width="3" height="14" rx="1.5"/>
+  </g>
+  <!-- Den fjärde repetitionen ligger så långt fram att den bara antyds:
+       kortet är nästan mästrat. -->
+  <rect x="25" y="9" width="3" height="14" rx="1.5" fill="#FAF9F7" opacity="0.4"/>
+</svg>

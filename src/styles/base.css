@@ -1,0 +1,182 @@
+/* Grundlager: normalisering, typografi och fokus.
+ * Laddas efter tokens.css och före allt annat.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Stoppar det horisontella gungandet på mobil när ett brett element råkar
+   * spilla över. Utan detta kan hela appen skjutas i sidled av en enda för
+   * bred rad. */
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Tar bort den blå blinkningen vid tryck på iOS. Vi ritar egna
+   * tryckta lägen. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+}
+
+h1 {
+  font-size: var(--t-2xl);
+}
+h2 {
+  font-size: var(--t-xl);
+}
+h3 {
+  font-size: var(--t-lg);
+}
+h4 {
+  font-size: var(--t-md);
+}
+
+p {
+  margin: 0 0 var(--s3);
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Varje tal i appen sätts i monospace med tabellsiffror, så att antal och
+ * intervall står i kolumn i en lista i stället för att hoppa. */
+.num,
+.mono {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Liten versal etikett. Ersätter de sex varianter av samma sak som fanns
+ * utspridda i den gamla stilmallen. */
+.label {
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Kortens innehåll. Serif och generöst radavstånd — det ska läsas. */
+.content-text {
+  font-family: var(--font-content);
+  font-size: var(--t-lg);
+  line-height: var(--lh-loose);
+  color: var(--text-1);
+}
+
+.content-text p {
+  margin-bottom: var(--s4);
+}
+
+/* --- Fokus -------------------------------------------------------------
+ * Synlig ring på allt som kan nås med tangentbord. Den gamla mallen hade ring
+ * på tre selektorer och inget på resten, vilket gjorde tabbning omöjlig att
+ * följa.
+ */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* Musklick ska inte lämna kvar en ring. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --- Bara för skärmläsare ---------------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Hoppa till innehållet. Utan den måste en tangentbordsanvändare tabba genom
+ * hela sidopanelens träd på varje sidladdning. */
+.skip-link {
+  position: absolute;
+  left: var(--s3);
+  top: -100px;
+  z-index: 5000;
+  padding: var(--s2) var(--s4);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  transition: top var(--dur) var(--ease);
+}
+
+.skip-link:focus {
+  top: var(--s3);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Element med explicit display åsidosätter annars webbläsarens inbyggda
+ * [hidden]. Det är en klassisk fälla: attributet sätts, inget händer. */
+[hidden] {
+  display: none !important;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Brett innehåll scrollar i sin egen behållare i stället för att skjuta hela
+ * sidan i sidled. */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

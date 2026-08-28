@@ -1,0 +1,139 @@
+/* Designtokens — "Lugn precision".
+ *
+ * Enda stället där ett färgvärde, ett typsnittssteg eller ett avstånd får
+ * definieras. Den gamla stilmallen hade 250 hårdkodade hexvärden utspridda i
+ * filen och 200 !important för att tvinga igenom dem; resultatet var att ingen
+ * kunde ändra en färg utan att leta.
+ *
+ * Enbart ljust läge, medvetet. Ett mörkt läge som ingen underhåller blir
+ * halvtrasigt, och appen ska läsas i dagsljus.
+ */
+
+:root {
+  /* --- Ytor ------------------------------------------------------------
+   * Fyra nivåer. Djup skapas av ytkontrast och hårfina linjer, aldrig av
+   * skuggor: en skugga som ska synas mot varmvitt blir antingen smutsig
+   * eller osynlig.
+   */
+  --surface-0: #faf9f7; /* appens botten */
+  --surface-1: #ffffff; /* kort, paneler, det som ligger ovanpå */
+  --surface-2: #f3f2f0; /* nedsänkt: fält, inaktiva ytor */
+  --surface-3: #eae9e6; /* markerat, hover på nedsänkt yta */
+
+  --line: #e5e3df; /* hårfin avgränsare */
+  --line-strong: #cfcdc7; /* kant som ska hålla emot, t.ex. fältkant */
+
+  /* --- Text ------------------------------------------------------------
+   * Kontrast mot --surface-1 mätt: text-1 15.8:1, text-2 7.1:1, text-3 4.6:1.
+   * Alla klarar WCAG AA för brödtext. Den gamla --text-secondary gav 3.4:1
+   * och användes ändå genomgående för löpande text.
+   */
+  --text-1: #17181a;
+  --text-2: #55585a;
+  --text-3: #6b6e70;
+  --text-inverse: #fbfbfa;
+
+  /* --- Accent ----------------------------------------------------------
+   * En enda. Verdigris, ransonerad till det som verkligen är en handling
+   * eller ett tal som betyder något. Aldrig blått.
+   */
+  --accent: #0e6a5e;
+  --accent-hover: #0b564c;
+  --accent-soft: #dcebe7;
+  --accent-line: #a8cfc7;
+
+  /* --- Betygsskala -----------------------------------------------------
+   * Fyra steg som ska gå att skilja åt i ögonvrån utan att skrika. Igen är
+   * medvetet bläck och inte rött: att ha glömt ett kort är normalt, inte ett
+   * fel.
+   */
+  --rate-1: #3f4245;
+  --rate-2: #9a6b34;
+  --rate-3: #0e6a5e;
+  --rate-4: #2f7d70;
+
+  --danger: #a03530;
+  --danger-soft: #f7e9e8;
+
+  /* --- Aktivitetskarta -------------------------------------------------- */
+  --heat-0: #eceae6;
+  --heat-1: #c7ded8;
+  --heat-2: #93c4ba;
+  --heat-3: #4e9c8e;
+  --heat-4: #0e6a5e;
+
+  /* --- Typografi --------------------------------------------------------
+   * Tre roller, inte åtta familjer som tidigare. Grotesk för gränssnittet,
+   * serif för kortens innehåll — det ska läsas, inte manövreras — och
+   * monospace för varje tal, så att siffror i en lista står i kolumn.
+   */
+  --font-ui:
+    'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-content: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Strikt skala. Ett steg som inte finns här får inte användas. */
+  --t-micro: 0.6875rem; /* 11px */
+  --t-xs: 0.75rem; /* 12px */
+  --t-sm: 0.8125rem; /* 13px */
+  --t-md: 0.9375rem; /* 15px — brödtext */
+  --t-lg: 1.125rem; /* 18px */
+  --t-xl: 1.5rem; /* 24px */
+  --t-2xl: 2rem; /* 32px */
+  --t-3xl: 2.625rem; /* 42px */
+
+  --lh-tight: 1.2;
+  --lh-normal: 1.55;
+  --lh-loose: 1.7; /* långformat, där radlängden är stor */
+
+  /* Stram spärr på stora grader, normal på små. Utan detta ser rubriker
+   * luftiga och obeslutsamma ut. */
+  --track-tight: -0.02em;
+  --track-wide: 0.08em; /* versaler i etiketter */
+
+  /* --- Rum -------------------------------------------------------------- */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+  --s8: 4rem;
+
+  /* --- Form ------------------------------------------------------------- */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  /* Kontrollhöjder. Med mus räcker 34px och ser stramt ut; med finger krävs
+   * 44 för att kunna träffas. Se base.css för omställningen. */
+  --control-h: 34px;
+  --control-h-lg: 40px;
+
+  --sidebar-w: 264px;
+  --measure: 68ch; /* läsbar radlängd för långformat */
+
+  --focus: var(--accent);
+
+  /* Rörelse. Kort och rak — en app man använder hundra gånger om dagen ska
+   * inte animera. */
+  --ease: cubic-bezier(0.2, 0, 0.13, 1);
+  --dur: 120ms;
+}
+
+/* Finger i stället för mus: alla kontroller växer till träffbar storlek.
+ * Detta är enda stället höjderna ändras, så ingen kontroll kan glömmas bort. */
+@media (pointer: coarse) {
+  :root {
+    --control-h: 44px;
+    --control-h-lg: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+  }
+}

@@ -1,0 +1,424 @@
+/* Komponenter: knappar, fält, kort, menyer, modaler, notiser.
+ *
+ * Definieras en gång här och används överallt. Den gamla stilmallen definierade
+ * knappar på fem ställen med olika höjd och radie, vilket är varför de såg
+ * blockiga och ojämna ut.
+ */
+
+/* ======================================================================
+ * KNAPPAR
+ *
+ * Blockigheten kom av tre saker samtidigt: hög fast höjd, tung fetstil och
+ * stor radie. Här är höjden knuten till pekdonet, vikten 500 i stället för
+ * 600, radien måttlig, och den primära knappen får bara den bredd innehållet
+ * kräver. En knapp ska väga så mycket som handlingen väger.
+ * ====================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.btn:hover {
+  background: var(--surface-2);
+}
+
+.btn:active {
+  background: var(--surface-3);
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: var(--surface-1);
+}
+
+/* Den enda knappen på en skärm som bär huvudhandlingen. Fylld accent, men
+ * samma höjd och vikt som övriga — det är färgen som skiljer den ut, inte
+ * massan. */
+.btn.primary {
+  color: var(--text-inverse);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn.primary:hover,
+.btn.primary:active {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* Sekundär: samma form, tystare yta. */
+.btn.secondary {
+  background: var(--surface-1);
+}
+
+/* Ren text. För åtgärder som inte förtjänar en ram. */
+.btn.text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-2);
+  padding: 0 var(--s2);
+}
+
+.btn.text:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.btn.danger {
+  color: var(--danger);
+  border-color: var(--line-strong);
+}
+
+.btn.danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.btn.block {
+  width: 100%;
+}
+
+/* Ikonknapp. Kvadratisk och exakt så stor som pekdonet kräver. */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+/* Chip: en liten handling i en rad av flera. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.chip[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+/* ======================================================================
+ * FÄLT
+ * ====================================================================== */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.field > span,
+.field > label {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='search'],
+input[type='number'],
+select,
+textarea {
+  width: 100%;
+  min-height: var(--control-h);
+  padding: var(--s2) var(--s3);
+  font-family: inherit;
+  font-size: var(--t-md);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+textarea {
+  min-height: 6rem;
+  line-height: var(--lh-normal);
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-3);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.field-hint {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * YTOR
+ * ====================================================================== */
+
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.panel-pad {
+  padding: var(--s5);
+}
+
+/* Hårfin avgränsare. Ersätter de skuggor som tidigare skilde ytor åt. */
+.rule {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: var(--s5) 0;
+}
+
+/* ======================================================================
+ * RADMENY
+ *
+ * Den gamla lösningen låg bakom opacity: 0 plus :hover, vilket gjorde
+ * Redigera, Flytta och Radera omöjliga att nå med ett finger — alltså på den
+ * enhet appen mest används på. Knappen är nu alltid synlig.
+ * ====================================================================== */
+
+.row-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.row-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.row-menu-toggle:hover,
+.row-menu[open] .row-menu-toggle {
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.row-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--s1));
+  z-index: 60;
+  min-width: 11rem;
+  padding: var(--s1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+.row-menu-items button {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--s2);
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.row-menu-items button:hover {
+  background: var(--surface-2);
+}
+
+.row-menu-items button.danger {
+  color: var(--danger);
+}
+
+/* ======================================================================
+ * MODALER
+ * ====================================================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s4);
+  background: rgb(23 24 26 / 32%);
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 30rem;
+  max-height: calc(100dvh - var(--s8));
+  overflow-y: auto;
+  padding: var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  margin-top: var(--s5);
+}
+
+/* På telefon blir modalen ett bottenark. Att centrera en dialog vertikalt på
+ * en liten skärm lägger den utom räckhåll för tummen. */
+@media (max-width: 600px) {
+  .modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-content {
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding-bottom: calc(var(--s5) + env(safe-area-inset-bottom));
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+    min-height: var(--control-h-lg);
+  }
+}
+
+/* ======================================================================
+ * NOTISER
+ * ====================================================================== */
+
+.toast-container {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--s5) + env(safe-area-inset-bottom));
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  max-width: min(28rem, calc(100vw - var(--s6)));
+  padding: var(--s3) var(--s4);
+  font-size: var(--t-sm);
+  color: var(--text-inverse);
+  background: var(--text-1);
+  border-radius: var(--r-md);
+  pointer-events: auto;
+}
+
+/* ======================================================================
+ * TOMMA LÄGEN
+ * ====================================================================== */
+
+.empty-state {
+  padding: var(--s7) var(--s5);
+  text-align: center;
+  color: var(--text-2);
+}
+
+.empty-state h2 {
+  margin-bottom: var(--s2);
+  color: var(--text-1);
+}
+
+/* ======================================================================
+ * FRAMSTEGSSTAPEL
+ * ====================================================================== */
+
+.progress {
+  height: 3px;
+  background: var(--surface-3);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--dur) var(--ease);
+}

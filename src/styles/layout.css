@@ -1,0 +1,327 @@
+/* Appskalet: sidopanel, innehållsyta, brödsmulor, vyväxling. */
+
+/* ======================================================================
+ * SIDOPANEL
+ * ====================================================================== */
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-w);
+  background: var(--surface-1);
+  border-right: 1px solid var(--line);
+  transition: transform var(--dur) var(--ease);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s4) var(--s3) var(--s3);
+}
+
+.sidebar-title {
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
+}
+
+.sidebar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0 var(--s3) var(--s3);
+  padding: 0 var(--s3);
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+}
+
+.sidebar-search:focus-within {
+  background: var(--surface-1);
+  border-color: var(--line-strong);
+}
+
+.sidebar-search svg {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.sidebar-search input {
+  min-height: var(--control-h);
+  padding: 0;
+  font-size: var(--t-sm);
+  background: transparent;
+  border: 0;
+}
+
+.sidebar-search input:focus-visible {
+  outline: none;
+}
+
+.sidebar-tree {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 var(--s2) var(--s4);
+}
+
+/* En rad i trädet: bokhylla, kortlek eller navigering. */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s2);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar-item:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.sidebar-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+
+.sidebar-item svg {
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+
+/* Antalet förfallna kort. Monospace så att talen står i kolumn. */
+.sidebar-count {
+  margin-left: auto;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.sidebar-item.active .sidebar-count {
+  color: var(--accent);
+}
+
+.sidebar-shelf-item {
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.sidebar-sub-item,
+.sidebar-deck-item {
+  padding-left: var(--s5);
+}
+
+.sidebar-group-label {
+  padding: var(--s4) var(--s2) var(--s1);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s3);
+  border-top: 1px solid var(--line);
+}
+
+.sync-status {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sync-status[data-state='syncing'] {
+  color: var(--accent);
+}
+.sync-status[data-state='error'] {
+  color: var(--danger);
+}
+.sync-status[data-state='offline'] {
+  color: var(--text-2);
+}
+
+/* ======================================================================
+ * INNEHÅLLSYTA
+ * ====================================================================== */
+
+#app-container {
+  min-height: 100dvh;
+  margin-left: var(--sidebar-w);
+  padding: var(--s5) var(--s6) var(--s8);
+  transition: margin-left var(--dur) var(--ease);
+}
+
+.app-main {
+  max-width: 62rem;
+  margin: 0 auto;
+}
+
+/* Infälld sidopanel: innehållet tar hela bredden. */
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+
+body.sidebar-collapsed #app-container {
+  margin-left: 0;
+}
+
+.sidebar-toggle {
+  position: fixed;
+  top: var(--s3);
+  left: var(--s3);
+  z-index: 110;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+body.sidebar-collapsed .sidebar-toggle {
+  display: inline-flex;
+}
+
+/* ======================================================================
+ * BRÖDSMULOR
+ * ====================================================================== */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  margin-bottom: var(--s4);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.breadcrumb a,
+.breadcrumb span[onclick],
+.breadcrumb .crumb {
+  color: var(--text-2);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.breadcrumb .crumb:hover {
+  color: var(--text-1);
+}
+
+.breadcrumb .crumb-current {
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.breadcrumb .crumb-sep {
+  color: var(--line-strong);
+}
+
+/* ======================================================================
+ * VYER
+ * ====================================================================== */
+
+.view {
+  animation: view-in var(--dur) var(--ease);
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Sidhuvudet i en vy: rubrik till vänster, handlingar till höger. */
+.view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-bottom: var(--s5);
+}
+
+.view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+/* ======================================================================
+ * MOBIL
+ *
+ * Sidopanelen blir ett överlägg. Innehållet tappar sin marginal och får
+ * mindre luft i sidled — på 390 pixlar är varje pixel innehåll värd mer än
+ * marginal.
+ * ====================================================================== */
+
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  /* Klickyta som stänger panelen. Utan den är enda vägen ut den lilla
+   * infällningsknappen, vilket är en dålig träffyta på telefon. */
+  body.sidebar-open::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: rgb(23 24 26 / 24%);
+  }
+
+  #app-container {
+    margin-left: 0;
+    padding: var(--s6) var(--s4) var(--s8);
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+
+  body.sidebar-collapsed .sidebar-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 600px) {
+  #app-container {
+    padding: var(--s6) var(--s3) var(--s8);
+  }
+
+  .view-header {
+    margin-bottom: var(--s4);
+  }
+}
