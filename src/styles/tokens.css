@@ -130,10 +130,41 @@
 
   --focus: var(--accent);
 
-  /* Rörelse. Kort och rak — en app man använder hundra gånger om dagen ska
-   * inte animera. */
-  --ease: cubic-bezier(0.2, 0, 0.13, 1);
-  --dur: 120ms;
+  /* --- Rörelse ----------------------------------------------------------
+   *
+   * Rörelsen är inte dekoration. Den är appens sätt att svara: att säga "jag
+   * hörde dig" innan något hunnit hända, och att visa var en sak kom ifrån så
+   * att man slipper leta efter den.
+   *
+   * Fyra tempon, och de betyder olika saker:
+   *   1  Färg och kant byter. Ska kännas omedelbart, inte animerat.
+   *   2  Något kommer in eller går ut på plats.
+   *   3  En hel yta byts — en vy, ett överlägg.
+   *   4  Ett besked som ska hinna landa: klart, sparat, rätt.
+   *
+   * Kurvorna: allt som kommer in bromsar in (ease-out), allt som lämnar
+   * accelererar bort (ease-in). Fjädern har en knapp översläng och används
+   * bara på tryck och på det som ska kännas taktilt — aldrig på text.
+   */
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 320ms;
+  --dur-4: 480ms;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* Hur långt något reser när det kommer in, och hur mycket en kontroll ger
+   * efter under fingret. Sex pixlar är precis nog för att ögat ska se en
+   * riktning utan att raden hoppar. */
+  --rise: 6px;
+  --press: 0.985;
+
+  /* Kvar för de regler som ännu inte flyttat till skalan ovan. */
+  --ease: var(--ease-soft);
+  --dur: var(--dur-1);
 }
 
 /* Finger i stället för mus: alla kontroller växer till träffbar storlek.
@@ -146,8 +177,16 @@
   }
 }
 
+/* Den som bett systemet om mindre rörelse ska få noll, inte mindre. Alla
+ * varaktigheter nollas här, så att ingen regel behöver fråga själv. */
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --dur-1: 0ms;
+    --dur-2: 0ms;
+    --dur-3: 0ms;
+    --dur-4: 0ms;
     --dur: 0ms;
+    --rise: 0px;
+    --press: 1;
   }
 }

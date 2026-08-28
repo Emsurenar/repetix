@@ -19,7 +19,7 @@
   padding-bottom: var(--s3);
   background: var(--surface-2);
   border-right: 1px solid var(--line);
-  transition: transform var(--dur) var(--ease);
+  transition: transform var(--dur-3) var(--ease-out);
 }
 
 .sidebar-header {
@@ -70,8 +70,27 @@
   border-radius: var(--r-sm);
 }
 
+/* Sökfältet svarar på att man ställt sig i det. Kanten byter ton och ytan
+ * lyfts en nyans — inte för att det ska synas, utan för att man ska veta att
+ * nästa tangenttryck hamnar där. */
+.sidebar-search {
+  transition:
+    border-color var(--dur-1) var(--ease-soft),
+    background var(--dur-1) var(--ease-soft);
+}
+
 .sidebar-search:focus-within {
+  background: var(--surface-1);
   border-color: var(--accent);
+}
+
+/* Tangentmärket är en genväg man inte behöver när man redan skriver. */
+.sidebar-search .kbd {
+  transition: opacity var(--dur-1) var(--ease-soft);
+}
+
+.sidebar-search:focus-within .kbd {
+  opacity: 0;
 }
 
 .sidebar-search-trigger {
@@ -257,13 +276,31 @@
   border-top: 1px solid var(--line);
 }
 
+/* Synkläget. En prick och ett ord, på samma indrag som raderna ovanför —
+ * det är en upplysning om appen, inte en av dess handlingar, och ska därför
+ * väga mindre utan att hamna på ett eget avstånd. */
 .sync-status {
-  padding: var(--s2) var(--s2) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--row-h);
+  padding: 0 var(--s2);
   font-size: var(--t-xs);
   color: var(--text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sync-status::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  /* Samma bredd som radernas ikoner, så att texten linjerar med dem. */
+  margin: 0 5px;
+  border-radius: 50%;
+  background: currentcolor;
 }
 
 .sync-status[data-state='syncing'] {
@@ -284,7 +321,14 @@
   min-height: 100dvh;
   margin-left: var(--sidebar-w);
   padding: var(--s6) var(--s6) var(--s8);
-  transition: margin-left var(--dur) var(--ease);
+  /* Innehållet får en yttersta bredd. Utan den breder rutnätet ut sig över
+   * hela en bred skärm och kortleken längst till höger hamnar en halv meter
+   * från den längst till vänster — sidan slutar vara en komposition och blir
+   * en yta. Måttet ligger över mockupens 1280, så att den ser likadan ut där. */
+  --content-max: 82rem;
+  transition:
+    margin-left var(--dur-3) var(--ease-out),
+    padding-top var(--dur-3) var(--ease-out);
 }
 
 .app-main {
@@ -299,6 +343,9 @@ body.sidebar-collapsed .sidebar {
 
 body.sidebar-collapsed #app-container {
   margin-left: 0;
+  /* Knappen är fast i övre vänstra hörnet så snart panelen är infälld. Utan
+   * luften hamnar vyns rubrik bakom den. Måttet är knappens eget. */
+  padding-top: calc(var(--s3) * 2 + var(--control-h));
 }
 
 /* Fokusläge: repetitionen tar hela ytan.
@@ -371,7 +418,13 @@ body.sidebar-collapsed .sidebar-toggle {
   text-decoration: none;
 }
 
-.breadcrumb .crumb:hover {
+.breadcrumb .crumb,
+.breadcrumb .breadcrumb-item {
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+.breadcrumb .crumb:hover,
+.breadcrumb .breadcrumb-item:not(.active):hover {
   color: var(--text-1);
 }
 
@@ -388,17 +441,14 @@ body.sidebar-collapsed .sidebar-toggle {
  * VYER
  * ====================================================================== */
 
-.view {
-  animation: view-in var(--dur) var(--ease);
-}
+/* Vyns intoning ligger i motion.css tillsammans med resten av rörelsen. */
 
-@keyframes view-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Varje vy håller sig inom innehållsbredden. Marginalen är auto så att
+ * spalten står i mitten när fönstret är bredare än så. */
+.view,
+#breadcrumb {
+  max-width: var(--content-max);
+  margin-inline: auto;
 }
 
 /* Sidhuvudet i en vy: rubrik till vänster, handlingar till höger. Knapparna
@@ -411,6 +461,13 @@ body.sidebar-collapsed .sidebar-toggle {
   flex-wrap: wrap;
   gap: var(--s5);
   margin-bottom: var(--s6);
+}
+
+/* Vyrubriken har en grad, inte två. h1 är 32 px i basen, vilket gjorde
+ * formulärvyerna påtagligt tyngre än biblioteket och kortleken bredvid dem —
+ * en rubrik ska tala om var man är, inte hur viktig sidan är. */
+.view-header h1 {
+  font-size: var(--t-xl);
 }
 
 .view-actions {

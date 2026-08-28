@@ -48,14 +48,24 @@
   gap: var(--s3);
 }
 
+/* Rutans höjd är en uppmaning. Sju rader bad om ett stycke i ett fält där de
+ * flesta skriver en mening, och tre sådana rutor staplade gjorde formuläret
+ * till en vägg av tomma lådor. */
 .form-group textarea {
-  min-height: 7rem;
+  min-height: 4.5rem;
 }
 
-/* Ett valfritt fält ska se valfritt ut. Rutans höjd är en uppmaning: sju rader
- * ber om ett stycke, tre ber om en mening när man har en. */
+/* Ett valfritt fält får inte be om mer än de obligatoriska. */
 .form-group textarea.textarea-short {
-  min-height: 4.5rem;
+  min-height: 3rem;
+}
+
+/* Handlingen står under formuläret, i sin egen bredd. Som band över hela
+ * spalten vägde den lika mycket som allt annat tillsammans. */
+.form-actions {
+  display: flex;
+  gap: var(--s2);
+  padding-top: var(--s2);
 }
 
 /* "valfritt" bredvid etiketten. Ett upplysande ord, inte en åtgärd — därför
@@ -100,12 +110,25 @@
 
 /* Den destruktiva utgången i en vy står ensam längst ned, bakom en linje och
  * med luft omkring sig. Den ska inte gå att träffa på väg någon annanstans. */
+/* Den destruktiva utgången står ensam längst ned, bakom en linje och med luft
+ * omkring sig. Vänsterställd och tyst: centrerad såg den ut som sidans slutsats
+ * i stället för som dess sista utväg. */
 .view-danger-zone {
   display: flex;
-  justify-content: center;
-  margin-top: var(--s7);
+  margin-top: var(--s8);
   padding-top: var(--s5);
   border-top: 1px solid var(--line);
+}
+
+.view-danger-zone .btn {
+  color: var(--text-3);
+  background: transparent;
+  border-color: transparent;
+}
+
+.view-danger-zone .btn:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* ----------------------------------------------------------------------
@@ -116,13 +139,15 @@
  * stället för att låsas till ett antal.
  * -------------------------------------------------------------------- */
 
+/* Bild, stil och mapp. Var en ifylld ruta med tre kontroller inuti — en låda
+ * i en spalt som redan bestod av lådor. En hårfin linje ovanför säger samma
+ * sak: här slutar kortets innehåll och här börjar dess inställningar. */
 .form-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: var(--s4);
-  padding: var(--s4);
-  background: var(--surface-2);
-  border-radius: var(--r-md);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
 }
 
 .grid-item {
@@ -184,17 +209,15 @@
   height: 1px;
 }
 
+/* Kryssrutan är en kryssruta, inte en knapp. Ramen runt den gjorde ett val
+ * som är av eller på till ännu en ruta i raden. */
 .grid-option-box {
   display: flex;
   align-items: center;
   gap: var(--s2);
   min-height: var(--control-h);
-  padding: 0 var(--s3);
   font-size: var(--t-sm);
   color: var(--text-1);
-  background: var(--surface-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-md);
 }
 
 .grid-checkmark {
@@ -208,8 +231,6 @@
 }
 
 .checkbox-grid-option input:checked + .grid-option-box {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -231,7 +252,7 @@
   transform: rotate(45deg);
 }
 
-.checkbox-grid-option input:focus-visible + .grid-option-box {
+.checkbox-grid-option input:focus-visible + .grid-option-box .grid-checkmark {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }

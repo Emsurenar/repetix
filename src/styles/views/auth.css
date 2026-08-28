@@ -268,14 +268,14 @@
 .settings-section {
   max-width: 44rem;
   margin: 0 0 var(--s5);
-  padding: var(--s5) var(--s6) var(--s6);
+  padding: var(--s2) var(--s6) var(--s5);
   background: var(--surface-1);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
 }
 
 .settings-section-head {
-  margin-bottom: var(--s5);
+  padding: var(--s5) 0 0;
 }
 
 .settings-section-title {
@@ -291,71 +291,113 @@
   color: var(--text-2);
 }
 
-.settings-group + .settings-group {
-  margin-top: var(--s6);
-  padding-top: var(--s5);
-  border-top: 1px solid var(--line);
-}
-
-.settings-group-title {
-  margin: 0 0 var(--s2);
-  font-size: var(--t-micro);
-  font-weight: 500;
-  letter-spacing: var(--track-wide);
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-/* Etikett till vänster, kontroll till höger. Etikettkolumnen är två steg ur
- * rumsskalan i stället för ett påhittat mått, så att den följer med om skalan
- * någonsin ändras. */
-.settings-field {
+/* En rad: etikett till vänster, det raden gör till höger, hårfin linje över.
+ * Avsnittet hade tidigare rubrik, undergrupp med egen versal rubrik och
+ * därunder raderna — tre lager runt fyra val. */
+.set-row {
   display: grid;
-  grid-template-columns: calc(var(--s8) * 2) minmax(0, 1fr);
+  grid-template-columns: 10.5rem minmax(0, 1fr);
   align-items: start;
   gap: var(--s2) var(--s5);
-  padding: var(--s4) 0;
-}
-
-/* Hårfin linje mellan raderna, aldrig runt dem. */
-.settings-field + .settings-field {
+  padding: 28px 0;
   border-top: 1px solid var(--line);
 }
 
-.settings-field > label {
-  grid-column: 1;
-  grid-row: 1;
-  padding-top: var(--s2);
+.set-label {
+  padding-top: 6px;
   font-size: var(--t-md);
   font-weight: 500;
   color: var(--text-1);
 }
 
-/* Allt utom etiketten hamnar i högerkolumnen; radordningen sköter rutnätet
- * själv utifrån källordningen kontroll, ledtext. */
-.settings-field > :not(label) {
-  grid-column: 2;
-}
-
-.settings-input {
-  max-width: 22rem;
-}
-
-.settings-hint {
-  margin: 0;
+.set-hint {
+  margin: var(--s2) 0 0;
   font-size: var(--t-sm);
-  line-height: var(--lh-normal);
+  line-height: 1.5;
   color: var(--text-3);
 }
 
-/* Modell-id och nyckel är maskinsträngar, inte text. Monospace gör att de
- * läses tecken för tecken — vilket är precis vad man gör när man jämför en
- * nyckel med den man kopierade. */
-#settings-model,
-#settings-model-custom,
-#settings-api-key {
-  font-family: var(--font-data);
+/* Fältet och dess knapp på en rad: nyckeln klistras in och sparas i samma
+ * rörelse, utan att blicken behöver leta efter knappen längre ned. */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.field-row .field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field {
+  width: 100%;
+  max-width: 22rem;
+}
+
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  max-width: 22rem;
+}
+
+/* Leverantörsväljaren. Fyra alternativ bredvid varandra i stället för en
+ * meny: valet man gjort går att jämföra med de man inte gjort. */
+.seg {
+  display: inline-flex;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+.seg-item {
+  position: relative;
+  display: inline-flex;
+}
+
+.seg-item input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.seg-item > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h);
+  padding: 0 var(--s4);
   font-size: var(--t-sm);
+  color: var(--text-2);
+  border-right: 1px solid var(--line);
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.seg-item:last-child > span {
+  border-right: 0;
+}
+
+.seg-item input:checked + span {
+  font-weight: 500;
+  color: var(--text-1);
+  background: var(--surface-1);
+}
+
+.seg-item input:focus-visible + span {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.seg-item input:disabled + span {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .settings-actions {
@@ -427,21 +469,11 @@
 
   /* En kolumn: 128 pixlar etikett plus ett fält får inte plats på 360 utan
    * att fältet blir oanvändbart smalt. */
-  .settings-field {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--s1);
-    padding: var(--s3) 0;
-  }
+  
 
-  .settings-field > label {
-    grid-column: 1;
-    grid-row: auto;
-    padding-top: 0;
-  }
+  
 
-  .settings-field > :not(label) {
-    grid-column: 1;
-  }
+  
 
   .settings-input {
     max-width: none;

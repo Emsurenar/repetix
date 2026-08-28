@@ -101,6 +101,14 @@ export const renderSidebar = () => {
     }
 
     tree.innerHTML = html;
+    /* Under en sökning ritas trädet om vid varje tangenttryck. Då ska raderna
+     * bara byta, inte lägga sig på plats en gång till. */
+    tree.classList.toggle('stagger', !filter);
+    if (!filter) {
+        tree.classList.add('is-entering');
+        clearTimeout(tree._entryTimer);
+        tree._entryTimer = setTimeout(() => tree.classList.remove('is-entering'), 700);
+    }
 
     tree.querySelectorAll('[data-deck-id]').forEach((el) => {
         el.addEventListener('click', () => openDeck(el.dataset.deckId));

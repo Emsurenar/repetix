@@ -91,7 +91,17 @@ const renderLibrarySummary = () => {
     // Svenskt tusentalsavstånd: 1 340 läses snabbare än 1340 i en kolumn.
     const fmt = (n) => n.toLocaleString('sv-SE');
 
+    /* Talet bekräftar sin egen ändring en gång och är sedan tyst. Utan det
+     * byter siffran i tysthet medan man tittar någon annanstans, och man får
+     * aldrig veta att repetitionen räknades. */
+    const forra = dueEl.textContent;
     dueEl.textContent = fmt(due);
+    if (forra && forra !== dueEl.textContent) {
+        dueEl.classList.remove('is-updated');
+        // Framtvingar omstart av animationen även när klassen precis togs bort.
+        void dueEl.offsetWidth;
+        dueEl.classList.add('is-updated');
+    }
     // Accent bara när det finns något kvar att göra. En nolla ska inte ropa.
     dueEl.classList.toggle('is-accent', due > 0);
     streakEl.textContent = fmt(currentStreak(counts));
@@ -99,6 +109,8 @@ const renderLibrarySummary = () => {
 };
 
 export const renderLibrary = () => {
+    document.getElementById('library-summary')?.removeAttribute('hidden');
+    document.getElementById('dagens-mapp-container')?.removeAttribute('hidden');
     renderLibrarySummary();
     renderDagensMapp();
     deckList.innerHTML = '';
@@ -124,13 +136,27 @@ export const renderLibrary = () => {
     };
 
     if (S.appData.decks.length === 0 && S.appData.notebooks.length === 0 && S.appData.bookshelves.length === 0) {
+        /* Tre nollor är inget att visa någon som inte hunnit börja. Nyckeltalen
+         * och dagens mapp döljs tills de har något att säga, så att sidan har
+         * en enda sak på sig: inbjudan. */
+        document.getElementById('library-summary')?.setAttribute('hidden', '');
+        document.getElementById('dagens-mapp-container')?.setAttribute('hidden', '');
+
+        /* Ett tomt läge är en inbjudan, inte ett kvitto på att det är tomt.
+         * Den gamla texten pekade dessutom på en knapp som heter något annat
+         * numera, och lämnade läsaren utan något att trycka på. */
         deckList.innerHTML = `<div class="empty-state">
             <div class="empty-state-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="11" x2="13" y2="11"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="11" x2="13" y2="11"/></svg>
             </div>
-            <h3>Inga kortlekar eller anteckningsblock än</h3>
-            <p>Tryck "Ny" ovan för att skapa din första kortlek och börja lära dig.</p>
+            <h3>Här börjar det</h3>
+            <p>Skapa en kortlek och lägg in det du vill minnas. Repetix håller reda på när du ska se varje kort igen.</p>
+            <div class="empty-state-actions">
+                <button type="button" class="btn primary" data-empty-action="create">Skapa din första kortlek</button>
+            </div>
         </div>`;
+        deckList.querySelector('[data-empty-action="create"]')
+            ?.addEventListener('click', () => document.getElementById('btn-create-item-top').click());
         return;
     }
 

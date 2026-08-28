@@ -236,17 +236,35 @@ function formateraTid(iso) {
   });
 }
 
+/* Leverantören är en segmenterad kontroll, inte en meny: fyra alternativ får
+ * plats bredvid varandra, och det man valt går att jämföra med det man inte
+ * valt. Läsning och skrivning går genom de tre hjälparna här, så att resten av
+ * filen slipper veta att kontrollen är fyra radioknappar. */
+function valdLeverantor() {
+  return document.querySelector('#settings-provider input:checked')?.value ?? PROVIDERS[0].id;
+}
+
+function valjLeverantor(id) {
+  const input = document.querySelector(`#settings-provider input[value="${id}"]`);
+  if (input) input.checked = true;
+}
+
+function sattLeverantorLast(last) {
+  document.querySelectorAll('#settings-provider input').forEach((i) => {
+    i.disabled = last;
+  });
+}
+
 /** Fyller leverantörsväljaren. Görs en gång, listan är statisk. */
 function renderaLeverantorer() {
-  const select = el('settings-provider');
-  if (!select) return;
-  select.innerHTML = '';
-  for (const p of PROVIDERS) {
-    const option = document.createElement('option');
-    option.value = p.id;
-    option.textContent = p.label;
-    select.appendChild(option);
-  }
+  const grupp = el('settings-provider');
+  if (!grupp) return;
+  grupp.innerHTML = PROVIDERS.map(
+    (p, i) => `<label class="seg-item">
+        <input type="radio" name="settings-provider" value="${p.id}" ${i === 0 ? 'checked' : ''} aria-label="${p.label}">
+        <span>${p.label}</span>
+      </label>`
+  ).join('');
 }
 
 /**
@@ -302,7 +320,7 @@ function renderaNyckelstatus() {
   const deleteBtn = el('btn-settings-delete-key');
   if (!statusNode || !ovrigaNode || !deleteBtn) return;
 
-  const providerId = el('settings-provider')?.value ?? '';
+  const providerId = valdLeverantor();
   const status = keyStatus.get(providerId);
 
   if (!getUserId()) {
@@ -366,7 +384,6 @@ function renderaInloggningslage() {
   // Kontrollerna stängs av i stället för att döljas, så att användaren ser vad
   // som väntar efter inloggningen.
   for (const id of [
-    'settings-provider',
     'settings-model',
     'settings-model-custom',
     'settings-api-key',
@@ -377,6 +394,7 @@ function renderaInloggningslage() {
     const node = el(id);
     if (node) node.disabled = !inloggad;
   }
+  sattLeverantorLast(!inloggad);
 
   if (emailNode) {
     emailNode.textContent = inloggad
@@ -399,21 +417,16 @@ async function uppdatera() {
     // standardmodell så att vyn ser ut som den kommer att göra efter
     // inloggning, i stället för att öppna fritextfältet i onödan.
     keyStatus.clear();
-    const providerId = el('settings-provider')?.value ?? PROVIDERS[0].id;
+    const providerId = valdLeverantor();
     renderaModeller(providerId, defaultModelFor(providerId));
     renderaNyckelstatus();
     return;
   }
 
   const val = await laddaVal();
-  const providerSelect = el('settings-provider');
-  if (providerSelect) {
-    providerSelect.value = isKnownProvider(val?.provider) ? val.provider : PROVIDERS[0].id;
-  }
-  renderaModeller(
-    providerSelect?.value ?? PROVIDERS[0].id,
-    val?.model || defaultModelFor(providerSelect?.value ?? PROVIDERS[0].id)
-  );
+  valjLeverantor(isKnownProvider(val?.provider) ? val.provider : PROVIDERS[0].id);
+  const providerId = valdLeverantor();
+  renderaModeller(providerId, val?.model || defaultModelFor(providerId));
 
   await laddaNyckelstatus();
 }
@@ -474,7 +487,7 @@ function setBusy(btn, pagar, text) {
 
 async function onSparaVal() {
   if (busy) return;
-  const provider = el('settings-provider')?.value ?? '';
+  const provider = valdLeverantor();
   const model = valdModell();
 
   if (!model) {
@@ -496,7 +509,7 @@ async function onSparaNyckel() {
   if (busy) return;
   const input = el('settings-api-key');
   const nyckel = (input?.value ?? '').trim();
-  const provider = el('settings-provider')?.value ?? '';
+  const provider = valdLeverantor();
 
   if (!nyckel) {
     visaMeddelande('Klistra in en nyckel först.', 'fel');
@@ -542,7 +555,7 @@ async function onSparaNyckel() {
 
 async function onTaBortNyckel() {
   if (busy) return;
-  const provider = el('settings-provider')?.value ?? '';
+  const provider = valdLeverantor();
   const ok = await showConfirmModal(
     'Ta bort nyckeln?',
     `Nyckeln för ${providerLabel(provider)} raderas från servern. AI-funktionerna slutar fungera tills du lägger in en ny.`,
@@ -627,7 +640,7 @@ export function initSettings() {
   });
 
   el('settings-provider')?.addEventListener('change', () => {
-    const providerId = el('settings-provider').value;
+    const providerId = valdLeverantor();
     renderaModeller(providerId, defaultModelFor(providerId));
     renderaNyckelstatus();
     doljMeddelande();

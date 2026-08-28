@@ -100,7 +100,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--s2);
-  margin-bottom: var(--s6);
+  margin-bottom: var(--s5);
 }
 
 /* ======================================================================
@@ -114,7 +114,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s4);
-  margin-bottom: var(--s6);
+  margin-bottom: var(--s7);
 }
 
 .deck-ai-summary,
@@ -251,15 +251,37 @@
 .section-chevron {
   flex: 0 0 auto;
   color: var(--text-3);
-  transition: transform var(--dur) var(--ease);
+  transition: transform var(--dur-2) var(--ease-out);
 }
 
 .section-container.collapsed .section-chevron {
   transform: rotate(-90deg);
 }
 
+/* Mappen fälls ihop i stället för att försvinna. Rutnätets radhöjd går från
+ * noll till innehållets — det är den enda tekniken som kan animera "så högt
+ * som innehållet är" utan att någon räknar ut pixlar i JS.
+ *
+ * display: none klippte bort raderna i en bildruta, och den som fällde ihop
+ * en mapp fick aldrig veta om innehållet gömdes eller togs bort. */
+.section-items {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--dur-3) var(--ease-out);
+}
+
+.section-items > * {
+  min-height: 0;
+}
+
 .section-container.collapsed .section-items {
-  display: none;
+  grid-template-rows: 0fr;
+}
+
+/* Innehållet måste klippas medan raden krymper, annars ligger korten kvar
+ * ovanpå mappen under. */
+.section-container.collapsed .section-items > * {
+  overflow: hidden;
 }
 
 .section-count {
@@ -465,12 +487,25 @@
  * ligga i vägen för det man kom hit för att göra.
  * ====================================================================== */
 
+/* Den destruktiva utgången står ensam längst ned, bakom en linje och med luft
+ * omkring sig. Vänsterställd och tyst: centrerad såg den ut som sidans slutsats
+ * i stället för som dess sista utväg. */
 .deck-danger-zone {
   display: flex;
-  justify-content: center;
-  margin-top: var(--s7);
+  margin-top: var(--s8);
   padding-top: var(--s5);
   border-top: 1px solid var(--line);
+}
+
+.deck-danger-zone .btn {
+  color: var(--text-3);
+  background: transparent;
+  border-color: transparent;
+}
+
+.deck-danger-zone .btn:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* ======================================================================

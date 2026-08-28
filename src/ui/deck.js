@@ -297,13 +297,21 @@ export const renderCards = (cards) => {
     if (!deck) return;
 
     if (cards.length === 0 && deck.sections.length === 0) {
-        cardList.innerHTML = `<div class="empty-state" style="padding: 2rem;">
+        cardList.innerHTML = `<div class="empty-state">
             <div class="empty-state-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 9v6"/><path d="M9 12h6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 9v6"/><path d="M9 12h6"/></svg>
             </div>
-            <h3>Denna kortlek är tom</h3>
-            <p>Börja med att lägga till ett nytt kort i verktygsmenyn ovan.</p>
+            <h3>Kortleken väntar på sitt första kort</h3>
+            <p>Skriv in ett själv, eller låt AI:n föreslå kort utifrån ett ämne eller en text du klistrar in.</p>
+            <div class="empty-state-actions">
+                <button type="button" class="btn primary" data-empty-action="card">Nytt kort</button>
+                <button type="button" class="btn" data-empty-action="ai">AI-generera</button>
+            </div>
         </div>`;
+        cardList.querySelector('[data-empty-action="card"]')
+            ?.addEventListener('click', () => document.getElementById('btn-add-card').click());
+        cardList.querySelector('[data-empty-action="ai"]')
+            ?.addEventListener('click', () => document.getElementById('btn-open-topic-generator').click());
         return;
     }
 

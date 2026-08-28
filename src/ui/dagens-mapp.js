@@ -123,7 +123,7 @@ export const renderDagensMapp = () => {
                     <p class="today-folder-meta num">${escapeHtml(dagens.sectionTitle)} · ${totalCards} kort</p>
                 </div>
                 <div class="today-folder-actions">
-                    <button type="button" class="btn" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Öppna mappen</button>
+                    <button type="button" class="btn text" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Öppna mappen</button>
                 </div>
             </section>
         `;
@@ -141,7 +141,7 @@ export const renderDagensMapp = () => {
                 </p>
             </div>
             <div class="today-folder-actions">
-                <button type="button" class="btn" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Gå till mappen</button>
+                <button type="button" class="btn text" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Gå till mappen</button>
                 <button type="button" class="btn primary lg" onclick="studyDagensMapp('${dagens.deckId}', '${dagens.sectionId}')">Repetera mappen</button>
             </div>
         </section>

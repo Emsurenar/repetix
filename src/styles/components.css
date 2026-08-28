@@ -47,10 +47,21 @@
   background: var(--surface-3);
 }
 
+/* Avstängd är ett tillstånd, inte en utsuddning. Halvgenomskinlig text blir
+ * oläslig och ser trasig ut; en tystare ton säger samma sak och går fortfarande
+ * att läsa — man ska kunna se VAD som väntar på att bli möjligt. */
 .btn:disabled,
 .btn[aria-disabled='true'] {
-  opacity: 0.45;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-color: var(--line);
   cursor: not-allowed;
+}
+
+.btn.primary:disabled {
+  color: var(--text-3);
+  background: var(--surface-3);
+  border-color: var(--line);
 }
 
 .btn:disabled:hover {
@@ -205,7 +216,9 @@ textarea {
   color: var(--text-1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-md);
+  /* Samma radie som knapparna. Åtta pixlar på ett fält som är fyra rader högt
+   * läser som en låda; sex håller kvar formen som ett fält. */
+  border-radius: var(--r-sm);
 }
 
 textarea {
@@ -219,9 +232,19 @@ textarea::placeholder {
   color: var(--text-3);
 }
 
+/* Fältet svarar på fokus med sin kant, inte med en ram runt om. Ringen ligger
+ * kvar för tangentbordet via :focus-visible i base.css. */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 input:disabled,
 select:disabled,
 textarea:disabled {
+  color: var(--text-3);
   background: var(--surface-2);
   color: var(--text-3);
   cursor: not-allowed;
@@ -327,6 +350,10 @@ textarea:disabled {
  * MODALER
  * ====================================================================== */
 
+/* Överlägget lägger en aning oskärpa över sidan bakom. Det är inte en skugga
+ * — designen har inga — utan ett annat sorts djup: sidan finns kvar, men den
+ * är inte det man håller på med. Två pixlar räcker; mer och det blir en
+ * effekt i stället för en bakgrund. */
 .modal {
   position: fixed;
   inset: 0;
@@ -335,7 +362,9 @@ textarea:disabled {
   align-items: center;
   justify-content: center;
   padding: var(--s4);
-  background: rgb(23 24 26 / 32%);
+  background: rgb(23 24 26 / 24%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .modal-content {
@@ -420,15 +449,71 @@ textarea:disabled {
  * TOMMA LÄGEN
  * ====================================================================== */
 
+/* Tomma lägen. De ska bära en handling, inte bara ett konstaterande — den
+ * som just kommit hit ska kunna trycka på något utan att först leta. */
 .empty-state {
-  padding: var(--s7) var(--s5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--s8) var(--s5);
   text-align: center;
   color: var(--text-2);
 }
 
-.empty-state h2 {
+.empty-state h2,
+.empty-state h3 {
   margin-bottom: var(--s2);
+  font-size: var(--t-lg);
   color: var(--text-1);
+}
+
+.empty-state p {
+  max-width: 42ch;
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-3);
+}
+
+/* ----------------------------------------------------------------------
+ * KLART
+ *
+ * Ringen sluter sig och bocken dras. Det tar en halv sekund, händer en gång,
+ * och är den enda platsen i appen där något ritar sig självt — just för att
+ * det ska betyda något när det gör det.
+ * -------------------------------------------------------------------- */
+
+.done-view h1 {
+  margin-bottom: var(--s2);
+  font-size: var(--t-2xl);
+}
+
+.done-view .modal-lead {
+  max-width: 42ch;
+  margin: 0 0 var(--s6);
+  font-size: var(--t-md);
+  color: var(--text-2);
+}
+
+.done-mark {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--s5);
+  color: var(--accent);
+}
+
+.done-mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s2);
+  margin-top: var(--s5);
 }
 
 /* ======================================================================

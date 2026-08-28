@@ -1,0 +1,412 @@
+/* Rörelselagret.
+ *
+ * Rörelsen är appens sätt att svara. Den ska säga "jag hörde dig" innan något
+ * hunnit hända, och visa var en sak kom ifrån så att man slipper leta efter
+ * den. Den ska aldrig be om uppmärksamhet för sin egen skull.
+ *
+ * Tre regler som allt här följer:
+ *
+ *   Allt som kommer in bromsar in och reser en aning nedifrån. Allt som lämnar
+ *   accelererar bort utan att resa. Det gör att ögat vet vad som är på väg in
+ *   och vad som är på väg ut utan att läsa något.
+ *
+ *   Ingenting rör sig längre än sex pixlar. En rörelse som syns som rörelse är
+ *   för stor; den ska bara göra att bytet känns mjukt.
+ *
+ *   Ingen varaktighet skrivs i millisekunder utanför tokens.css. Den som bett
+ *   systemet om mindre rörelse får noll, och det får inte bero på att varje
+ *   regel kommer ihåg att fråga.
+ *
+ * Laddas efter components.css och före vylagren.
+ */
+
+/* ======================================================================
+ * TRYCK
+ *
+ * Varje kontroll ger efter under fingret. Det är den billigaste och mest
+ * underskattade formen av artighet i ett gränssnitt: man vet att trycket togs
+ * emot innan man hunnit se resultatet av det.
+ *
+ * Nedtryckningen går fort och släpper långsamt — som ett tangentbord.
+ * ====================================================================== */
+
+.btn,
+.chip,
+.btn-icon,
+.sidebar-item,
+.sidebar-group-label,
+.deck-card,
+.list-item,
+.row-menu-toggle,
+.seg-item > span,
+.color-dot,
+.tb-bin,
+.arcade-mode {
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+.btn:active:not(:disabled),
+.chip:active,
+.btn-icon:active,
+.sidebar-item:active,
+.deck-card:active,
+.row-menu-toggle:active,
+.tb-bin:active,
+.arcade-mode:active:not(:disabled) {
+  transform: scale(var(--press));
+  /* Nedtryckningen ska vara omedelbar. Fjädringen hör till släppet. */
+  transition-duration: var(--dur-1);
+}
+
+/* Ett kort är en större yta och tål mindre eftergift än en knapp — annars ser
+ * hela rutnätet ut att andas när man råkar trycka. */
+.deck-card:active,
+.arcade-mode:active:not(:disabled) {
+  transform: scale(0.995);
+}
+
+/* ----------------------------------------------------------------------
+ * ATT SVÄVA
+ *
+ * Ett kort man kan öppna lyfter ett hårstrå när pekaren är över det. Det är
+ * inte en skugga och inte en ram som byter färg — det är att ytan kommer emot
+ * en. Bara med mus: på en pekskärm finns inget "över", och en yta som lyfter
+ * när man redan tryckt är brus.
+ * -------------------------------------------------------------------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .deck-card:hover,
+  .arcade-mode:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .deck-card:active,
+  .arcade-mode:active:not(:disabled) {
+    transform: translateY(0) scale(0.995);
+  }
+}
+
+/* ======================================================================
+ * FOKUS
+ *
+ * Ringen tonar in i stället för att klippa fram. Den som tabbar sig genom
+ * appen ska kunna följa med i vart fokus tar vägen, inte överraskas av att det
+ * plötsligt står någon annanstans.
+ * ====================================================================== */
+
+:focus-visible {
+  transition: outline-color var(--dur-1) var(--ease-out);
+}
+
+/* ======================================================================
+ * ATT KOMMA IN
+ *
+ * Två grundrörelser. Allt i appen använder någon av dem.
+ * ====================================================================== */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ytan som byts: en vy. Den reser lite kortare än sitt innehåll, så att
+ * innehållet ser ut att komma med den i stället för efter den.
+ *
+ * Bara vid ett faktiskt byte. Vyn ritas om av många andra skäl — en mapp som
+ * öppnas, ett kort som sparas — och en intoning då hade varit en blinkning
+ * mitt i något som skulle kännas sammanhängande. */
+.view.is-entering {
+  animation: rise-in var(--dur-3) var(--ease-out) both;
+}
+
+/* ======================================================================
+ * FÖRSKJUTNING
+ *
+ * En lista som tonar in i ett stycke ser ut som en bild som laddat. Samma
+ * lista med trettio millisekunder mellan raderna ser ut att lägga sig på
+ * plats, och ögat hinner uppfatta att det ÄR en lista.
+ *
+ * Fördröjningen räknas ur radens ordning i CSS och inte ur en variabel som JS
+ * måste sätta — renderingen ska inte behöva känna till att den animeras.
+ * Bortom tolfte raden är förskjutningen meningslös: då är man inte längre i
+ * början av listan med blicken.
+ * ====================================================================== */
+
+/* Förskjutningen hör till navigering, inte till rendering. Listorna ritas om
+ * varje gång data ändras — vid en sökning på varje tangenttryck — och en
+ * animation som spelas om då är inte längre en välkomst utan ett ryck.
+ * Klassen .is-entering sätts av vybytet och tas bort när rörelsen är över. */
+.is-entering .stagger > *,
+.stagger.is-entering > * {
+  animation: rise-in var(--dur-2) var(--ease-out) both;
+}
+
+.is-entering .stagger > *:nth-child(1),
+.stagger.is-entering > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.is-entering .stagger > *:nth-child(2),
+.stagger.is-entering > *:nth-child(2) {
+  animation-delay: 30ms;
+}
+.is-entering .stagger > *:nth-child(3),
+.stagger.is-entering > *:nth-child(3) {
+  animation-delay: 60ms;
+}
+.is-entering .stagger > *:nth-child(4),
+.stagger.is-entering > *:nth-child(4) {
+  animation-delay: 90ms;
+}
+.is-entering .stagger > *:nth-child(5),
+.stagger.is-entering > *:nth-child(5) {
+  animation-delay: 120ms;
+}
+.is-entering .stagger > *:nth-child(6),
+.stagger.is-entering > *:nth-child(6) {
+  animation-delay: 150ms;
+}
+.is-entering .stagger > *:nth-child(7),
+.stagger.is-entering > *:nth-child(7) {
+  animation-delay: 180ms;
+}
+.is-entering .stagger > *:nth-child(8),
+.stagger.is-entering > *:nth-child(8) {
+  animation-delay: 210ms;
+}
+.is-entering .stagger > *:nth-child(9),
+.stagger.is-entering > *:nth-child(9) {
+  animation-delay: 240ms;
+}
+.is-entering .stagger > *:nth-child(10),
+.stagger.is-entering > *:nth-child(10) {
+  animation-delay: 270ms;
+}
+.is-entering .stagger > *:nth-child(11),
+.stagger.is-entering > *:nth-child(11) {
+  animation-delay: 300ms;
+}
+.is-entering .stagger > *:nth-child(n + 12),
+.stagger.is-entering > *:nth-child(n + 12) {
+  animation-delay: 330ms;
+}
+
+/* ======================================================================
+ * MÄNGDER SOM RITAS
+ *
+ * Framstegslinjen och tickskalan visar hur mycket. När de växer fram i stället
+ * för att stå färdiga blir mängden något man ser hända — och kortet man just
+ * öppnat säger något om sig självt utan att skriva det.
+ *
+ * Bara vid vybyte. En stapel som växer om vid varje omritning skulle bli en
+ * blinkning man aldrig blir av med.
+ * ====================================================================== */
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.is-entering .progress > i {
+  transform-origin: left;
+  animation: bar-grow var(--dur-4) var(--ease-out) both;
+  /* Efter kortet, inte med det: ytan landar först, innehållet fyller i. */
+  animation-delay: 120ms;
+}
+
+.is-entering .ticks > i {
+  animation: fade-in var(--dur-2) var(--ease-out) both;
+}
+
+.is-entering .ticks > i:nth-child(2n) {
+  animation-delay: 40ms;
+}
+
+.is-entering .ticks > i:nth-child(3n) {
+  animation-delay: 80ms;
+}
+
+/* ======================================================================
+ * ÖVERLÄGG
+ *
+ * Bakgrunden tonar, panelen reser sig och växer den sista procenten på plats.
+ * Den ska kännas som att den kom fram ur sidan, inte som att den lades ovanpå.
+ * ====================================================================== */
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise)) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.modal:not(.hidden) {
+  animation: overlay-in var(--dur-2) var(--ease-out) both;
+}
+
+.modal:not(.hidden) .modal-content {
+  animation: panel-in var(--dur-3) var(--ease-out) both;
+}
+
+/* På telefon är dialogen ett bottenark. Då ska den komma nedifrån — den
+ * riktningen säger var arket ligger när det inte används. */
+@media (max-width: 600px) {
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(var(--rise) * 4));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .modal:not(.hidden) .modal-content {
+    animation: sheet-in var(--dur-3) var(--ease-out) both;
+  }
+}
+
+/* Radmenyn hör till raden den sitter på och ska därför resa sig ur den. */
+.row-menu[open] .row-menu-items {
+  animation: panel-in var(--dur-2) var(--ease-out) both;
+}
+
+/* ======================================================================
+ * BESKED
+ *
+ * En notis kommer nedifrån och lämnar samma väg. Fjädern får finnas här: det
+ * är ett besked man ska märka, och det är den enda platsen i appen där något
+ * har rätt att studsa.
+ * ====================================================================== */
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--rise) * 2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--rise) * 1.5));
+  }
+}
+
+.toast {
+  animation: toast-in var(--dur-3) var(--ease-spring) both;
+}
+
+.toast.is-leaving {
+  animation: toast-out var(--dur-2) var(--ease-in) forwards;
+}
+
+/* ======================================================================
+ * KLART
+ *
+ * Ringen och bocken ritas med streckmönster: linjen är lika lång som sig
+ * själv och förskjuts från helt osynlig till på plats. Bocken väntar tills
+ * ringen slutit sig — det är ordningen man skulle rita den i för hand.
+ * ====================================================================== */
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: var(--len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.done-ring {
+  --len: 132;
+  stroke-dasharray: var(--len);
+  animation: draw var(--dur-4) var(--ease-out) both;
+}
+
+.done-tick {
+  --len: 28;
+  stroke-dasharray: var(--len);
+  animation: draw var(--dur-3) var(--ease-out) both;
+  animation-delay: calc(var(--dur-4) * 0.55);
+}
+
+/* ======================================================================
+ * TAL SOM ÄNDRAS
+ *
+ * Ett tal som blivit mindre för att man gjort något ska bekräfta det, en
+ * gång, och sedan vara tyst. Klassen sätts av den som ändrar talet och tas
+ * bort av animationens slut.
+ * ====================================================================== */
+
+@keyframes count-settle {
+  0% {
+    transform: translateY(calc(var(--rise) * -0.5));
+    opacity: 0.4;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.is-updated {
+  animation: count-settle var(--dur-2) var(--ease-out);
+}
+
+/* ======================================================================
+ * MINDRE RÖRELSE
+ *
+ * Tokens nollar redan varaktigheterna. Det här stänger av själva
+ * nyckelbildsanimationerna också, så att ingenting kan starta i ett läge som
+ * det aldrig lämnar.
+ * ====================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

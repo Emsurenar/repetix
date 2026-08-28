@@ -8,6 +8,7 @@
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
+import './styles/motion.css';
 import './styles/layout.css';
 import './styles/views/library.css';
 import './styles/views/deck.css';

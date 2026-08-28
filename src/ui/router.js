@@ -16,6 +16,11 @@ export function onViewChange(fn) {
 
 // --- ROUTING / VIEW LOGIC ---
 export const switchView = (viewName, sectionId = null) => {
+    // Ett byte ar bara ett byte nar man faktiskt byter yta. Att oppna en mapp
+    // i en kortlek man redan star i gar ocksa genom den har funktionen, och
+    // utan jamforelsen hade hela vyn tonat in pa nytt varje gang — en blinkning
+    // mitt i en rorelse som skulle kannas sammanhangande.
+    const bytterVy = S.currentViewName !== viewName;
     S.currentViewName = viewName;
 
     // Vyn visas synkront. Tidigare doldes allt direkt och malvyn visades i en
@@ -29,6 +34,22 @@ export const switchView = (viewName, sectionId = null) => {
         v.classList.toggle('hidden', v !== views[viewName]);
     }
     window.scrollTo(0, 0);
+
+    /* Vyn markeras som inkommande sa lange rorelsen pagar. Forskjutningen i
+     * listorna hanger pa den klassen och spelas darfor en gang per byte, inte
+     * en gang per omritning — annars rycker biblioteket vid varje tangenttryck
+     * i soken. */
+    const inkommande = views[viewName];
+    if (inkommande && bytterVy) {
+        // Animationen maste startas om explicit: klassen far inte sitta kvar
+        // fran forra besoket, och en klass som bara laggs tillbaka startar
+        // ingen ny animation.
+        inkommande.classList.remove('is-entering');
+        void inkommande.offsetWidth;
+        inkommande.classList.add('is-entering');
+        clearTimeout(inkommande._entryTimer);
+        inkommande._entryTimer = setTimeout(() => inkommande.classList.remove('is-entering'), 700);
+    }
     // Repetitionen tar hela ytan. Sidopanelen ar bibliotekets navigering och
     // har inget arende mitt i ett pass.
     document.body.classList.toggle('focus-mode', viewName === 'study');

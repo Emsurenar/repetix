@@ -232,7 +232,13 @@ function updateAccountButton() {
   const btn = document.getElementById('btn-account');
   if (!btn) return;
   btn.hidden = false;
-  btn.textContent = getUserId() ? 'Logga ut' : 'Logga in';
+  /* Bara namnet byts. textContent pa hela knappen torkade bort ikonen, och
+   * raden hamnade darfor pa ett annat indrag an Spelhallen och Installningar
+   * strax ovanfor. */
+  const namn = btn.querySelector('.sidebar-item-name');
+  const text = getUserId() ? 'Logga ut' : 'Logga in';
+  if (namn) namn.textContent = text;
+  else btn.textContent = text;
 }
 
 function renderSyncStatus(state) {

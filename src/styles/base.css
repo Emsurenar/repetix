@@ -67,6 +67,37 @@ a {
   text-underline-offset: 2px;
 }
 
+/* Detaljer som ingen ser tills de saknas.
+ *
+ * Markering, textmarkör och den lilla ringen kring en vald kryssruta ärver
+ * appens accent i stället för webbläsarens blå. Det är den sista blå ytan i
+ * gränssnittet, och den syns varje gång man markerar ett ord. */
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+}
+
+/* En hoppande sida känns som ett byte, en glidande som en förflyttning. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 /* Varje tal i appen sätts i monospace med tabellsiffror, så att antal och
  * intervall står i kolumn i en lista i stället för att hoppa. */
 .num,

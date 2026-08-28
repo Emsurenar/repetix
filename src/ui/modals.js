@@ -103,9 +103,20 @@ function enter(overlay) {
   // öppnade dialogen — lämnar vi det i fred.
   if (overlay.contains(document.activeElement)) return;
 
-  const first = focusables(overlay)[0];
+  /* Har dialogen ett fält att skriva i är det där man ska stå. Att först
+   * fokusera stängkryssen och låta användaren tabba fram till namnrutan är en
+   * extra rörelse i varje dialog appen har — och den enda anledningen är att
+   * krysset råkar komma först i markupen. */
+  const kandidater = focusables(overlay);
+  const falt = kandidater.find(
+    (node) =>
+      (node.tagName === 'INPUT' && !['checkbox', 'radio', 'file'].includes(node.type)) ||
+      node.tagName === 'TEXTAREA'
+  );
+  const first = falt ?? kandidater[0];
   if (first) {
     first.focus();
+    if (falt && typeof falt.select === 'function') falt.select();
     return;
   }
 

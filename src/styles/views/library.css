@@ -154,6 +154,15 @@
   color: var(--text-3);
 }
 
+/* Skalan i panelen räknar kort, inte procent: strecken har därför en fast
+ * bredd och blir fler när korten blir fler. Flexande streck kröp ihop till
+ * fyra prickar vid små tal och såg ut som ett uteslutningstecken. */
+.today-folder-meta .ticks > i {
+  flex: 0 0 auto;
+  width: 9px;
+  max-width: none;
+}
+
 .today-folder-meta {
   display: flex;
   align-items: center;
