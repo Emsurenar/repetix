@@ -1,6 +1,6 @@
 import { S } from '../../core/state.js';
-import { flashcardDiv, flipBtn, flipCard } from '../flashcard.js';
-import { processRating, renderStudyCard } from '../study.js';
+import { flashcardDiv, flipBtn, flipCard, nyssVand } from '../flashcard.js';
+import { afterCardExit, processRating, renderStudyCard } from '../study.js';
 
 
     const skipBtn = document.getElementById('btn-skip');
@@ -10,15 +10,21 @@ export function initUiWiringStudy() {
       if (flashcardDiv) flashcardDiv.addEventListener('click', flipCard);
       if (flipBtn) flipBtn.addEventListener('click', flipCard);
       if (skipBtn) {
+          /* Kortet skjuts undan åt vänster och nästa kommer in när utgången
+           * faktiskt är klar. Här låg en gissad fördröjning på 300 ms mot en
+           * övergång som varar 220 — den visste varken när animationen tog
+           * slut eller att prefers-reduced-motion nollat den. afterCardExit
+           * frågar kortet i stället. */
           skipBtn.addEventListener('click', (e) => {
               e.stopPropagation();
               const flashcardContainer = document.querySelector('.flashcard');
+              if (!flashcardContainer) return;
               flashcardContainer.classList.add('swipe-left');
-              setTimeout(() => {
+              afterCardExit(flashcardContainer, () => {
                   flashcardContainer.classList.remove('swipe-left');
                   S.currentStudyIndex++;
                   renderStudyCard();
-              }, 300);
+              });
           });
       }
 
@@ -26,6 +32,9 @@ export function initUiWiringStudy() {
       document.querySelectorAll('.btn-rate').forEach(btn => {
           btn.addEventListener('click', (e) => {
               e.stopPropagation();
+              // Betygsraden tar over samma pixlar som "Visa svar" lag pa. Ett
+              // andra klick fran samma tryck ska inte bli ett betyg.
+              if (nyssVand()) return;
               const rating = parseInt(btn.getAttribute('data-rating'));
               processRating(rating);
           });

@@ -22,6 +22,71 @@ import { ticksHtml } from './ticks.js';
 import { showToast } from './toast.js';
 
 
+/* Hur länge elementets övergång faktiskt varar, i millisekunder.
+ *
+ * Frågas av elementet självt i stället för att skrivas ned här. En siffra i JS
+ * vet inte om någon ändrat en token, och framför allt inte om användaren bett
+ * systemet om mindre rörelse — då är övergången noll lång och all väntan är
+ * ren fördröjning.
+ */
+const transitionMs = (el) => {
+    const toMs = (value) => {
+        const n = parseFloat(value);
+        if (!Number.isFinite(n)) return 0;
+        return value.trim().endsWith('ms') ? n : n * 1000;
+    };
+
+    const style = getComputedStyle(el);
+    const durations = style.transitionDuration.split(',');
+    const delays = style.transitionDelay.split(',');
+
+    return durations.reduce((longest, duration, i) => {
+        const total = toMs(duration) + toMs(delays[i % delays.length] || '0s');
+        return Math.max(longest, total);
+    }, 0);
+};
+
+/* En bildruta. Inte en designlängd — bara marginalen på skyddsnätet nedan, så
+ * att timern inte kan hinna före själva övergången. */
+const FRAME_MS = 20;
+
+/* Väntar in kortets utgång innan nästa kort ritas.
+ *
+ * Här låg tidigare en gissad siffra på båda ställena kortet lämnar skärmen:
+ * 400 ms i betygsättningen och 300 i hoppa över, mot en övergång som varar
+ * 220. Gissningen kunde varken bli rätt eller följa med när rörelsen ändrades.
+ *
+ * Timern finns kvar som skyddsnät, inte som taktgivare: kortet kan ligga i en
+ * dold vy — spellägena betygsätter mot ett kort ingen ser — och då kommer
+ * transitionend aldrig, hur länge man än väntar.
+ */
+export const afterCardExit = (el, done) => {
+    const span = transitionMs(el);
+    if (span <= 0) {
+        done();
+        return;
+    }
+
+    let net = 0;
+    let finished = false;
+
+    function finish() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(net);
+        el.removeEventListener('transitionend', onEnd);
+        done();
+    }
+
+    function onEnd(event) {
+        // Barnens övergångar bubblar hit och betyder inget för kortets utgång.
+        if (event.target === el) finish();
+    }
+
+    el.addEventListener('transitionend', onEnd);
+    net = setTimeout(finish, span + FRAME_MS);
+};
+
 // --- STUDY LOGIC ---
 export const startStudy = (forceAll = false) => {
     S.isPlaygroundSession = false;
@@ -110,6 +175,32 @@ export const startSectionStudy = (sectionId, forceAll = false) => {
     switchView('study');
 };
 
+/* Målar om tickskalan utan att byta ut den.
+ *
+ * Ritas raden om vid varje kort byter strecken färg i ett hopp: ett nyskapat
+ * element börjar i sitt slutläge och har ingenting att tona ifrån. Genom att
+ * behålla samma <i> mellan korten och bara byta klass får CSS en väg att gå.
+ *
+ * Raden byggs om först när antalet streck ändrats — då är det en annan skala
+ * och inte samma skala i ett nytt läge.
+ */
+const paintTicks = (host, total, done) => {
+    const next = document.createElement('template');
+    next.innerHTML = ticksHtml(total, done);
+
+    const fresh = next.content.querySelectorAll('i');
+    const current = host.querySelectorAll('i');
+
+    if (current.length !== fresh.length) {
+        host.replaceChildren(next.content);
+        return;
+    }
+
+    current.forEach((mark, i) => {
+        mark.className = fresh[i].className;
+    });
+};
+
 /* Toppslisten: kortlek, mapp och kölängd.
  *
  * Kortleken slås upp ur kortet och inte ur S.currentDeckId, eftersom ett
@@ -134,7 +225,7 @@ const renderStudyContext = (card) => {
     if (progressEl) progressEl.textContent = `${done + 1} av ${total}`;
 
     const ticksEl = document.getElementById('study-ticks');
-    if (ticksEl) ticksEl.innerHTML = ticksHtml(total, done);
+    if (ticksEl) paintTicks(ticksEl, total, done);
 };
 
 export const renderStudyCard = () => {
@@ -226,6 +317,24 @@ export const renderStudyCard = () => {
     // Reset UI to front
     document.getElementById('study-actions').classList.add('hidden');
     document.getElementById('study-flip-action').classList.remove('hidden');
+
+    /* Kortet ska komma in, inte bytas ut på plats.
+     *
+     * Klassen tas bort och läggs på igen med en påtvingad omflödning emellan.
+     * Utan läsningen av offsetWidth ser webbläsaren aldrig att klassen varit
+     * borta — båda ändringarna hamnar i samma stilberäkning — och animationen
+     * startar aldrig om.
+     *
+     * Riktningsklasserna städas i samma veva. Ett avbrutet pass kunde annars
+     * lämna kvar en swipe-klass, och nästa kort ritades osynligt. */
+    const flashcard = document.getElementById('active-flashcard');
+    if (flashcard) {
+        flashcard.classList.remove(
+            'swipe-up', 'swipe-down', 'swipe-left', 'swipe-right', 'is-entering'
+        );
+        void flashcard.offsetWidth;
+        flashcard.classList.add('is-entering');
+    }
 };
 
 export const processRating = (rating) => {
@@ -310,11 +419,11 @@ export const processRating = (rating) => {
             
             flashcardContainer.classList.add(swipeClass);
 
-            setTimeout(() => {
+            afterCardExit(flashcardContainer, () => {
                 flashcardContainer.classList.remove(swipeClass);
                 S.currentStudyIndex++;
                 renderStudyCard();
-            }, 400); // Wait for CSS animation
+            });
         } else {
             S.currentStudyIndex++;
         }
