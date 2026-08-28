@@ -1,12 +1,15 @@
 # CLAUDE.md
 
-Vägledning för Claude Code (claude.ai/code) i det här repot.
+Vägledning för Claude Code i det här repot.
 
 ## Repetix
 
 Repetitionsapp med spaced repetition. Svenskt gränssnitt. Under ombyggnad från
 en lokal envägsapp till en publik, molnlagrad app på Vercel enligt
 [specen](docs/superpowers/specs/2026-08-28-repetix-design.md).
+
+**Läs [ÖVERLÄMNING.md](docs/OVERLAMNING.md) först** — den beskriver var arbetet
+står, vad som är nästa steg, och vilka fällor som redan kostat tid.
 
 ## Kommandon
 
@@ -18,75 +21,93 @@ npm run build    # produktionsbygge till dist/
 ```
 
 Starta aldrig en dev-server med Bash. Använd `preview_start` med namnet
-`repetix` från `.claude/launch.json`.
+`repetix` från `.claude/launch.json`. Mockuperna har ett eget namn, `mockups`.
 
 ## Arkitektur
 
-Vanilla JS i ES-moduler, byggt med Vite. Ingen ramverksberoende. `index.html`
-innehåller alla vymallar och modaler; `style.css` all styling.
+Vanilla JS i ES-moduler, byggt med Vite. Inget ramverk.
 
 ```
 src/
-  main.js       startpunkt: importerar moduler och anropar init-funktionerna
+  main.js       startpunkt: importerar stilar och moduler, anropar init-funktionerna
   app/          vendor (marked, KaTeX), initApp, molnlagret
-  core/         state, storage, supabase, sync, local-db, bilder
-  domain/       srs (ren SM-2), model, diff, stats, history
+  core/         state, storage, supabase, sync, local-db, bilder, kryptering
+  domain/       srs, model, diff, stats, history — rena funktioner, inget DOM
   ui/           en modul per vy, plus wiring/ för DOM-koppling
   games/        ett spelläge per modul
-  ai/           call (det enda anropslagret), models, prompts, wiring
+  ai/           call (enda anropslagret), models, prompts, wiring
+  styles/       tokens, base, components, layout, views/, games-legacy
 api/            serverfunktioner: ai, ai-key, _lib
-supabase/       databasmigrationer
+supabase/       databasmigrationer, körs manuellt i SQL Editor
+tools/          generate-icons.mjs
 tests/          Vitest
 ```
 
-### Två konventioner som styr allt
+### Konventioner som styr allt
 
 **Delat tillstånd ligger i `S`** (`src/core/state.js`), ett muterbart objekt med
-appens 50 globaler: `S.appData`, `S.currentDeckId`, `S.currentStudyCards` och så
-vidare. Moduler importerar `S` och läser eller skriver egenskaper på det. Detta
-är ett mellanläge från den ursprungliga enfilsappen, inte en slutgiltig design —
-det ersätts av riktig molnlagring i etapp 2.
+appens 50 globaler. Ett mellanläge från enfilsappen, inte en slutgiltig design.
 
-**Moduler definierar, `main.js` kopplar.** En modul innehåller bara
-definitioner. All DOM-koppling ligger i en exporterad `initXxx()`-funktion som
-`main.js` anropar, i samma ordning som den ursprungliga filen körde dem.
-Ordningen har betydelse — flytta inte anropen i `main.js` utan att kontrollera
-vad som beror på vad.
+**Moduler definierar, `main.js` kopplar.** All DOM-koppling ligger i en
+exporterad `initXxx()` som `main.js` anropar i ursprunglig ordning. Ordningen
+har betydelse — flytta inte anropen utan att kontrollera beroenden.
+
+**`domain/` importerar aldrig från `ui/`.** Domänmodulerna är rena funktioner
+och testas utan webbläsare.
+
+## Design
+
+Riktningen heter **"Lugn precision"** och facit är mockupen:
+
+```
+docs/mockup-a-lugn-precision.html   (desktop, sektion 01 bibliotek, 02 repetition)
+docs/mockup-mobil-1-stram.html      (mobil)
+```
+
+Öppna dem och appen sida vid sida och jämför. **Designbeslut ska stämmas av mot
+mockupen, inte tolkas fritt.** En omgång agenter tog paletten men byggde en egen
+tolkning, och användaren underkände resultatet med orden "detta är ju inte den".
+
+- `src/styles/tokens.css` är **enda** stället där en färg, ett typsnittssteg
+  eller ett avstånd får definieras. Noll hårdkodade hexvärden utanför den.
+- Noll `!important`. Behövs specificitet: använd id-scope.
+- Enbart ljust läge. **Aldrig blått** — accenten är verdigris `#0E6A5E`.
+- Inga skuggor. Djup skapas av ytkontrast och 1px-linjer.
+- Kontrollhöjd styrs av `--control-h`: 34px med mus, 44px med finger via en
+  enda mediefråga. Hårdkoda aldrig höjder.
+- Inga emojis. Inga hover-beroende funktioner — allt ska nås med ett finger.
 
 ## AI
 
 Allt går genom **en** funktion: `callAI({ system, user, maxTokens })` i
-`src/ai/call.js`. Lägg aldrig till ett direktanrop mot en leverantör — det var
-precis det som gav elva kopior av samma kod, med modellsträngen hårdkodad på
-elva ställen.
+`src/ai/call.js`. Lägg aldrig till ett direktanrop mot en leverantör.
 
 Anropet går via `/api/ai`, som slår upp användarens krypterade nyckel och
-anropar vald leverantör. **Nyckeln når aldrig webbläsaren.** Fyra leverantörer
-stöds; skillnaderna mellan dem ligger isolerade i `api/_lib/providers.js`.
+anropar vald leverantör. **Nyckeln når aldrig webbläsaren.** Kontraktet står i
+[docs/api-contract.md](docs/api-contract.md) och ska ändras först.
 
-Kontraktet mellan klient och server står i
-[docs/api-contract.md](docs/api-contract.md). Ändra det först, inte
-implementationerna.
-
-Standardmodell är `claude-opus-5`. Modellkatalogen i `src/ai/models.js` är en
-bekvämlighet, inte en begränsning — användaren kan skriva in ett eget modell-id,
-eftersom leverantörerna släpper nya modeller oftare än appen uppdateras.
+Standardmodell `claude-opus-5`. Appen behöver **ingen** service role-nyckel.
 
 ## Data
 
-All data ligger i localStorage under `noji_clone_data`, plus separata nycklar
-för rekord (`pg_records`), dagens mapp (`noji_dagens_mapp`) och personbästa per
-spelläge (`spaced_rep_*_pb_*`). `saveData()` anropas efter varje mutation.
+Supabase i molnet, IndexedDB som lokal spegel, localStorage för appdatan.
+Offline först: appen läser och skriver alltid lokalt, ändringar köas i en
+utkorg.
 
-Kända problem som etapp 2 löser: bilder lagras som okomprimerad base64 och kan
-spränga localStorage-kvoten, och statistiken härleds ur `card.lastReviewed` som
-skrivs över vid varje repetition, så historiken raderar sig själv.
+- Vad som ändrats räknas ut med en **diff** mot förra ögonblicksbilden, inte
+  genom att varje mutationsställe rapporterar sin avsikt.
+- `reviews` är **append-only** och underlaget för all statistik. Streak
+  härleds aldrig ur `card.lastReviewed` — det fältet skrivs över.
+- Radering är **mjuk** via `deleted_at`.
+- Ett kort har `front`, `back` och `description`. Beskrivningen är fördjupning
+  som visas efter svaret och ingår aldrig i bedömningen.
+
+Migrationer körs manuellt i Supabases SQL Editor, i ordning.
 
 ## Regler
 
-- Inga emojis någonstans i appen.
-- Gränssnittet är på svenska.
-- `.env` committas aldrig. Det finns ingen serverside-API-nyckel i den nya
-  arkitekturen; användarna tar med egna nycklar.
-- Schemaläggningen (`src/domain/srs.js`) är rena funktioner utan DOM. Håll den
-  så, och lägg till test när den ändras.
+- Gränssnittet är på svenska. Kommentarer förklarar **varför**, aldrig vad.
+- `.env` committas aldrig. Ingen serverside-AI-nyckel finns.
+- Schemaläggningen (`src/domain/srs.js`) är rena funktioner. Håll den så, och
+  lägg till test när den ändras — invarianten `Igen ≤ Svårt < Bra < Lätt`
+  provas över 196 tillstånd.
