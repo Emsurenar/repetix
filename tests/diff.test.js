@@ -244,9 +244,13 @@ describe('collapse', () => {
       { table: 'sections', op: 'upsert', id: 's1', row: { id: 's1' } },
       { table: 'decks', op: 'upsert', id: 'd1', row: kortlek('d1') },
       { table: 'bookshelves', op: 'upsert', id: 'h1', row: hylla('h1') },
+      { table: 'card_images', op: 'upsert', id: 'u/k1/a.webp', row: { id: 'u/k1/a.webp' } },
     ]);
     const ordning = resultat.map((m) => m.table);
     expect(ordning).toEqual([...TABLES]);
+    // Bilder maste komma efter sina kort, annars finns inte den frammande
+    // nyckeln nar raden skrivs.
+    expect(ordning.indexOf('cards')).toBeLessThan(ordning.indexOf('card_images'));
     expect(ordning.indexOf('bookshelves')).toBeLessThan(ordning.indexOf('decks'));
     expect(ordning.indexOf('decks')).toBeLessThan(ordning.indexOf('cards'));
     expect(ordning.indexOf('sections')).toBeLessThan(ordning.indexOf('cards'));

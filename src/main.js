@@ -5,6 +5,7 @@
 import './app/vendor.js';
 
 import { initCloud } from './app/cloud.js';
+import { loadReviewLog } from './core/sync.js';
 
 import { initCoreState } from './core/state.js';
 import { initCoreStorage } from './core/storage.js';
@@ -57,6 +58,10 @@ export function start() {
 }
 
 start();
+
+// Repetitionsloggen las in i minnet sa att Spelhallen kan rakna statistik
+// synkront under rendering.
+void loadReviewLog();
 
 // Molnlagret startas efter att appen renderat sin lokala data, sa att en
 // langsam uppkoppling aldrig fordrojer forsta malningen.

@@ -1,3 +1,4 @@
+import { uploadCardImages } from '../images.js';
 import { createNoteCard } from '../../core/backup.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
@@ -24,6 +25,10 @@ export function initUiWiringCardForms() {
                   cardProxy.isLongForm = isLongForm;
                   cardProxy.backImages = [...S.editCardImages];
                   saveData();
+                  void uploadCardImages(cardProxy.backImages, cardProxy.id).then((sokvagar) => {
+                      cardProxy.backImages = sokvagar;
+                      saveData();
+                  });
                   renderCards(deck.cards);
                   openDeck(S.currentDeckId);
                   showToast('Kort uppdaterat!');

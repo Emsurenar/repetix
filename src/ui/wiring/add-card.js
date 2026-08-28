@@ -3,7 +3,7 @@ import { createCard } from '../../core/backup.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { openDeck } from '../deck.js';
-import { fileToDataUrl, renderImagePreviews } from '../images.js';
+import { fileToDataUrl, renderImagePreviews, uploadCardImages } from '../images.js';
 import { switchView } from '../router.js';
 import { showToast } from '../toast.js';
 
@@ -65,8 +65,17 @@ export function initUiWiringAddCard() {
                   }
               }
 
-              deck.cards.push(createCard(front, back, isLongForm, [...S.addCardImages], finalSectionId));
+              const nyttKort = createCard(front, back, isLongForm, [...S.addCardImages], finalSectionId);
+              deck.cards.push(nyttKort);
               saveData();
+
+              // Bilderna laddas upp i bakgrunden och byts mot sina sokvagar.
+              // Kortet ar redan sparat, sa en misslyckad uppladdning betyder
+              // bara att bilden ligger kvar som base64 och migreras senare.
+              void uploadCardImages(nyttKort.backImages, nyttKort.id).then((sokvagar) => {
+                  nyttKort.backImages = sokvagar;
+                  saveData();
+              });
 
               populateAddCardSections(deck);
 

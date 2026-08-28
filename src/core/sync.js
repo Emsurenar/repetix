@@ -17,6 +17,7 @@ import {
   getMeta,
   getOutbox,
   getPendingReviews,
+  getReviewsSince,
   outboxSize,
   putRows,
   setMeta,
@@ -112,7 +113,23 @@ export function primeSnapshot(appData) {
  */
 export async function recordReview(row) {
   await appendReviews([row]);
+  if (reviewLog) reviewLog.push(row);
   if (getUserId()) scheduleSync();
+}
+
+// Repetitionsloggen hålls i minnet så att Spelhallen kan räkna statistik
+// synkront under rendering. Loggen är liten: några tiotal byte per rad.
+let reviewLog = null;
+
+/** Läser in loggen från den lokala databasen. Anropas en gång vid uppstart. */
+export async function loadReviewLog() {
+  reviewLog = await getReviewsSince();
+  return reviewLog;
+}
+
+/** Loggen som den ser ut just nu. Tom array innan den lästs in. */
+export function getReviewLog() {
+  return reviewLog ?? [];
 }
 
 async function pushOutbox() {

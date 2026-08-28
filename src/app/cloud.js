@@ -8,6 +8,7 @@
 //      omedelbart skickas tillbaka som "ändringar"
 
 import { build } from '../domain/model.js';
+import { clearUrlCache, collectPendingImages, migrateLocalImages } from '../core/image-store.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import {
@@ -104,6 +105,37 @@ async function onSignedIn() {
 
   applyRemote(remote);
   startBackground();
+  void migrateImages();
+}
+
+/**
+ * Flyttar upp bilder som fortfarande ligger som base64 i lokal lagring.
+ *
+ * Kors i bakgrunden efter inloggning. En 5 MB mobilbild blir nagra hundra
+ * kilobyte i lagringen, vilket ar hela anledningen till att localStorage-kvoten
+ * slutar vara ett problem. Migreringen ar aterupptagbar: en bild byts mot sin
+ * sokvag forst nar uppladdningen bekraftats.
+ */
+async function migrateImages() {
+  const vantande = collectPendingImages(S.appData);
+  if (!vantande.length) return;
+
+  showToast(`Flyttar upp ${vantande.length} bilder till molnet...`);
+  try {
+    const resultat = await migrateLocalImages(S.appData, null, { persist: saveData });
+    const megabyte = resultat.sparadeBytes / 1024 / 1024;
+    if (resultat.misslyckade > 0) {
+      showToast(
+        `${resultat.klara} bilder flyttade, ${resultat.misslyckade} misslyckades och ligger kvar lokalt.`
+      );
+    } else if (megabyte >= 0.1) {
+      showToast(`Bilderna flyttade. ${megabyte.toFixed(1)} MB frigjordes lokalt.`);
+    }
+    saveData();
+  } catch (err) {
+    console.error('Bildmigrering misslyckades:', err);
+    showToast('Kunde inte flytta alla bilder. De ligger kvar lokalt och forsoks igen senare.');
+  }
 }
 
 /** Laddar upp lokal data till ett tomt konto. */
@@ -239,6 +271,7 @@ export async function signOutAndClear() {
   await sync().catch(() => {});
   await signOut();
 
+  clearUrlCache();
   const { clearAll } = await import('../core/local-db.js');
   await clearAll().catch(() => {});
   localStorage.removeItem('noji_clone_data');

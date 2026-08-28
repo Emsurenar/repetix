@@ -8,7 +8,18 @@
 // Rena funktioner utan DOM, nätverk eller tillstånd.
 
 /** Tabellerna som synkas, i beroendeordning. Föräldrar före barn. */
-export const TABLES = ['bookshelves', 'decks', 'sections', 'notebooks', 'cards', 'notes'];
+export const TABLES = [
+  'bookshelves',
+  'decks',
+  'sections',
+  'notebooks',
+  'cards',
+  'notes',
+  'card_images',
+];
+
+/** Base64-bilder som annu inte laddats upp. De far aldrig synkas. */
+const arDataUrl = (v) => typeof v === 'string' && v.startsWith('data:');
 
 const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
 /** Talet om det ar andligt, annars reservvardet. Skyddar mot NaN och Infinity. */
@@ -28,7 +39,15 @@ const ms = (isoString) => (isoString ? Date.parse(isoString) : null);
  * @returns {{bookshelves:object[], decks:object[], sections:object[], cards:object[], notebooks:object[], notes:object[]}}
  */
 export function flatten(appData, userId) {
-  const out = { bookshelves: [], decks: [], sections: [], cards: [], notebooks: [], notes: [] };
+  const out = {
+    bookshelves: [],
+    decks: [],
+    sections: [],
+    cards: [],
+    notebooks: [],
+    notes: [],
+    card_images: [],
+  };
 
   (appData.bookshelves ?? []).forEach((shelf, i) => {
     out.bookshelves.push({
@@ -62,6 +81,23 @@ export function flatten(appData, userId) {
 
     (deck.cards ?? []).forEach((card, j) => {
       out.cards.push(cardToRow(card, deck.id, userId, j));
+
+      // Bilder synkas som sokvagar till lagringen, aldrig som bytes. En bild
+      // som annu inte laddats upp ligger kvar som base64 lokalt och hoppas
+      // over har — annars hade flera megabyte text skickats vid varje synk.
+      (card.backImages ?? []).forEach((bild, k) => {
+        if (arDataUrl(bild)) return;
+        out.card_images.push({
+          // Sokvagen ar redan unik och stabil, sa den duger som nyckel. Ett
+          // lopnummer hade i stallet gett falska andringar sa fort bilderna
+          // ordnades om.
+          id: bild,
+          user_id: userId,
+          card_id: card.id,
+          storage_path: bild,
+          position: k,
+        });
+      });
     });
   });
 
@@ -169,6 +205,9 @@ export function build(rows) {
   const notebookRows = (rows.notebooks ?? []).filter(alive).sort(byPosition);
   const noteRows = (rows.notes ?? []).filter(alive).sort(byPosition);
 
+  const imageRows = (rows.card_images ?? []).filter(alive).sort(byPosition);
+  const imagesByCard = groupBy(imageRows, 'card_id');
+
   const sectionsByDeck = groupBy(sectionRows, 'deck_id');
   const cardsByDeck = groupBy(cardRows, 'deck_id');
   const notesByNotebook = groupBy(noteRows, 'notebook_id');
@@ -200,7 +239,13 @@ export function build(rows) {
       color: r.color ?? '#4F46E5',
       bookshelfId: r.bookshelf_id ?? null,
       sections: (sectionsByDeck.get(r.id) ?? []).map((s) => ({ id: s.id, title: s.title })),
-      cards: (cardsByDeck.get(r.id) ?? []).map(rowToCard),
+      cards: (cardsByDeck.get(r.id) ?? []).map((rad) => {
+        const kort = rowToCard(rad);
+        if (kort.backImages) {
+          kort.backImages = (imagesByCard.get(rad.id) ?? []).map((b) => b.storage_path);
+        }
+        return kort;
+      }),
     })),
     notebooks: notebookRows.map((r) => ({
       id: r.id,

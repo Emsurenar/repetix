@@ -1,4 +1,6 @@
 import { S } from '../core/state.js';
+import { getReviewLog } from '../core/sync.js';
+import { currentStreak, dailyCounts, mergeLegacyCounts } from '../domain/history.js';
 import { escapeHtml, fisherYatesShuffle } from '../core/utils.js';
 import { getAchievements, getLocalDateString, loadRecords, saveRecords, updatePersonalRecords } from '../domain/stats.js';
 import { actionReveal } from '../games/action.js';
@@ -55,22 +57,13 @@ export const renderPlayground = () => {
     const completionPct = totalTodayTasks > 0 ? Math.round((todayCount / totalTodayTasks) * 100) : 100;
 
     // --- Streak ---
-    let streak = 0;
-    const reviewDates = new Set();
-    allCards.forEach(c => {
-        if (c.lastReviewed) {
-            const d = new Date(c.lastReviewed);
-            reviewDates.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
-        }
-    });
-    const todayKey = `${new Date().getFullYear()}-${new Date().getMonth()}-${new Date().getDate()}`;
-    let checkDate = new Date();
-    if (!reviewDates.has(todayKey)) checkDate.setDate(checkDate.getDate() - 1);
-    while (true) {
-        const key = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
-        if (reviewDates.has(key)) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
-        else break;
-    }
+    // Raknas ur repetitionsloggen, inte ur card.lastReviewed. Det gamla sattet
+    // laste ett falt som skrivs over vid varje ny repetition, sa historiken
+    // raderade sig sjalv bakat i tiden: en dag vars kort sedan repeterats om
+    // slutade rakna. Aldre dagsrakningar vavs in sa att befintliga anvandare
+    // inte tappar sin streak vid uppgraderingen.
+    const dagsrakningar = mergeLegacyCounts(dailyCounts(getReviewLog()), records.dailyCounts);
+    const streak = currentStreak(dagsrakningar);
 
     // Persist best streak ever
     if (streak > (records.bestStreak || 0)) {
