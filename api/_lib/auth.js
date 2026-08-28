@@ -2,43 +2,60 @@
 //
 // user_id härleds alltid ur Supabase-token och aldrig ur begärans innehåll.
 // Fick klienten skicka med ett eget id vore varje användares krypterade nyckel
-// bara en id-gissning bort, och all radnivåsäkerhet i databasen meningslös
-// eftersom funktionerna ändå går förbi den.
+// bara en id-gissning bort.
+//
+// Funktionerna använder medvetet INTE Supabases service role-nyckel. Den
+// kringgår all radnivåsäkerhet, så läcker den ligger varje användares hela
+// bibliotek öppet — ett dåligt pris för ett skydd som ändå inte är det
+// verkliga försvaret här: chiffertexten är oanvändbar utan huvudnyckeln, som
+// aldrig finns i databasen. I stället arbetar varje anrop med användarens egen
+// token, och migration 0002 ser till att en användare bara når sitt eget.
 
 import { createClient } from '@supabase/supabase-js';
 import { ApiError } from './http.js';
 
 const url = process.env.SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anonKey = process.env.SUPABASE_ANON_KEY;
 
 // Kontrolleras vid modulinläsning av samma skäl som huvudnyckeln i crypto.js:
 // en deploy utan konfiguration ska säga ifrån direkt, inte fungera tills någon
 // försöker använda AI-funktionerna.
-if (!url || !serviceRoleKey) {
+if (!url || !anonKey) {
   throw new Error(
-    'SUPABASE_URL och SUPABASE_SERVICE_ROLE_KEY måste vara satta för serverfunktionerna i api/. Ingen av dem får ha VITE_-prefix.'
+    'SUPABASE_URL och SUPABASE_ANON_KEY måste vara satta för serverfunktionerna i api/. Ingen av dem får ha VITE_-prefix.'
   );
 }
 
-/**
- * Klient med service role-nyckeln. Går förbi radnivåsäkerheten, vilket krävs
- * för att över huvud taget kunna läsa user_ai_keys — tabellen saknar medvetet
- * select-policy, så inte ens en klient med giltig token kommer åt
- * chiffertexten.
- *
- * Priset är att spärren flyttar in i den här koden: varje fråga härifrån måste
- * själv filtrera på det user_id som requireUser härlett.
- *
- * Sessionshanteringen stängs av. En serverfunktion delas av alla användare och
- * får aldrig råka bära med sig en session mellan två anrop.
- */
-export const serviceClient = createClient(url, serviceRoleKey, {
+// Sessionshanteringen stängs av på varje klient här. En serverfunktion delas av
+// alla användare och får aldrig råka bära med sig en session mellan två anrop.
+const utanSession = {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-});
+};
+
+/** Klient utan användare. Räcker för att verifiera en token. */
+const anonClient = createClient(url, anonKey, utanSession);
 
 /**
- * Verifierar Authorization-huvudet och returnerar användarens id.
- * Kastar ApiError med koden `unauthorized` när token saknas eller inte gäller.
+ * Klient som agerar SOM den inloggade användaren.
+ *
+ * Databasen ser alltså anropet precis som om det kom från webbläsaren, och
+ * radnivåsäkerheten gäller fullt ut. Det är skillnaden mot service role: en
+ * bugg här kan i värsta fall läcka användarens egna data till användaren
+ * själv, inte allas data till vem som helst.
+ */
+export function userClient(token) {
+  return createClient(url, anonKey, {
+    ...utanSession,
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+}
+
+/**
+ * Verifierar Authorization-huvudet.
+ * Returnerar både användarens id och en klient som agerar som hen.
+ *
+ * @returns {Promise<{ userId: string, token: string, db: import('@supabase/supabase-js').SupabaseClient }>}
+ * @throws {ApiError} med koden `unauthorized`
  */
 export async function requireUser(req) {
   const header = String(req.headers?.authorization ?? '').trim();
@@ -51,9 +68,10 @@ export async function requireUser(req) {
     );
   }
 
-  const { data, error } = await serviceClient.auth.getUser(token);
+  const { data, error } = await anonClient.auth.getUser(token);
   if (error || !data?.user?.id) {
     throw new ApiError(401, 'unauthorized', 'Din session gäller inte längre. Logga in igen.');
   }
-  return data.user.id;
+
+  return { userId: data.user.id, token, db: userClient(token) };
 }

@@ -4,18 +4,18 @@
 // läsa ut är en ledtråd på åtta tecken, tillräckligt för att känna igen vilken
 // nyckel som ligger inne och för lite för att vara till nytta för någon annan.
 
-import { requireUser, serviceClient } from './_lib/auth.js';
+import { requireUser } from './_lib/auth.js';
 import { encrypt } from './_lib/crypto.js';
 import { ApiError, readJsonBody, sendError, sendJson } from './_lib/http.js';
 import { getProvider } from './_lib/providers.js';
 
 export default async function handler(req, res) {
   try {
-    const userId = await requireUser(req);
+    const { userId, db } = await requireUser(req);
 
-    if (req.method === 'POST') return await saveKey(req, res, userId);
-    if (req.method === 'GET') return await listKeys(res, userId);
-    if (req.method === 'DELETE') return await deleteKey(req, res, userId);
+    if (req.method === 'POST') return await saveKey(req, res, userId, db);
+    if (req.method === 'GET') return await listKeys(res, userId, db);
+    if (req.method === 'DELETE') return await deleteKey(req, res, userId, db);
 
     throw new ApiError(405, 'bad_request', 'Slutpunkten tar emot POST, GET och DELETE.');
   } catch (err) {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
  * inställningarna och har nyckeln i urklipp — inte nästa gång någon försöker
  * generera kort och får ett fel som ser ut att komma från appen.
  */
-async function saveKey(req, res, userId) {
+async function saveKey(req, res, userId, db) {
   const body = await readJsonBody(req);
   const provider = getProvider(requireProvider(body.provider));
 
@@ -47,7 +47,7 @@ async function saveKey(req, res, userId) {
   }
 
   const hint = keyHint(key);
-  const { error } = await serviceClient.from('user_ai_keys').upsert(
+  const { error } = await db.from('user_ai_keys').upsert(
     {
       user_id: userId,
       provider: provider.id,
@@ -70,8 +70,8 @@ async function saveKey(req, res, userId) {
  * läsningen alls måste ske på servern beror på att tabellen medvetet saknar
  * select-policy: klienten kommer inte åt raderna själv.
  */
-async function listKeys(res, userId) {
-  const { data, error } = await serviceClient
+async function listKeys(res, userId, db) {
+  const { data, error } = await db
     .from('user_ai_key_status')
     .select('provider, key_hint, last_verified')
     .eq('user_id', userId)
@@ -88,13 +88,13 @@ async function listKeys(res, userId) {
 }
 
 /** Radering är idempotent: en nyckel som redan är borta är fortfarande borta. */
-async function deleteKey(req, res, userId) {
+async function deleteKey(req, res, userId, db) {
   // Basen är påhittad: req.url är bara sökväg och frågesträng i båda
   // körmiljöerna, och URL kräver ändå något att tolka den relativt.
   const query = new URL(req.url, 'http://repetix.invalid').searchParams;
   const provider = getProvider(requireProvider(query.get('provider')));
 
-  const { error } = await serviceClient
+  const { error } = await db
     .from('user_ai_keys')
     .delete()
     .eq('user_id', userId)

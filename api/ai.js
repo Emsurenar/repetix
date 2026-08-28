@@ -4,7 +4,7 @@
 // och lämnar aldrig funktionen. Den loggas inte, returneras inte och ingår inte
 // i något felmeddelande.
 
-import { requireUser, serviceClient } from './_lib/auth.js';
+import { requireUser } from './_lib/auth.js';
 import { decrypt } from './_lib/crypto.js';
 import { ApiError, isTimeoutError, readJsonBody, sendError, sendJson } from './_lib/http.js';
 import { extractProviderMessage, getProvider, isAuthFailure } from './_lib/providers.js';
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // Inloggningen kontrolleras före allt annat, i båda slutpunkterna. En
     // anropare som inte är känd ska inte kunna få veta något om slutpunkten
     // alls, inte ens vilka metoder den tar emot.
-    const userId = await requireUser(req);
+    const { userId, db } = await requireUser(req);
 
     if (req.method !== 'POST') {
       throw new ApiError(405, 'bad_request', 'Slutpunkten tar bara emot POST.');
@@ -37,8 +37,8 @@ export default async function handler(req, res) {
     const user = typeof body.user === 'string' ? body.user.trim() : '';
     if (!user) throw new ApiError(400, 'bad_request', 'Begäran saknar fältet user.');
 
-    const { providerName, provider, model } = await resolveTarget(body, userId);
-    const apiKey = await loadApiKey(userId, providerName, provider.label);
+    const { providerName, provider, model } = await resolveTarget(body, db, userId);
+    const apiKey = await loadApiKey(db, providerName, provider.label);
 
     const request = provider.buildRequest({
       system: typeof body.system === 'string' ? body.system : '',
@@ -64,8 +64,8 @@ export default async function handler(req, res) {
  * modell ignoreras den sparade modellen, eftersom ett sparat id hör hemma i en
  * annan katalog och bara hade gett ett obegripligt fel från leverantören.
  */
-async function resolveTarget(body, userId) {
-  const settings = await readSettings(userId);
+async function resolveTarget(body, db, userId) {
+  const settings = await readSettings(db, userId);
   const savedProvider = settings.ai_provider || 'anthropic';
 
   const requested = typeof body.provider === 'string' ? body.provider.trim() : '';
@@ -86,8 +86,8 @@ async function resolveTarget(body, userId) {
   return { providerName, provider, model };
 }
 
-async function readSettings(userId) {
-  const { data, error } = await serviceClient
+async function readSettings(db, userId) {
+  const { data, error } = await db
     .from('user_settings')
     .select('ai_provider, ai_model')
     .eq('user_id', userId)
@@ -104,16 +104,14 @@ async function readSettings(userId) {
  * För användaren är läget identiskt med att ingen nyckel finns, alltså samma
  * kod — det enda som hjälper är att lägga in nyckeln på nytt.
  */
-async function loadApiKey(userId, providerName, label) {
-  const { data, error } = await serviceClient
-    .from('user_ai_keys')
-    .select('encrypted_key')
-    .eq('user_id', userId)
-    .eq('provider', providerName)
-    .maybeSingle();
+async function loadApiKey(db, providerName, label) {
+  // Databasfunktionen kör med sin ägares rättigheter men filtrerar själv på
+  // auth.uid(), så den kan bara någonsin returnera anroparens egen rad. Det är
+  // det som gör att appen inte behöver någon service role-nyckel.
+  const { data, error } = await db.rpc('get_my_ai_key', { p_provider: providerName });
   if (error) throw new ApiError(500, 'server_error', 'Kunde inte hämta din sparade API-nyckel.');
 
-  if (!data?.encrypted_key) {
+  if (!data) {
     throw new ApiError(
       428,
       'no_key',
@@ -122,7 +120,7 @@ async function loadApiKey(userId, providerName, label) {
   }
 
   try {
-    return decrypt(data.encrypted_key);
+    return decrypt(data);
   } catch {
     throw new ApiError(
       428,

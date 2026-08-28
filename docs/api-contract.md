@@ -125,10 +125,18 @@ OpenRouter: fritext, formatet är `leverantör/modell`
 Serversidan. Ingen av dem får ha `VITE_`-prefix — det skulle bygga in dem i
 klientpaketet.
 
+Appen behöver medvetet **ingen** service role-nyckel. Den kringgår all
+radnivåsäkerhet, så läcker den ligger varje användares bibliotek öppet — ett
+dåligt pris för ett skydd som ändå inte är det verkliga försvaret här.
+Serverfunktionerna arbetar i stället med användarens egen token, och migration
+0002 ger dem den åtkomst de behöver: en databasfunktion som kör med ägarens
+rättigheter men filtrerar på `auth.uid()`, och kan därför bara någonsin
+returnera anroparens egen rad.
+
 | Variabel | Syfte |
 |---|---|
 | `SUPABASE_URL` | Samma projekt som klienten |
-| `SUPABASE_SERVICE_ROLE_KEY` | Krävs för att läsa och skriva krypterade nycklar förbi radnivåsäkerheten |
+| `SUPABASE_ANON_KEY` | Samma publika nyckel som klienten använder |
 | `AI_KEY_SECRET` | 32 slumpade byte i base64. Huvudnyckeln som användarnycklarna krypteras med |
 
 ## Kryptering
