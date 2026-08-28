@@ -204,9 +204,14 @@ export const renderPlayground = ({ tona = true } = {}) => {
 
     const MANADER = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
     const manadFor = (vecka) => MANADER[vecka[0].date.getMonth()];
-    const manadsrad = weeks.length
-        ? [manadFor(weeks[0]), manadFor(weeks[Math.floor(weeks.length / 2)]), manadFor(weeks[weeks.length - 1])]
-        : [];
+    /* En etikett per veckokolumn, men namnet skrivs bara ut där månaden
+     * byts — annars upprepas "jun" fyra gånger i rad. Tre etiketter utspridda
+     * med space-between hamnade där jämn fördelning råkade lägga dem och
+     * pekade inte på någon kolumn alls. */
+    const manadsrad = weeks.map((v, i) => {
+        const namn = manadFor(v);
+        return i === 0 || namn !== manadFor(weeks[i - 1]) ? namn : '';
+    });
 
     const heatCell = (cell) => {
         const d = cell.date;
@@ -285,20 +290,6 @@ export const renderPlayground = ({ tona = true } = {}) => {
                 <p class="label arcade-total">${fmt(totalCards)} kort totalt${dueNow > 0 ? ` · ${fmt(dueNow)} förfallna` : ''}</p>
             </div>
 
-            <div class="heat">
-                <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
-                <div class="heat-grid">
-                    <div class="heat-days"><span>må</span><span></span><span>on</span><span></span><span>fr</span><span></span><span></span></div>
-                    <div class="heat-cols${tona ? ' is-entering' : ''}">
-                        ${weeks.map((v, i) => `<div class="heat-col" style="--i:${i}">${v.map(heatCell).join('')}</div>`).join('')}
-                    </div>
-                </div>
-                <div class="heat-legend">
-                    <span>mindre</span>
-                    <i class="heat-cell"></i><i class="heat-cell is-1"></i><i class="heat-cell is-2"></i><i class="heat-cell is-3"></i><i class="heat-cell is-4"></i>
-                    <span>mer</span>
-                </div>
-            </div>
         </div>
 
         <div class="arcade-modes${tona ? ' is-entering' : ''}">
@@ -318,6 +309,27 @@ export const renderPlayground = ({ tona = true } = {}) => {
                 </button>`;
             }).join('')}
         </div>
+
+        <!-- Aktivitetskartan är en historik, inte ett nuläge. Den satt
+             tidigare bredvid nyckeltalen i en obalanserad grid och såg
+             parkerad ut; här står den bland de andra tillbakablickarna. -->
+        <section class="arcade-section">
+            <h2 class="arcade-heading">Aktivitet</h2>
+            <div class="heat">
+                <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
+                <div class="heat-grid">
+                    <div class="heat-days"><span>må</span><span></span><span>on</span><span></span><span>fr</span><span></span><span></span></div>
+                    <div class="heat-cols${tona ? ' is-entering' : ''}">
+                        ${weeks.map((v, i) => `<div class="heat-col" style="--i:${i}">${v.map(heatCell).join('')}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="heat-legend">
+                    <span>mindre</span>
+                    <i class="heat-cell"></i><i class="heat-cell is-1"></i><i class="heat-cell is-2"></i><i class="heat-cell is-3"></i><i class="heat-cell is-4"></i>
+                    <span>mer</span>
+                </div>
+            </div>
+        </section>
 
         <section class="arcade-section">
             <h2 class="arcade-heading">Prestationer</h2>

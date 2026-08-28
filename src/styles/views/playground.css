@@ -25,11 +25,11 @@
  * ut till oigenkännlighet när fönstret växer.
  * ====================================================================== */
 
+/* Nyckeltalen tar hela bredden. Tidigare delade de raden med
+ * aktivitetskartan i en grid på 1fr 380px, vilket gjorde att linjen ovanför
+ * talen slutade tvärt mitt på sidan och kartan såg parkerad ut. Kartan bor
+ * numera bland de andra tillbakablickarna längre ned. */
 #view-playground .arcade-top {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: var(--s7);
-  align-items: start;
   margin-bottom: var(--s7);
 }
 
@@ -78,16 +78,22 @@
  * med ögat.
  * ====================================================================== */
 
+/* Kartan har en egen bredd och ska inte sträckas: den är ett rutnät med
+ * räknebara rutor. Den står till vänster som allt annat i vyn, men får inte
+ * mer bredd än sina tolv veckor kräver. */
 #view-playground .heat {
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
-  gap: var(--s2);
+  gap: var(--s3);
 }
 
+/* Månaden står vid sin egen första kolumn. Med space-between hamnade
+ * etiketterna där jämn fördelning råkade lägga dem, inte där månaden
+ * började — "aug" satt längst till höger utan att peka på något. */
 #view-playground .heat-months {
-  display: flex;
-  justify-content: space-between;
-  padding-left: 22px;
+  display: grid;
+  grid-template-columns: repeat(12, 24px);
+  padding-left: 26px;
 }
 
 #view-playground .heat-months span {
@@ -95,6 +101,9 @@
   font-size: var(--t-micro);
   letter-spacing: 0.06em;
   color: var(--text-3);
+  /* Namnet får svämma ut i nästa kolumn — det är bredare än sina 24 pixlar
+   * och ska börja vid sin egen vecka, inte centreras i den. */
+  white-space: nowrap;
 }
 
 #view-playground .heat-grid {

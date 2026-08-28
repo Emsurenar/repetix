@@ -303,25 +303,33 @@
   white-space: nowrap;
 }
 
-/* Antalet förfallna är också vägen in i repetitionen. Ett tal man kan trycka
- * på är tydligare än den färgade pricken det ersätter, som varken sa hur
- * många eller att den gick att klicka på. */
+/* Antalet förfallna är också vägen in i repetitionen.
+ *
+ * Talet bärs av accenten, inte av en fylld kapsel. Kapseln var vyns enda
+ * färgade blob i en rad som annars är tyst text, och den var dessutom appens
+ * sista `--r-pill` utanför chipsen — alltså det enda hörnet som inte följde
+ * den enda kurvaturen. Kortleks-kortet visar redan sina förfallna som ren
+ * accenttext; nu säger de två samma sak på samma sätt.
+ *
+ * Träffytan är kvar: knappen är fortfarande en kontrollhöjd hög. */
 .section-due {
   flex: 0 0 auto;
   min-height: var(--control-h);
-  padding: 0 var(--s3);
+  padding: 0 var(--s2);
   font-size: var(--t-xs);
   font-weight: 500;
   color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: var(--r-pill);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
   white-space: nowrap;
   cursor: pointer;
 }
 
+/* Vid pekaren visar den att den går att trycka på — men med yta, inte med
+ * mer färg. */
 .section-due:hover {
-  background: var(--surface-1);
+  background: var(--accent-soft);
 }
 
 /* Alltid synliga. Att gömma mappens verktyg bakom :hover gjorde dem
