@@ -1,5 +1,9 @@
+// Delat, muterbart apptillstånd. Samlat i ett objekt så att modulerna kan
+// dela det utan att varje fil deklarerar egna globaler.
+const S = {};
+
 // Default Data Structure
-let appData = {
+S.appData = {
     decks: [], // Array of { id, title, cards: [], bookshelfId: string|null }
     notebooks: [], // Array of { id, title, notes: [], bookshelfId: string|null }
     bookshelves: []
@@ -8,11 +12,11 @@ let appData = {
 // --- DATA-SAFETY FLAGS ---
 // Set when the stored data existed but failed to parse: blocks saveData so a
 // corrupt-but-maybe-recoverable payload is never silently overwritten.
-let dataLoadBlocked = false;
+S.dataLoadBlocked = false;
 // One-shot escape hatch used by confirmWipe() to allow an intentional full wipe.
-let allowWipeOnce = false;
+S.allowWipeOnce = false;
 // Guards against opening the wipe-confirm modal repeatedly while it is already open.
-let wipeConfirmInProgress = false;
+S.wipeConfirmInProgress = false;
 
 // --- GENERIC MODAL HELPERS ---
 const showConfirmModal = (title, message, okLabel = 'OK', destructive = false) => {
@@ -112,7 +116,7 @@ const loadData = () => {
         try {
             const parsed = JSON.parse(saved);
             if (parsed && typeof parsed === 'object') {
-                appData = parsed;
+                S.appData = parsed;
             } else {
                 parseFailed = true;
             }
@@ -129,7 +133,7 @@ const loadData = () => {
             try {
                 localStorage.setItem('noji_clone_data_corrupt_' + Date.now(), saved);
             } catch (e) { /* out of quota — nothing more we can do safely */ }
-            dataLoadBlocked = true;
+            S.dataLoadBlocked = true;
             if (typeof showToast === 'function') {
                 showToast('Kunde inte läsa sparad data — den har säkrats. Sparning är pausad tills du importerar en backup.');
             }
@@ -137,12 +141,12 @@ const loadData = () => {
         }
 
         // Migration to include decks, notebooks and bookshelves
-        if (!appData.decks) appData.decks = [];
-        if (!appData.notebooks) appData.notebooks = [];
-        if (!appData.bookshelves) appData.bookshelves = [];
+        if (!S.appData.decks) S.appData.decks = [];
+        if (!S.appData.notebooks) S.appData.notebooks = [];
+        if (!S.appData.bookshelves) S.appData.bookshelves = [];
         
         // Ensure all decks and notebooks have arrays and bookshelfId
-        appData.decks.forEach(d => {
+        S.appData.decks.forEach(d => {
             if (!d.cards) d.cards = [];
             if (d.bookshelfId === undefined) d.bookshelfId = null;
             if (!d.sections) d.sections = [];
@@ -151,13 +155,13 @@ const loadData = () => {
                 if (c.sectionId === undefined) c.sectionId = null;
             });
         });
-        appData.notebooks.forEach(n => { 
+        S.appData.notebooks.forEach(n => { 
             if (!n.notes) n.notes = []; 
             if (n.bookshelfId === undefined) n.bookshelfId = null;
         });
     } else {
         // Initial dummy deck if empty
-        appData.decks.push({
+        S.appData.decks.push({
             id: Date.now().toString(),
             title: 'Svenska Glosor',
             bookshelfId: null,
@@ -176,31 +180,31 @@ const loadData = () => {
 // guards below. "Empty" means no decks and no notebooks at all — the full-wipe
 // case — so deleting a single deck's last card is never blocked.
 const wouldWipeStoredData = () => {
-    if (!isEffectivelyEmpty(appData)) return false;
+    if (!isEffectivelyEmpty(S.appData)) return false;
     const existing = localStorage.getItem('noji_clone_data');
     if (!existing) return false;
     try { return !isEffectivelyEmpty(JSON.parse(existing)); }
     catch (e) { return true; } // existing is unparseable — treat as content, don't clobber
 };
 
-let saveTimeout = null;
+S.saveTimeout = null;
 const saveData = () => {
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        saveTimeout = null;
+    if (S.saveTimeout) clearTimeout(S.saveTimeout);
+    S.saveTimeout = setTimeout(() => {
+        S.saveTimeout = null;
         // Never overwrite a payload we failed to load.
-        if (dataLoadBlocked) {
+        if (S.dataLoadBlocked) {
             console.warn('saveData blocked: previous load failed to parse');
             return;
         }
         // Never silently replace a non-empty store with an empty one; ask first.
-        if (!allowWipeOnce && wouldWipeStoredData()) {
-            if (!wipeConfirmInProgress) confirmWipe();
+        if (!S.allowWipeOnce && wouldWipeStoredData()) {
+            if (!S.wipeConfirmInProgress) confirmWipe();
             return;
         }
-        allowWipeOnce = false;
+        S.allowWipeOnce = false;
         try {
-            localStorage.setItem('noji_clone_data', JSON.stringify(appData));
+            localStorage.setItem('noji_clone_data', JSON.stringify(S.appData));
         } catch (e) {
             if (e.name === 'QuotaExceededError' || e.code === 22) {
                 console.error('localStorage quota exceeded:', e);
@@ -216,16 +220,16 @@ const saveData = () => {
 // (never a native dialog), then either allows the wipe once or restores the UI
 // from the still-intact storage.
 const confirmWipe = async () => {
-    wipeConfirmInProgress = true;
+    S.wipeConfirmInProgress = true;
     const ok = await showConfirmModal(
         'Radera allt innehåll?',
         'Detta skulle ta bort alla kortlekar och anteckningar. Är du säker?',
         'Ja, radera allt',
         true
     );
-    wipeConfirmInProgress = false;
+    S.wipeConfirmInProgress = false;
     if (ok) {
-        allowWipeOnce = true;
+        S.allowWipeOnce = true;
         saveData();
     } else {
         loadData();
@@ -239,12 +243,12 @@ const confirmWipe = async () => {
 // guards apply — a background bug must not wipe good data on unload (no modal is
 // possible here, so we simply skip the destructive write).
 window.addEventListener('beforeunload', () => {
-    if (dataLoadBlocked) return;
-    if (saveTimeout) {
-        clearTimeout(saveTimeout);
+    if (S.dataLoadBlocked) return;
+    if (S.saveTimeout) {
+        clearTimeout(S.saveTimeout);
         if (wouldWipeStoredData()) return;
         try {
-            localStorage.setItem('noji_clone_data', JSON.stringify(appData));
+            localStorage.setItem('noji_clone_data', JSON.stringify(S.appData));
         } catch (e) {}
     }
 });
@@ -291,7 +295,7 @@ const buildBackupObject = () => {
         app: BACKUP_APP_ID,
         version: BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
-        cardCount: countCards(appData),
+        cardCount: countCards(S.appData),
         data
     };
 };
@@ -312,7 +316,7 @@ const downloadJson = (obj, filename) => {
 const backupSignature = () => {
     let totalLen = 0;
     BACKUP_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) totalLen += v.length; });
-    return `${countCards(appData)}:${totalLen}`;
+    return `${countCards(S.appData)}:${totalLen}`;
 };
 
 const markBackupDone = () => {
@@ -340,7 +344,7 @@ const exportBackup = (opts = {}) => {
 // load failed. A file on disk is the only backup that survives clearing site data.
 const maybeAutoBackup = () => {
     try {
-        if (dataLoadBlocked || isEffectivelyEmpty(appData)) return;
+        if (S.dataLoadBlocked || isEffectivelyEmpty(S.appData)) return;
         const lastAt = parseInt(localStorage.getItem('noji_backup_last_at') || '0', 10);
         const lastSig = localStorage.getItem('noji_backup_last_sig') || '';
         const changed = backupSignature() !== lastSig;
@@ -398,7 +402,7 @@ const importBackupFromFile = async (file) => {
     }
 
     const incomingCards = countCards(parsed);
-    const currentCards = countCards(appData);
+    const currentCards = countCards(S.appData);
     const ok = await showConfirmModal(
         'Importera backup',
         `Nuvarande: ${currentCards} kort → Import: ${incomingCards} kort. Detta ersätter allt nuvarande innehåll. En säkerhetskopia av nuvarande data laddas ner först.`,
@@ -419,13 +423,13 @@ const importBackupFromFile = async (file) => {
         return;
     }
 
-    dataLoadBlocked = false;
+    S.dataLoadBlocked = false;
     loadData();
     renderDecks();
     renderSidebar();
     markBackupDone();
     renderBackupStatus();
-    showToast(`Import klar — ${countCards(appData)} kort återställda ✔`);
+    showToast(`Import klar — ${countCards(S.appData)} kort återställda ✔`);
 };
 
 // Fast regex-based HTML tag stripping
@@ -493,8 +497,8 @@ const renderLatex = (element) => {
 // --- IMAGE HELPERS ---
 
 // Global temp storage for images being added/edited
-let addCardImages = []; // Array of base64 data URLs for the Add Card form
-let editCardImages = []; // Array of base64 data URLs for the Edit Card modal
+S.addCardImages = []; // Array of base64 data URLs for the Add Card form
+S.editCardImages = []; // Array of base64 data URLs for the Edit Card modal
 
 const fileToDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -600,9 +604,9 @@ const fixLatexInCards = (cards) => {
 
 // ===== MODAL EVENT LISTENERS =====
 
-let currentColorEditItem = null;
+S.currentColorEditItem = null;
 const openColorModal = (deck) => {
-    currentColorEditItem = deck;
+    S.currentColorEditItem = deck;
     document.querySelectorAll('#change-color-picker .color-dot').forEach(dot => {
         dot.classList.toggle('selected', dot.dataset.color === deck.color);
     });
@@ -614,10 +618,10 @@ document.getElementById('btn-cancel-change-color')?.addEventListener('click', ()
 });
 
 document.getElementById('btn-save-change-color')?.addEventListener('click', () => {
-    if (currentColorEditItem) {
+    if (S.currentColorEditItem) {
         const selectedDot = document.querySelector('#change-color-picker .color-dot.selected');
         if (selectedDot) {
-            currentColorEditItem.color = selectedDot.dataset.color;
+            S.currentColorEditItem.color = selectedDot.dataset.color;
             saveData();
             renderLibrary();
             renderSidebar();
@@ -640,22 +644,22 @@ const renderSidebar = () => {
     let html = '';
 
     // "Hem" / "Bibliotek" Item
-    html += `<div class="sidebar-item ${currentViewName === 'library' && !currentBookshelfFilterId ? 'active' : ''}" onclick="filterBookshelf(null)">
+    html += `<div class="sidebar-item ${S.currentViewName === 'library' && !S.currentBookshelfFilterId ? 'active' : ''}" onclick="filterBookshelf(null)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.75rem;opacity:0.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
         <span style="flex:1; font-weight: 500;">Hem</span>
     </div>`;
 
     // "Spelhallen" Item
-    html += `<div class="sidebar-item ${currentViewName === 'playground' ? 'active' : ''}" onclick="openPlayground()">
+    html += `<div class="sidebar-item ${S.currentViewName === 'playground' ? 'active' : ''}" onclick="openPlayground()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.75rem;opacity:0.7"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
         <span style="flex:1; font-weight: 500;">Spelhallen</span>
     </div>`;
 
-    if (appData.bookshelves.length > 0) {
+    if (S.appData.bookshelves.length > 0) {
         html += `<div class="sidebar-section-label" style="margin-top:1.5rem;">Bokhyllor</div>`;
-        appData.bookshelves.forEach((shelf, idx) => {
+        S.appData.bookshelves.forEach((shelf, idx) => {
             if (filter && !shelf.title.toLowerCase().includes(filter)) return;
-            html += `<div class="sidebar-item sidebar-shelf-item ${currentBookshelfFilterId === shelf.id && currentViewName === 'library' ? 'active' : ''}" draggable="false" data-shelf-idx="${idx}" data-shelf-id="${shelf.id}" onclick="filterBookshelf('${shelf.id}')">
+            html += `<div class="sidebar-item sidebar-shelf-item ${S.currentBookshelfFilterId === shelf.id && S.currentViewName === 'library' ? 'active' : ''}" draggable="false" data-shelf-idx="${idx}" data-shelf-id="${shelf.id}" onclick="filterBookshelf('${shelf.id}')">
                 <span class="sidebar-drag-handle" title="Dra för att flytta" onclick="event.stopPropagation()">⠿</span>
                 <span style="flex:1;overflow:hidden;text-overflow:ellipsis">${escapeHtml(shelf.title)}</span>
             </div>`;
@@ -728,7 +732,7 @@ const renderSidebar = () => {
             if (dragSrcIdx === targetIdx) return;
 
             // Remove the moved bookshelf
-            const [moved] = appData.bookshelves.splice(dragSrcIdx, 1);
+            const [moved] = S.appData.bookshelves.splice(dragSrcIdx, 1);
             
             // Adjust the target index according to the drop position and array splicing shift
             let newTargetIdx = targetIdx;
@@ -738,7 +742,7 @@ const renderSidebar = () => {
                 newTargetIdx = insertAfter ? targetIdx + 1 : targetIdx;
             }
 
-            appData.bookshelves.splice(newTargetIdx, 0, moved);
+            S.appData.bookshelves.splice(newTargetIdx, 0, moved);
             saveData();
             renderSidebar();
             renderLibrary();
@@ -747,13 +751,13 @@ const renderSidebar = () => {
 };
 
 window.openBookshelfMenu = (id) => {
-    const shelf = appData.bookshelves.find(s => s.id === id);
+    const shelf = S.appData.bookshelves.find(s => s.id === id);
     if (shelf) openColorModal(shelf);
 };
 
 window.filterBookshelf = (id) => {
-    currentBookshelfFilterId = id;
-    if (currentViewName !== 'library') {
+    S.currentBookshelfFilterId = id;
+    if (S.currentViewName !== 'library') {
         switchView('library');
     }
     renderLibrary();
@@ -773,22 +777,22 @@ const updateBreadcrumb = (crumbs) => {
 };
 
 // --- GLOBAL APP STATE ---
-let currentDeckId = null;
-let currentSectionId = null;
-let currentNotebookId = null;
-let currentNoteId = null; // for editing
-let currentViewName = 'library';
-let currentBookshelfFilterId = null;
-let currentStudyCards = [];
-let currentStudyIndex = 0;
-let isPlaygroundSession = false;
-let playgroundEscAbort = false;
-let lastSessionWasPlayground = false;
-let draggedDeckIndex = null;
-let playgroundFilterSource = new Set(); // stores 'deck:<id>:section:<id>' or 'deck:<id>:unsorted'
-let playgroundFilterAll = true; // true = whole library selected
-let playgroundExpandedNodes = new Set();
-let playgroundDropdownOpen = false;
+S.currentDeckId = null;
+S.currentSectionId = null;
+S.currentNotebookId = null;
+S.currentNoteId = null; // for editing
+S.currentViewName = 'library';
+S.currentBookshelfFilterId = null;
+S.currentStudyCards = [];
+S.currentStudyIndex = 0;
+S.isPlaygroundSession = false;
+S.playgroundEscAbort = false;
+S.lastSessionWasPlayground = false;
+S.draggedDeckIndex = null;
+S.playgroundFilterSource = new Set(); // stores 'deck:<id>:section:<id>' or 'deck:<id>:unsorted'
+S.playgroundFilterAll = true; // true = whole library selected
+S.playgroundExpandedNodes = new Set();
+S.playgroundDropdownOpen = false;
 
 // --- DOM ELEMENTS ---
 const views = {
@@ -807,7 +811,7 @@ const cardList = document.getElementById('card-list');
 
 // --- ROUTING / VIEW LOGIC ---
 const switchView = (viewName, sectionId = null) => {
-    currentViewName = viewName;
+    S.currentViewName = viewName;
     Object.values(views).forEach(v => v.classList.add('hidden'));
 
     setTimeout(() => {
@@ -820,25 +824,25 @@ const switchView = (viewName, sectionId = null) => {
     if (viewName === 'library') {
         updateBreadcrumb([{ label: 'Bibliotek' }]);
     } else if (viewName === 'deck') {
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         const section = sectionId ? deck.sections?.find(s => s.id === sectionId) : null;
         if (section) {
-            updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: `openDeck('${currentDeckId}')` }, { label: section.title }]);
+            updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: `openDeck('${S.currentDeckId}')` }, { label: section.title }]);
         } else {
             updateBreadcrumb([lib, { label: deck?.title || 'Kortlek' }]);
         }
     } else if (viewName === 'addCard') {
-        const deck = appData.decks.find(d => d.id === currentDeckId);
-        updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: `openDeck('${currentDeckId}')` }, { label: 'Nytt kort' }]);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: `openDeck('${S.currentDeckId}')` }, { label: 'Nytt kort' }]);
     } else if (viewName === 'notebook') {
-        const nb = appData.notebooks.find(n => n.id === currentNotebookId);
+        const nb = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
         updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock' }]);
     } else if (viewName === 'addNote') {
-        const nb = appData.notebooks.find(n => n.id === currentNotebookId);
-        updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock', action: `openNotebook('${currentNotebookId}')` }, { label: 'Anteckning' }]);
+        const nb = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
+        updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock', action: `openNotebook('${S.currentNotebookId}')` }, { label: 'Anteckning' }]);
     } else if (viewName === 'study') {
-        const deck = appData.decks.find(d => d.id === currentDeckId);
-        updateBreadcrumb([lib, { label: deck?.title || 'Repetition', action: currentDeckId ? `openDeck('${currentDeckId}')` : '' }, { label: 'Repetition' }]);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        updateBreadcrumb([lib, { label: deck?.title || 'Repetition', action: S.currentDeckId ? `openDeck('${S.currentDeckId}')` : '' }, { label: 'Repetition' }]);
     } else if (viewName === 'complete') {
         updateBreadcrumb([lib, { label: 'Klart!' }]);
     } else if (viewName === 'playground') {
@@ -851,11 +855,11 @@ const switchView = (viewName, sectionId = null) => {
 };
 
 window.openPlayground = () => {
-    isPlaygroundSession = false;
-    playgroundFilterSource = new Set();
-    playgroundFilterAll = true;
-    playgroundExpandedNodes = new Set();
-    playgroundDropdownOpen = false;
+    S.isPlaygroundSession = false;
+    S.playgroundFilterSource = new Set();
+    S.playgroundFilterAll = true;
+    S.playgroundExpandedNodes = new Set();
+    S.playgroundDropdownOpen = false;
     switchView('playground');
     renderPlayground();
 };
@@ -892,7 +896,7 @@ const updatePersonalRecords = (cardsAnswered, elapsedSec) => {
 const getAchievements = (allCards, streak, records) => {
     const totalReviewed = allCards.filter(c => c.lastReviewed).length;
     const mastered = allCards.filter(c => c.interval >= 21).length;
-    const totalDecks = appData.decks.length;
+    const totalDecks = S.appData.decks.length;
 
     const categories = {
         'Studiemilstolpar': [],
@@ -937,13 +941,13 @@ const renderPlayground = () => {
     const oldMenuScrollTop = oldMenu ? oldMenu.scrollTop : 0;
     const oldWindowScrollY = window.scrollY;
 
-    let allCards = appData.decks.flatMap(d => d.cards.filter(c => c.type !== 'note').map(c => ({...c, originalDeckId: d.id})));
+    let allCards = S.appData.decks.flatMap(d => d.cards.filter(c => c.type !== 'note').map(c => ({...c, originalDeckId: d.id})));
 
     // Filter cards based on tree checkbox selection
-    if (!playgroundFilterAll) {
+    if (!S.playgroundFilterAll) {
         allCards = allCards.filter(c => {
             const sKey = c.sectionId ? `deck:${c.originalDeckId}:section:${c.sectionId}` : `deck:${c.originalDeckId}:unsorted`;
-            return playgroundFilterSource.has(sKey);
+            return S.playgroundFilterSource.has(sKey);
         });
     }
     const now = Date.now();
@@ -1178,10 +1182,10 @@ const renderPlayground = () => {
                 <div class="pg-custom-dropdown" style="position: relative; z-index: 100;">
                     <button id="pg-dropdown-trigger" class="pg-focus-trigger">
                         <span class="pg-focus-label">Fokusera:</span>
-                        <span id="pg-dropdown-selected-label">${playgroundFilterAll ? 'Hela biblioteket' : (playgroundFilterSource.size === 0 ? 'Inget valt' : `${playgroundFilterSource.size} val`)}</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity: 0.7; margin-left: 0.25rem; transform: ${playgroundDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s ease;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <span id="pg-dropdown-selected-label">${S.playgroundFilterAll ? 'Hela biblioteket' : (S.playgroundFilterSource.size === 0 ? 'Inget valt' : `${S.playgroundFilterSource.size} val`)}</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity: 0.7; margin-left: 0.25rem; transform: ${S.playgroundDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s ease;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <div id="pg-dropdown-menu" class="pg-tree-menu ${playgroundDropdownOpen ? '' : 'hidden'}">
+                    <div id="pg-dropdown-menu" class="pg-tree-menu ${S.playgroundDropdownOpen ? '' : 'hidden'}">
                         <div id="pg-tree-content"></div>
                     </div>
                 </div>
@@ -1356,7 +1360,7 @@ const renderPlayground = () => {
 
             // "Hela biblioteket" clear-all row
             html += `<label class="pg-tree-row pg-tree-root">
-                <input type="checkbox" data-role="all" ${playgroundFilterAll ? 'checked' : ''}>
+                <input type="checkbox" data-role="all" ${S.playgroundFilterAll ? 'checked' : ''}>
                 <span class="pg-tree-text">Hela biblioteket</span>
             </label>`;
 
@@ -1373,28 +1377,28 @@ const renderPlayground = () => {
             const renderDeck = (deck, indent) => {
                 const leaves = getDeckLeaves(deck);
                 if (leaves.length === 0) return '';
-                const checkedLeaves = leaves.filter(l => playgroundFilterSource.has(l));
-                const allChecked = playgroundFilterAll || checkedLeaves.length === leaves.length;
-                const someChecked = !playgroundFilterAll && checkedLeaves.length > 0 && checkedLeaves.length < leaves.length;
+                const checkedLeaves = leaves.filter(l => S.playgroundFilterSource.has(l));
+                const allChecked = S.playgroundFilterAll || checkedLeaves.length === leaves.length;
+                const someChecked = !S.playgroundFilterAll && checkedLeaves.length > 0 && checkedLeaves.length < leaves.length;
                 const sections = deck.sections || [];
                 const hasUnsorted = deck.cards.some(c => c.type !== 'note' && !c.sectionId);
                 const hasChildren = sections.length > 0 || hasUnsorted;
 
                 let h = `<div class="pg-tree-node" data-deck-id="${deck.id}">
                     <label class="pg-tree-row pg-tree-level-${indent}">
-                        ${hasChildren ? `<span class="pg-tree-toggle" data-target="deck-${deck.id}">${playgroundExpandedNodes.has(`deck-${deck.id}`) ? '▼' : '▶'}</span>` : `<span class="pg-tree-toggle-spacer"></span>`}
+                        ${hasChildren ? `<span class="pg-tree-toggle" data-target="deck-${deck.id}">${S.playgroundExpandedNodes.has(`deck-${deck.id}`) ? '▼' : '▶'}</span>` : `<span class="pg-tree-toggle-spacer"></span>`}
                         <input type="checkbox" data-role="deck" data-deck-id="${deck.id}" ${allChecked ? 'checked' : ''} ${someChecked && !allChecked ? 'data-indeterminate="true"' : ''}>
                         <span class="pg-tree-text">${escapeHtml(deck.title)}</span>
                         <span class="pg-tree-count">${deck.cards.filter(c => c.type !== 'note').length}</span>
                     </label>`;
 
                 if (hasChildren) {
-                    const isExpanded = playgroundExpandedNodes.has(`deck-${deck.id}`);
+                    const isExpanded = S.playgroundExpandedNodes.has(`deck-${deck.id}`);
                     h += `<div class="pg-tree-children ${isExpanded ? '' : 'hidden'}" id="pg-tree-deck-${deck.id}">`;
                     sections.forEach(s => {
                         const sKey = `deck:${deck.id}:section:${s.id}`;
                         const sCount = deck.cards.filter(c => c.type !== 'note' && c.sectionId === s.id).length;
-                        const sChecked = playgroundFilterAll || playgroundFilterSource.has(sKey);
+                        const sChecked = S.playgroundFilterAll || S.playgroundFilterSource.has(sKey);
                         h += `<label class="pg-tree-row pg-tree-level-${indent + 1}">
                             <span class="pg-tree-toggle-spacer"></span>
                             <input type="checkbox" data-role="section" data-key="${sKey}" data-deck-id="${deck.id}" ${sChecked ? 'checked' : ''}>
@@ -1405,7 +1409,7 @@ const renderPlayground = () => {
                     if (hasUnsorted) {
                         const uKey = `deck:${deck.id}:unsorted`;
                         const uCount = deck.cards.filter(c => c.type !== 'note' && !c.sectionId).length;
-                        const uChecked = playgroundFilterAll || playgroundFilterSource.has(uKey);
+                        const uChecked = S.playgroundFilterAll || S.playgroundFilterSource.has(uKey);
                         h += `<label class="pg-tree-row pg-tree-level-${indent + 1}">
                             <span class="pg-tree-toggle-spacer"></span>
                             <input type="checkbox" data-role="section" data-key="${uKey}" data-deck-id="${deck.id}" ${uChecked ? 'checked' : ''}>
@@ -1420,41 +1424,41 @@ const renderPlayground = () => {
             };
 
             // Bookshelves
-            appData.bookshelves.forEach(shelf => {
-                const shelfDecks = appData.decks.filter(d => d.bookshelfId === shelf.id);
+            S.appData.bookshelves.forEach(shelf => {
+                const shelfDecks = S.appData.decks.filter(d => d.bookshelfId === shelf.id);
                 if (shelfDecks.length === 0) return;
                 const shelfLeaves = shelfDecks.flatMap(getDeckLeaves);
-                const checkedLeaves = shelfLeaves.filter(l => playgroundFilterSource.has(l));
-                const allChecked = playgroundFilterAll || checkedLeaves.length === shelfLeaves.length;
-                const someChecked = !playgroundFilterAll && checkedLeaves.length > 0 && checkedLeaves.length < shelfLeaves.length;
+                const checkedLeaves = shelfLeaves.filter(l => S.playgroundFilterSource.has(l));
+                const allChecked = S.playgroundFilterAll || checkedLeaves.length === shelfLeaves.length;
+                const someChecked = !S.playgroundFilterAll && checkedLeaves.length > 0 && checkedLeaves.length < shelfLeaves.length;
 
                 html += `<div class="pg-tree-node" data-shelf-id="${shelf.id}">
                     <label class="pg-tree-row pg-tree-level-0">
-                        <span class="pg-tree-toggle" data-target="shelf-${shelf.id}">${playgroundExpandedNodes.has(`shelf-${shelf.id}`) ? '▼' : '▶'}</span>
+                        <span class="pg-tree-toggle" data-target="shelf-${shelf.id}">${S.playgroundExpandedNodes.has(`shelf-${shelf.id}`) ? '▼' : '▶'}</span>
                         <input type="checkbox" data-role="shelf" data-shelf-id="${shelf.id}" ${allChecked ? 'checked' : ''} ${someChecked && !allChecked ? 'data-indeterminate="true"' : ''}>
                         <span class="pg-tree-text pg-tree-shelf-text">${escapeHtml(shelf.title)}</span>
                     </label>
-                    <div class="pg-tree-children ${playgroundExpandedNodes.has(`shelf-${shelf.id}`) ? '' : 'hidden'}" id="pg-tree-shelf-${shelf.id}">
+                    <div class="pg-tree-children ${S.playgroundExpandedNodes.has(`shelf-${shelf.id}`) ? '' : 'hidden'}" id="pg-tree-shelf-${shelf.id}">
                         ${shelfDecks.map(d => renderDeck(d, 1)).join('')}
                     </div>
                 </div>`;
             });
 
             // "Övriga kortlekar" — decks without bookshelfId
-            const looseDecks = appData.decks.filter(d => !d.bookshelfId);
+            const looseDecks = S.appData.decks.filter(d => !d.bookshelfId);
             if (looseDecks.length > 0) {
                 const shelfLeaves = looseDecks.flatMap(getDeckLeaves);
-                const checkedLeaves = shelfLeaves.filter(l => playgroundFilterSource.has(l));
-                const allChecked = playgroundFilterAll || checkedLeaves.length === shelfLeaves.length;
-                const someChecked = !playgroundFilterAll && checkedLeaves.length > 0 && checkedLeaves.length < shelfLeaves.length;
+                const checkedLeaves = shelfLeaves.filter(l => S.playgroundFilterSource.has(l));
+                const allChecked = S.playgroundFilterAll || checkedLeaves.length === shelfLeaves.length;
+                const someChecked = !S.playgroundFilterAll && checkedLeaves.length > 0 && checkedLeaves.length < shelfLeaves.length;
 
                 html += `<div class="pg-tree-node">
                     <label class="pg-tree-row pg-tree-level-0">
-                        <span class="pg-tree-toggle" data-target="shelf-loose">${playgroundExpandedNodes.has('shelf-loose') ? '▼' : '▶'}</span>
+                        <span class="pg-tree-toggle" data-target="shelf-loose">${S.playgroundExpandedNodes.has('shelf-loose') ? '▼' : '▶'}</span>
                         <input type="checkbox" data-role="shelf-loose" ${allChecked ? 'checked' : ''} ${someChecked && !allChecked ? 'data-indeterminate="true"' : ''}>
                         <span class="pg-tree-text pg-tree-shelf-text">Övriga kortlekar</span>
                     </label>
-                    <div class="pg-tree-children ${playgroundExpandedNodes.has('shelf-loose') ? '' : 'hidden'}" id="pg-tree-shelf-loose">
+                    <div class="pg-tree-children ${S.playgroundExpandedNodes.has('shelf-loose') ? '' : 'hidden'}" id="pg-tree-shelf-loose">
                         ${looseDecks.map(d => renderDeck(d, 1)).join('')}
                     </div>
                 </div>`;
@@ -1473,7 +1477,7 @@ const renderPlayground = () => {
         // Collect all possible leaf keys
         const getAllLeaves = () => {
             const leaves = [];
-            appData.decks.forEach(d => {
+            S.appData.decks.forEach(d => {
                 (d.sections || []).forEach(s => leaves.push(`deck:${d.id}:section:${s.id}`));
                 if (d.cards.some(c => c.type !== 'note' && !c.sectionId)) leaves.push(`deck:${d.id}:unsorted`);
             });
@@ -1481,7 +1485,7 @@ const renderPlayground = () => {
         };
 
         const getDeckLeavesById = (deckId) => {
-            const deck = appData.decks.find(d => d.id === deckId);
+            const deck = S.appData.decks.find(d => d.id === deckId);
             if (!deck) return [];
             const leaves = [];
             (deck.sections || []).forEach(s => leaves.push(`deck:${deck.id}:section:${s.id}`));
@@ -1490,12 +1494,12 @@ const renderPlayground = () => {
         };
 
         const getShelfLeaves = (shelfId) => {
-            return appData.decks.filter(d => d.bookshelfId === shelfId).flatMap(d => getDeckLeavesById(d.id));
+            return S.appData.decks.filter(d => d.bookshelfId === shelfId).flatMap(d => getDeckLeavesById(d.id));
         };
 
         const updateLabel = () => {
             const label = document.getElementById('pg-dropdown-selected-label');
-            if (label) label.textContent = playgroundFilterAll ? 'Hela biblioteket' : (playgroundFilterSource.size === 0 ? 'Inget valt' : `${playgroundFilterSource.size} val`);
+            if (label) label.textContent = S.playgroundFilterAll ? 'Hela biblioteket' : (S.playgroundFilterSource.size === 0 ? 'Inget valt' : `${S.playgroundFilterSource.size} val`);
         };
 
         // Checkbox change handler with cascade
@@ -1508,11 +1512,11 @@ const renderPlayground = () => {
 
             if (role === 'all') {
                 if (checked) {
-                    playgroundFilterAll = true;
-                    playgroundFilterSource = new Set();
+                    S.playgroundFilterAll = true;
+                    S.playgroundFilterSource = new Set();
                 } else {
-                    playgroundFilterAll = false;
-                    playgroundFilterSource = new Set();
+                    S.playgroundFilterAll = false;
+                    S.playgroundFilterSource = new Set();
                 }
                 buildTree();
                 updateLabel();
@@ -1521,30 +1525,30 @@ const renderPlayground = () => {
             }
 
             // If currently "all" (empty set) and user unchecks something, populate with all leaves first
-            if (playgroundFilterAll && !checked) {
-                playgroundFilterAll = false;
-                playgroundFilterSource = new Set(allLeaves);
+            if (S.playgroundFilterAll && !checked) {
+                S.playgroundFilterAll = false;
+                S.playgroundFilterSource = new Set(allLeaves);
             }
 
             if (role === 'shelf') {
                 const leaves = getShelfLeaves(cb.dataset.shelfId);
-                leaves.forEach(l => checked ? playgroundFilterSource.add(l) : playgroundFilterSource.delete(l));
+                leaves.forEach(l => checked ? S.playgroundFilterSource.add(l) : S.playgroundFilterSource.delete(l));
             } else if (role === 'shelf-loose') {
-                const looseDecks = appData.decks.filter(d => !d.bookshelfId);
+                const looseDecks = S.appData.decks.filter(d => !d.bookshelfId);
                 const leaves = looseDecks.flatMap(d => getDeckLeavesById(d.id));
-                leaves.forEach(l => checked ? playgroundFilterSource.add(l) : playgroundFilterSource.delete(l));
+                leaves.forEach(l => checked ? S.playgroundFilterSource.add(l) : S.playgroundFilterSource.delete(l));
             } else if (role === 'deck') {
                 const leaves = getDeckLeavesById(cb.dataset.deckId);
-                leaves.forEach(l => checked ? playgroundFilterSource.add(l) : playgroundFilterSource.delete(l));
+                leaves.forEach(l => checked ? S.playgroundFilterSource.add(l) : S.playgroundFilterSource.delete(l));
             } else if (role === 'section') {
                 const key = cb.dataset.key;
-                checked ? playgroundFilterSource.add(key) : playgroundFilterSource.delete(key);
+                checked ? S.playgroundFilterSource.add(key) : S.playgroundFilterSource.delete(key);
             }
 
             // If all leaves are selected, reset to empty (= all)
-            if (playgroundFilterSource.size >= allLeaves.length) {
-                playgroundFilterAll = true;
-                playgroundFilterSource = new Set();
+            if (S.playgroundFilterSource.size >= allLeaves.length) {
+                S.playgroundFilterAll = true;
+                S.playgroundFilterSource = new Set();
             }
 
             buildTree();
@@ -1566,9 +1570,9 @@ const renderPlayground = () => {
                 
                 // Save state
                 if (isHidden) {
-                    playgroundExpandedNodes.delete(targetId);
+                    S.playgroundExpandedNodes.delete(targetId);
                 } else {
-                    playgroundExpandedNodes.add(targetId);
+                    S.playgroundExpandedNodes.add(targetId);
                 }
             }
         });
@@ -1586,7 +1590,7 @@ const renderPlayground = () => {
         // Open/close dropdown
         const closeMenu = (e) => {
             if (!dropdownTrigger.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                playgroundDropdownOpen = false;
+                S.playgroundDropdownOpen = false;
                 dropdownMenu.classList.add('hidden');
                 const svg = dropdownTrigger.querySelector('svg');
                 if (svg) svg.style.transform = 'rotate(0deg)';
@@ -1598,8 +1602,8 @@ const renderPlayground = () => {
 
         dropdownTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
-            playgroundDropdownOpen = !playgroundDropdownOpen;
-            if (playgroundDropdownOpen) {
+            S.playgroundDropdownOpen = !S.playgroundDropdownOpen;
+            if (S.playgroundDropdownOpen) {
                 dropdownMenu.classList.remove('hidden');
                 document.addEventListener('click', closeMenu);
                 window.activePlaygroundCloseMenu = closeMenu;
@@ -1610,11 +1614,11 @@ const renderPlayground = () => {
             }
             const svg = dropdownTrigger.querySelector('svg');
             if (svg) {
-                svg.style.transform = playgroundDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                svg.style.transform = S.playgroundDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)';
             }
         });
 
-        if (playgroundDropdownOpen) {
+        if (S.playgroundDropdownOpen) {
             document.addEventListener('click', closeMenu);
         }
 
@@ -1624,23 +1628,23 @@ const renderPlayground = () => {
     }
 };
 
-let playgroundMode = null;
-let playgroundSessionStats = { correct: 0, again: 0, total: 0, startTime: 0 };
+S.playgroundMode = null;
+S.playgroundSessionStats = { correct: 0, again: 0, total: 0, startTime: 0 };
 
 window.startPlaygroundStudy = (mode) => {
     const now = Date.now();
     const DAY = 1000 * 60 * 60 * 24;
     const safeCreated = (c) => Math.min(parseInt(c.id, 10), now);
 
-    let allCards = appData.decks.flatMap(d => {
+    let allCards = S.appData.decks.flatMap(d => {
         return d.cards.filter(c => c.type !== 'note').map(c => ({...c, originalDeckId: d.id}));
     });
 
     // Apply playground tree-filter
-    if (!playgroundFilterAll) {
+    if (!S.playgroundFilterAll) {
         allCards = allCards.filter(c => {
             const sKey = c.sectionId ? `deck:${c.originalDeckId}:section:${c.sectionId}` : `deck:${c.originalDeckId}:unsorted`;
-            return playgroundFilterSource.has(sKey);
+            return S.playgroundFilterSource.has(sKey);
         });
     }
 
@@ -1672,7 +1676,7 @@ window.startPlaygroundStudy = (mode) => {
         const sectionCards = [];
         allCards.forEach(c => {
             if (c.sectionId) {
-                const d = appData.decks.find(deck => deck.id === c.originalDeckId);
+                const d = S.appData.decks.find(deck => deck.id === c.originalDeckId);
                 if (d && d.sections) {
                     const sectionObj = d.sections.find(s => s.id === c.sectionId);
                     if (sectionObj) {
@@ -1690,12 +1694,12 @@ window.startPlaygroundStudy = (mode) => {
     }
 
     if (selectedCards.length > 0) {
-        playgroundMode = mode;
-        playgroundSessionStats = { correct: 0, again: 0, total: selectedCards.length, startTime: Date.now() };
-        currentStudyCards = selectedCards;
-        currentStudyIndex = 0;
-        currentDeckId = null;
-        isPlaygroundSession = true;
+        S.playgroundMode = mode;
+        S.playgroundSessionStats = { correct: 0, again: 0, total: selectedCards.length, startTime: Date.now() };
+        S.currentStudyCards = selectedCards;
+        S.currentStudyIndex = 0;
+        S.currentDeckId = null;
+        S.isPlaygroundSession = true;
 
         if (mode === 'suddendeath') {
             switchView('study');
@@ -1745,12 +1749,12 @@ window.startPlaygroundStudy = (mode) => {
 };
 
 const finishPlaygroundSession = (skipResults = false) => {
-    const mode = playgroundMode;
-    playgroundMode = null;
-    isPlaygroundSession = false;
-    const shouldSkip = skipResults || playgroundEscAbort;
-    playgroundEscAbort = false;
-    lastSessionWasPlayground = true;
+    const mode = S.playgroundMode;
+    S.playgroundMode = null;
+    S.isPlaygroundSession = false;
+    const shouldSkip = skipResults || S.playgroundEscAbort;
+    S.playgroundEscAbort = false;
+    S.lastSessionWasPlayground = true;
 
     if (shouldSkip) {
         switchView('playground');
@@ -1758,7 +1762,7 @@ const finishPlaygroundSession = (skipResults = false) => {
         return;
     }
 
-    const stats = playgroundSessionStats;
+    const stats = S.playgroundSessionStats;
     const elapsed = Math.round((Date.now() - stats.startTime) / 1000);
     const answered = stats.correct + stats.again;
 
@@ -1811,12 +1815,12 @@ const showToast = (message) => {
 };
 
 // --- RENDERING ---
-let draggedItemId = null;
-let draggedItemType = null;
-let draggedCardId = null;
-let currentBookshelfToDelete = null;
+S.draggedItemId = null;
+S.draggedItemType = null;
+S.draggedCardId = null;
+S.currentBookshelfToDelete = null;
 
-let librarySearchFilter = '';
+S.librarySearchFilter = '';
 
 const itemMatchesFilter = (item, type, flt) => {
     if (!flt) return true;
@@ -1838,7 +1842,7 @@ const itemMatchesFilter = (item, type, flt) => {
 const renderLibrary = () => {
     renderDagensMapp();
     deckList.innerHTML = '';
-    const filter = librarySearchFilter.toLowerCase();
+    const filter = S.librarySearchFilter.toLowerCase();
     
     // Add dragover/drop on deckList for dropping items outside bookshelves
     deckList.ondragover = (e) => e.preventDefault();
@@ -1846,12 +1850,12 @@ const renderLibrary = () => {
         e.preventDefault();
         // Check if we dropped on a deck card or bookshelf container
         const closestContainer = e.target.closest('.bookshelf-items');
-        if (!closestContainer && draggedItemId !== null && draggedItemType !== null) {
-            if (draggedItemType === 'deck') {
-                const item = appData.decks.find(d => d.id === draggedItemId);
+        if (!closestContainer && S.draggedItemId !== null && S.draggedItemType !== null) {
+            if (S.draggedItemType === 'deck') {
+                const item = S.appData.decks.find(d => d.id === S.draggedItemId);
                 if (item) item.bookshelfId = null;
-            } else if (draggedItemType === 'notebook') {
-                const item = appData.notebooks.find(n => n.id === draggedItemId);
+            } else if (S.draggedItemType === 'notebook') {
+                const item = S.appData.notebooks.find(n => n.id === S.draggedItemId);
                 if (item) item.bookshelfId = null;
             }
             saveData();
@@ -1859,7 +1863,7 @@ const renderLibrary = () => {
         }
     };
 
-    if (appData.decks.length === 0 && appData.notebooks.length === 0 && appData.bookshelves.length === 0) {
+    if (S.appData.decks.length === 0 && S.appData.notebooks.length === 0 && S.appData.bookshelves.length === 0) {
         deckList.innerHTML = `<div class="empty-state">
             <div class="empty-state-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="11" x2="13" y2="11"/></svg>
@@ -1893,7 +1897,7 @@ const renderLibrary = () => {
             
             let itemColor = '#4F46E5';
             if (item.bookshelfId) {
-                const shelf = appData.bookshelves.find(s => s.id === item.bookshelfId);
+                const shelf = S.appData.bookshelves.find(s => s.id === item.bookshelfId);
                 if (shelf && shelf.color) itemColor = shelf.color;
             } else if (item.color) { // Legacy fallback
                 itemColor = item.color;
@@ -1924,7 +1928,7 @@ const renderLibrary = () => {
             
             let itemColor = '#FF6D01';
             if (item.bookshelfId) {
-                const shelf = appData.bookshelves.find(s => s.id === item.bookshelfId);
+                const shelf = S.appData.bookshelves.find(s => s.id === item.bookshelfId);
                 if (shelf && shelf.color) itemColor = shelf.color;
             } else if (item.color) {
                 itemColor = item.color;
@@ -1980,9 +1984,9 @@ const renderLibrary = () => {
 
             if (await showConfirmModal('Radera', confirmMsg, 'Radera', true)) {
                 if (type === 'deck') {
-                    appData.decks = appData.decks.filter(d => d.id !== item.id);
+                    S.appData.decks = S.appData.decks.filter(d => d.id !== item.id);
                 } else {
-                    appData.notebooks = appData.notebooks.filter(n => n.id !== item.id);
+                    S.appData.notebooks = S.appData.notebooks.filter(n => n.id !== item.id);
                 }
                 saveData();
                 renderLibrary();
@@ -1993,8 +1997,8 @@ const renderLibrary = () => {
         itemEl.addEventListener('dragstart', (e) => {
             e.stopPropagation();
             itemEl.classList.add('dragging');
-            draggedItemId = item.id;
-            draggedItemType = type;
+            S.draggedItemId = item.id;
+            S.draggedItemType = type;
             draggedSourceContainer = itemEl.closest('.bookshelf-container');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', type);
@@ -2003,8 +2007,8 @@ const renderLibrary = () => {
         itemEl.addEventListener('dragend', (e) => {
             e.stopPropagation();
             itemEl.classList.remove('dragging');
-            draggedItemId = null;
-            draggedItemType = null;
+            S.draggedItemId = null;
+            S.draggedItemType = null;
             draggedSourceContainer = null;
         });
 
@@ -2014,16 +2018,16 @@ const renderLibrary = () => {
             e.stopPropagation();
             itemEl.classList.remove('drag-over');
             
-            if (draggedItemId !== null && draggedItemType !== null) {
-                const sourceList = draggedItemType === 'deck' ? appData.decks : appData.notebooks;
+            if (S.draggedItemId !== null && S.draggedItemType !== null) {
+                const sourceList = S.draggedItemType === 'deck' ? S.appData.decks : S.appData.notebooks;
                 const targetBookshelfId = item.bookshelfId;
                 
-                const draggedItem = sourceList.find(i => i.id === draggedItemId);
+                const draggedItem = sourceList.find(i => i.id === S.draggedItemId);
                 if (draggedItem) {
                     draggedItem.bookshelfId = targetBookshelfId;
                     
-                    if (draggedItemType === type && draggedItemId !== item.id) {
-                        const originalIndex = sourceList.findIndex(i => i.id === draggedItemId);
+                    if (S.draggedItemType === type && S.draggedItemId !== item.id) {
+                        const originalIndex = sourceList.findIndex(i => i.id === S.draggedItemId);
                         const targetIndex = sourceList.findIndex(i => i.id === item.id);
                         if (originalIndex !== -1 && targetIndex !== -1) {
                             const [removed] = sourceList.splice(originalIndex, 1);
@@ -2042,9 +2046,9 @@ const renderLibrary = () => {
     };
 
     // Render Bookshelves
-    let shelvesToRender = appData.bookshelves;
-    if (currentBookshelfFilterId) {
-        shelvesToRender = appData.bookshelves.filter(s => s.id === currentBookshelfFilterId);
+    let shelvesToRender = S.appData.bookshelves;
+    if (S.currentBookshelfFilterId) {
+        shelvesToRender = S.appData.bookshelves.filter(s => s.id === S.currentBookshelfFilterId);
         
         // Render a back to all button
         const backBtn = document.createElement('div');
@@ -2053,7 +2057,7 @@ const renderLibrary = () => {
     }
 
     const isBookshelfFullyReviewed = (shelf) => {
-        const shelfDecks = appData.decks.filter(d => d.bookshelfId === shelf.id);
+        const shelfDecks = S.appData.decks.filter(d => d.bookshelfId === shelf.id);
         return shelfDecks.length > 0 && shelfDecks.every(d => isDeckFullyReviewed(d));
     };
 
@@ -2104,12 +2108,12 @@ const renderLibrary = () => {
         itemsContainer.addEventListener('drop', (e) => {
             e.preventDefault();
             e.stopPropagation(); // Don't trigger deckList root drop
-            if (draggedItemId !== null && draggedItemType !== null) {
-                if (draggedItemType === 'deck') {
-                    const item = appData.decks.find(d => d.id === draggedItemId);
+            if (S.draggedItemId !== null && S.draggedItemType !== null) {
+                if (S.draggedItemType === 'deck') {
+                    const item = S.appData.decks.find(d => d.id === S.draggedItemId);
                     if (item) item.bookshelfId = shelf.id;
-                } else if (draggedItemType === 'notebook') {
-                    const item = appData.notebooks.find(n => n.id === draggedItemId);
+                } else if (S.draggedItemType === 'notebook') {
+                    const item = S.appData.notebooks.find(n => n.id === S.draggedItemId);
                     if (item) item.bookshelfId = shelf.id;
                 }
                 saveData();
@@ -2136,12 +2140,12 @@ const renderLibrary = () => {
         };
 
         const shelfTitleMatches = shelf.title.toLowerCase().includes(filter);
-        appData.decks.forEach((deck, index) => {
+        S.appData.decks.forEach((deck, index) => {
             if (deck.bookshelfId === shelf.id && (shelfTitleMatches || itemMatchesFilter(deck, 'deck', filter))) {
                 shelfItems.push({ element: renderItem(deck, 'deck', index), updated: getLastUpdated(deck), done: isDeckFullyReviewed(deck) });
             }
         });
-        appData.notebooks.forEach((notebook, index) => {
+        S.appData.notebooks.forEach((notebook, index) => {
             if (notebook.bookshelfId === shelf.id && (shelfTitleMatches || itemMatchesFilter(notebook, 'notebook', filter))) {
                 shelfItems.push({ element: renderItem(notebook, 'notebook', index), updated: getLastUpdated(notebook), done: false });
             }
@@ -2171,7 +2175,7 @@ const renderLibrary = () => {
 
         shelfEl.querySelector('.btn-bookshelf-delete').addEventListener('click', (e) => {
             e.stopPropagation();
-            currentBookshelfToDelete = shelf.id;
+            S.currentBookshelfToDelete = shelf.id;
             document.getElementById('modal-delete-bookshelf').classList.remove('hidden');
         });
 
@@ -2181,7 +2185,7 @@ const renderLibrary = () => {
     });
 
     // Root items (No bookshelfId)
-    if (!currentBookshelfFilterId) {
+    if (!S.currentBookshelfFilterId) {
         const rootItems = [];
         const getLastUpdated = (item) => {
             let max = parseInt(item.id, 10) || 0;
@@ -2199,12 +2203,12 @@ const renderLibrary = () => {
             return max;
         };
 
-        appData.decks.forEach((deck, index) => {
+        S.appData.decks.forEach((deck, index) => {
             if (!deck.bookshelfId && itemMatchesFilter(deck, 'deck', filter)) {
                 rootItems.push({ element: renderItem(deck, 'deck', index), updated: getLastUpdated(deck), done: isDeckFullyReviewed(deck) });
             }
         });
-        appData.notebooks.forEach((notebook, index) => {
+        S.appData.notebooks.forEach((notebook, index) => {
             if (!notebook.bookshelfId && itemMatchesFilter(notebook, 'notebook', filter)) {
                 rootItems.push({ element: renderItem(notebook, 'notebook', index), updated: getLastUpdated(notebook), done: false });
             }
@@ -2218,7 +2222,7 @@ const renderLibrary = () => {
     }
 
     // Update global study button
-    const allDueCards = appData.decks.flatMap(d => d.cards.filter(c => c.nextReviewDate <= Date.now()));
+    const allDueCards = S.appData.decks.flatMap(d => d.cards.filter(c => c.nextReviewDate <= Date.now()));
     const globalBtn = document.getElementById('btn-study-all');
     const globalLabel = document.getElementById('btn-study-all-label');
     if (allDueCards.length > 0) {
@@ -2248,7 +2252,7 @@ const getDagensMapp = () => {
     
     // Check if stored is still valid (date matches today and deck + section still exist)
     if (stored && stored.date === todayStr) {
-        const deck = appData.decks.find(d => d.id === stored.deckId);
+        const deck = S.appData.decks.find(d => d.id === stored.deckId);
         const section = deck ? (deck.sections || []).find(s => s.id === stored.sectionId) : null;
         if (deck && section) {
             return {
@@ -2263,7 +2267,7 @@ const getDagensMapp = () => {
     // Re-roll or select new one
     // Collect all sections
     const allSections = [];
-    appData.decks.forEach(deck => {
+    S.appData.decks.forEach(deck => {
         if (deck.sections && deck.sections.length > 0) {
             deck.sections.forEach(sec => {
                 allSections.push({
@@ -2304,9 +2308,9 @@ const renderDagensMapp = () => {
     if (!container) return;
     
     // If search filter is active, bookshelf filter is active, or library is empty, hide
-    const isSearchActive = librarySearchFilter && librarySearchFilter.trim() !== '';
-    const isLibraryEmpty = appData.decks.length === 0 && appData.notebooks.length === 0 && appData.bookshelves.length === 0;
-    if (isSearchActive || currentBookshelfFilterId || isLibraryEmpty) {
+    const isSearchActive = S.librarySearchFilter && S.librarySearchFilter.trim() !== '';
+    const isLibraryEmpty = S.appData.decks.length === 0 && S.appData.notebooks.length === 0 && S.appData.bookshelves.length === 0;
+    if (isSearchActive || S.currentBookshelfFilterId || isLibraryEmpty) {
         container.innerHTML = '';
         container.style.display = 'none';
         return;
@@ -2341,7 +2345,7 @@ const renderDagensMapp = () => {
     }
     
     // If a section is selected, get stats
-    const deck = appData.decks.find(d => d.id === dagens.deckId);
+    const deck = S.appData.decks.find(d => d.id === dagens.deckId);
     if (!deck) return; // safety check
     
     const sectionCards = deck.cards.filter(c => c.type !== 'note' && c.sectionId === dagens.sectionId);
@@ -2351,7 +2355,7 @@ const renderDagensMapp = () => {
     // Choose colour
     let itemColor = '#4F46E5';
     if (deck.bookshelfId) {
-        const shelf = appData.bookshelves.find(s => s.id === deck.bookshelfId);
+        const shelf = S.appData.bookshelves.find(s => s.id === deck.bookshelfId);
         if (shelf && shelf.color) itemColor = shelf.color;
     } else if (deck.color) {
         itemColor = deck.color;
@@ -2411,7 +2415,7 @@ const renderDagensMapp = () => {
 };
 
 const studyDagensMapp = (deckId, sectionId) => {
-    currentDeckId = deckId;
+    S.currentDeckId = deckId;
     startSectionStudy(sectionId, false);
 };
 
@@ -2419,9 +2423,9 @@ const studyDagensMapp = (deckId, sectionId) => {
 const renderDecks = renderLibrary;
 
 const openDeck = (id, sectionId = null) => {
-    currentDeckId = id;
-    currentSectionId = sectionId;
-    const deck = appData.decks.find(d => d.id === id);
+    S.currentDeckId = id;
+    S.currentSectionId = sectionId;
+    const deck = S.appData.decks.find(d => d.id === id);
     const section = sectionId ? deck.sections?.find(s => s.id === sectionId) : null;
     document.getElementById('current-deck-title').innerText = section ? `${deck.title} › ${section.title}` : deck.title;
 
@@ -2435,7 +2439,7 @@ const openDeck = (id, sectionId = null) => {
     
     let itemColor = '#4F46E5';
     if (deck.bookshelfId) {
-        const shelf = appData.bookshelves.find(s => s.id === deck.bookshelfId);
+        const shelf = S.appData.bookshelves.find(s => s.id === deck.bookshelfId);
         if (shelf && shelf.color) itemColor = shelf.color;
     } else if (deck.color) {
         itemColor = deck.color;
@@ -2549,7 +2553,7 @@ const renderCardItem = (card, deck) => {
     
     // Drag and Drop listeners
     listItem.addEventListener('dragstart', (e) => {
-        draggedCardId = card.id;
+        S.draggedCardId = card.id;
         listItem.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('cardId', card.id); // Explicit data transfer
@@ -2558,15 +2562,15 @@ const renderCardItem = (card, deck) => {
     
     listItem.addEventListener('dragend', () => {
         listItem.classList.remove('dragging');
-        draggedCardId = null;
+        S.draggedCardId = null;
     });
 
     const dropdown = listItem.querySelector('.card-menu-dropdown');
 
     listItem.querySelector('.btn-study-card').addEventListener('click', (e) => {
         e.stopPropagation();
-        currentStudyCards = [card];
-        currentStudyIndex = 0;
+        S.currentStudyCards = [card];
+        S.currentStudyIndex = 0;
         renderStudyCard();
         switchView('study');
     });
@@ -2616,7 +2620,7 @@ const renderNoteCardItem = (card, deck) => {
     `;
 
     listItem.addEventListener('dragstart', (e) => {
-        draggedCardId = card.id;
+        S.draggedCardId = card.id;
         listItem.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('cardId', card.id);
@@ -2624,7 +2628,7 @@ const renderNoteCardItem = (card, deck) => {
     });
     listItem.addEventListener('dragend', () => {
         listItem.classList.remove('dragging');
-        draggedCardId = null;
+        S.draggedCardId = null;
     });
 
     listItem.querySelector('.btn-delete-card').addEventListener('click', async (e) => {
@@ -2647,7 +2651,7 @@ const renderNoteCardItem = (card, deck) => {
 
 const renderCards = (cards) => {
     cardList.innerHTML = '';
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
 
     if (cards.length === 0 && deck.sections.length === 0) {
@@ -2684,7 +2688,7 @@ const renderCards = (cards) => {
         rootContainer.addEventListener('drop', (e) => {
             e.preventDefault();
             rootContainer.classList.remove('dragging-over');
-            const cardId = e.dataTransfer.getData('cardId') || draggedCardId;
+            const cardId = e.dataTransfer.getData('cardId') || S.draggedCardId;
             
             if (cardId) {
                 const card = deck.cards.find(c => c.id === cardId);
@@ -2749,7 +2753,7 @@ const renderCards = (cards) => {
         const addCardBtn = sectionEl.querySelector('.btn-section-add-card');
         addCardBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            preselectSectionId = section.id;
+            S.preselectSectionId = section.id;
             document.getElementById('btn-add-card').click();
         });
         
@@ -2782,7 +2786,7 @@ const renderCards = (cards) => {
         sectionEl.addEventListener('drop', (e) => {
             e.preventDefault();
             sectionHeader.classList.remove('drag-over');
-            const cardId = e.dataTransfer.getData('cardId') || draggedCardId;
+            const cardId = e.dataTransfer.getData('cardId') || S.draggedCardId;
             
             if (cardId) {
                 const card = deck.cards.find(c => c.id === cardId);
@@ -2821,7 +2825,7 @@ const renderCards = (cards) => {
 
         sectionEl.querySelector('.section-header').addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            preselectSectionId = section.id;
+            S.preselectSectionId = section.id;
             document.getElementById('btn-add-card').click();
         });
 
@@ -2830,8 +2834,8 @@ const renderCards = (cards) => {
 };
 
 const openNotebook = (id) => {
-    currentNotebookId = id;
-    const notebook = appData.notebooks.find(n => n.id === id);
+    S.currentNotebookId = id;
+    const notebook = S.appData.notebooks.find(n => n.id === id);
     document.getElementById('current-notebook-title').innerText = notebook.title;
     renderNotes(notebook.notes);
     switchView('notebook');
@@ -2869,7 +2873,7 @@ const renderNotes = (notes) => {
         `;
 
         noteEl.onclick = () => {
-            currentNoteId = note.id;
+            S.currentNoteId = note.id;
             document.getElementById('note-content').value = note.content;
             document.getElementById('note-form-title').innerText = 'Visa anteckning';
             switchView('addNote');
@@ -2878,7 +2882,7 @@ const renderNotes = (notes) => {
         noteEl.querySelector('.btn-delete-note').onclick = async (e) => {
             e.stopPropagation();
             if (await showConfirmModal('Radera anteckning', 'Vill du verkligen radera denna anteckning?', 'Radera', true)) {
-                const notebook = appData.notebooks.find(n => n.id === currentNotebookId);
+                const notebook = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
                 notebook.notes = notebook.notes.filter(n => n.id !== note.id);
                 saveData();
                 renderNotes(notebook.notes);
@@ -2887,7 +2891,7 @@ const renderNotes = (notes) => {
 
         noteEl.querySelector('.btn-edit-note').onclick = (e) => {
             e.stopPropagation();
-            currentNoteId = note.id;
+            S.currentNoteId = note.id;
             document.getElementById('note-content').value = note.content;
             document.getElementById('note-form-title').innerText = 'Redigera anteckning';
             switchView('addNote');
@@ -2900,53 +2904,53 @@ const renderNotes = (notes) => {
 
 // --- STUDY LOGIC ---
 const startStudy = (forceAll = false) => {
-    isPlaygroundSession = false;
-    lastSessionWasPlayground = false;
-    playgroundMode = null;
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    S.isPlaygroundSession = false;
+    S.lastSessionWasPlayground = false;
+    S.playgroundMode = null;
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck || deck.cards.length === 0) return;
 
     if (forceAll) {
-        currentStudyCards = deck.cards.filter(c => c.type !== 'note');
+        S.currentStudyCards = deck.cards.filter(c => c.type !== 'note');
     } else {
-        currentStudyCards = deck.cards.filter(c => c.type !== 'note' && c.nextReviewDate <= Date.now());
+        S.currentStudyCards = deck.cards.filter(c => c.type !== 'note' && c.nextReviewDate <= Date.now());
     }
 
-    if (currentStudyCards.length === 0 && !forceAll) {
+    if (S.currentStudyCards.length === 0 && !forceAll) {
         showToast("Inga kort att repetera just nu!");
         return;
     }
 
     // Shuffle the cards to study
-    fisherYatesShuffle(currentStudyCards);
+    fisherYatesShuffle(S.currentStudyCards);
 
-    currentStudyIndex = 0;
+    S.currentStudyIndex = 0;
     renderStudyCard();
     switchView('study');
 };
 
 const startGlobalStudy = () => {
-    isPlaygroundSession = false;
-    lastSessionWasPlayground = false;
-    playgroundMode = null;
-    const allDueCards = appData.decks.flatMap(d => d.cards.filter(c => c.type !== 'note' && c.nextReviewDate <= Date.now()));
+    S.isPlaygroundSession = false;
+    S.lastSessionWasPlayground = false;
+    S.playgroundMode = null;
+    const allDueCards = S.appData.decks.flatMap(d => d.cards.filter(c => c.type !== 'note' && c.nextReviewDate <= Date.now()));
     if (allDueCards.length === 0) {
         showToast('Inga kort att repetera just nu!');
         return;
     }
-    currentDeckId = null;
-    currentStudyCards = allDueCards;
-    fisherYatesShuffle(currentStudyCards);
-    currentStudyIndex = 0;
+    S.currentDeckId = null;
+    S.currentStudyCards = allDueCards;
+    fisherYatesShuffle(S.currentStudyCards);
+    S.currentStudyIndex = 0;
     renderStudyCard();
     switchView('study');
 };
 
 const startBookshelfStudy = (bookshelfId) => {
-    isPlaygroundSession = false;
-    lastSessionWasPlayground = false;
+    S.isPlaygroundSession = false;
+    S.lastSessionWasPlayground = false;
     // Collect all due cards from decks belonging to this bookshelf
-    const dueCards = appData.decks
+    const dueCards = S.appData.decks
         .filter(d => d.bookshelfId === bookshelfId)
         .flatMap(d => d.cards.filter(c => c.type !== 'note' && c.nextReviewDate <= Date.now()));
         
@@ -2955,18 +2959,18 @@ const startBookshelfStudy = (bookshelfId) => {
         return;
     }
     
-    currentDeckId = null;
-    currentStudyCards = dueCards;
-    fisherYatesShuffle(currentStudyCards);
-    currentStudyIndex = 0;
+    S.currentDeckId = null;
+    S.currentStudyCards = dueCards;
+    fisherYatesShuffle(S.currentStudyCards);
+    S.currentStudyIndex = 0;
     renderStudyCard();
     switchView('study');
 };
 
 const startSectionStudy = (sectionId, forceAll = false) => {
-    isPlaygroundSession = false;
-    lastSessionWasPlayground = false;
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    S.isPlaygroundSession = false;
+    S.lastSessionWasPlayground = false;
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
     
     let sectionCards = deck.cards.filter(c => c.type !== 'note' && c.sectionId === sectionId);
@@ -2979,18 +2983,18 @@ const startSectionStudy = (sectionId, forceAll = false) => {
         return;
     }
     
-    currentStudyCards = sectionCards;
-    fisherYatesShuffle(currentStudyCards);
-    currentStudyIndex = 0;
+    S.currentStudyCards = sectionCards;
+    fisherYatesShuffle(S.currentStudyCards);
+    S.currentStudyIndex = 0;
     renderStudyCard();
     switchView('study');
 };
 
 const renderStudyCard = () => {
     document.getElementById('cinema-overlay')?.remove();
-    if (currentStudyIndex >= currentStudyCards.length) {
+    if (S.currentStudyIndex >= S.currentStudyCards.length) {
         document.getElementById('study-progress-fill').style.width = '100%';
-        if (isPlaygroundSession) {
+        if (S.isPlaygroundSession) {
             finishPlaygroundSession();
         } else {
             const cv = document.getElementById('view-study-complete');
@@ -3003,7 +3007,7 @@ const renderStudyCard = () => {
         return;
     }
 
-    const card = currentStudyCards[currentStudyIndex];
+    const card = S.currentStudyCards[S.currentStudyIndex];
 
     // Reset AI Assistant state
     document.getElementById('study-ai-chat').classList.add('hidden');
@@ -3011,8 +3015,8 @@ const renderStudyCard = () => {
     document.getElementById('input-study-ai').value = '';
     document.getElementById('study-ai-loading').classList.add('hidden');
 
-    document.getElementById('study-progress').innerText = `${currentStudyIndex + 1} / ${currentStudyCards.length}`;
-    const progressPercent = currentStudyCards.length > 0 ? ((currentStudyIndex) / currentStudyCards.length) * 100 : 0;
+    document.getElementById('study-progress').innerText = `${S.currentStudyIndex + 1} / ${S.currentStudyCards.length}`;
+    const progressPercent = S.currentStudyCards.length > 0 ? ((S.currentStudyIndex) / S.currentStudyCards.length) * 100 : 0;
     document.getElementById('study-progress-fill').style.width = `${progressPercent}%`;
     
     const frontTextEl = document.getElementById('study-front-text');
@@ -3084,12 +3088,12 @@ const renderStudyCard = () => {
 
 const processRating = (rating) => {
     try {
-        const card = currentStudyCards[currentStudyIndex];
-        if (!card) { console.error('No card at index', currentStudyIndex); return; }
+        const card = S.currentStudyCards[S.currentStudyIndex];
+        if (!card) { console.error('No card at index', S.currentStudyIndex); return; }
 
-        if (isPlaygroundSession && playgroundSessionStats) {
-            if (rating === 1) playgroundSessionStats.again++;
-            else playgroundSessionStats.correct++;
+        if (S.isPlaygroundSession && S.playgroundSessionStats) {
+            if (rating === 1) S.playgroundSessionStats.again++;
+            else S.playgroundSessionStats.correct++;
         }
 
         // SuperMemo-2 Simple Algorithm Update
@@ -3119,7 +3123,7 @@ const processRating = (rating) => {
         // Set next review date
         if (rating === 1) {
             card.nextReviewDate = Date.now() + 60000;
-            currentStudyCards.push(card);
+            S.currentStudyCards.push(card);
         } else {
             const daysInMillis = card.interval * 24 * 60 * 60 * 1000;
             card.nextReviewDate = Date.now() + daysInMillis;
@@ -3127,7 +3131,7 @@ const processRating = (rating) => {
 
         // Update main deck references and save (skip for jeopardy — cards are swapped copies)
         if (!card._jeopardy) {
-            for (const d of appData.decks) {
+            for (const d of S.appData.decks) {
                 const idx = d.cards.findIndex(c => c.id === card.id);
                 if (idx > -1) {
                     d.cards[idx] = card;
@@ -3161,11 +3165,11 @@ const processRating = (rating) => {
 
             setTimeout(() => {
                 flashcardContainer.classList.remove(swipeClass);
-                currentStudyIndex++;
+                S.currentStudyIndex++;
                 renderStudyCard();
             }, 400); // Wait for CSS animation
         } else {
-            currentStudyIndex++;
+            S.currentStudyIndex++;
         }
     } catch (err) {
         console.error('processRating error:', err);
@@ -3174,12 +3178,12 @@ const processRating = (rating) => {
 };
 
 const deleteCurrentStudyCard = async () => {
-    const card = currentStudyCards[currentStudyIndex];
+    const card = S.currentStudyCards[S.currentStudyIndex];
     if (!card) return;
 
     if (await showConfirmModal('Radera kort', 'Är du säker på att du vill radera detta kort permanent?', 'Radera', true)) {
         // Remove from master data
-        for (const d of appData.decks) {
+        for (const d of S.appData.decks) {
             const idx = d.cards.findIndex(c => c.id === card.id);
             if (idx > -1) {
                 d.cards.splice(idx, 1);
@@ -3188,7 +3192,7 @@ const deleteCurrentStudyCard = async () => {
         }
         
         // Remove from current session (all instances, including duplicates from 'Again')
-        currentStudyCards = currentStudyCards.filter(c => c.id !== card.id);
+        S.currentStudyCards = S.currentStudyCards.filter(c => c.id !== card.id);
         // Adjust index since we rebuilt the array
         // currentStudyIndex now points at the next card (or end)
         
@@ -3203,12 +3207,12 @@ const deleteCurrentStudyCard = async () => {
 
 
 // --- AI LOGIC ---
-let currentAiCard = null;
-let currentAiResponseRaw = null;
-let proposedTopicCards = [];
-let currentTopicRawInput = "";
-let proposedDiaryCards = [];
-let aiGeneratorOptions = {
+S.currentAiCard = null;
+S.currentAiResponseRaw = null;
+S.proposedTopicCards = [];
+S.currentTopicRawInput = "";
+S.proposedDiaryCards = [];
+S.aiGeneratorOptions = {
     sourceType: 'topic',
     quantity: 10,
     difficulty: 'intermediate',
@@ -3217,8 +3221,8 @@ let aiGeneratorOptions = {
 };
 
 const openCardModal = (card) => {
-    currentAiCard = card;
-    currentAiResponseRaw = null;
+    S.currentAiCard = card;
+    S.currentAiResponseRaw = null;
     document.getElementById('detail-front-text').innerHTML = safeParse(card.front);
     const backEl = document.getElementById('detail-back-text');
     backEl.innerHTML = safeParse(card.back);
@@ -3234,8 +3238,8 @@ const openCardModal = (card) => {
     document.getElementById('modal-card-details').classList.remove('hidden');
 };
 
-let currentEditCard = null;
-let currentMoveCard = null;
+S.currentEditCard = null;
+S.currentMoveCard = null;
 
 const renderMoveTargets = (filterText = '') => {
     const container = document.getElementById('move-targets-list');
@@ -3247,14 +3251,14 @@ const renderMoveTargets = (filterText = '') => {
 
     const lowerFilter = filterText.toLowerCase();
 
-    appData.decks.forEach(deck => {
+    S.appData.decks.forEach(deck => {
         const deckVisible = deck.title.toLowerCase().includes(lowerFilter);
         
         // Deck Root Item
         if (deckVisible || (deck.sections && deck.sections.some(s => s.title.toLowerCase().includes(lowerFilter)))) {
             const deckItem = document.createElement('div');
             deckItem.className = 'move-target-item';
-            const isCurrent = currentMoveCard && deck.id === currentDeckId && !currentMoveCard.sectionId;
+            const isCurrent = S.currentMoveCard && deck.id === S.currentDeckId && !S.currentMoveCard.sectionId;
             if (isCurrent) deckItem.classList.add('disabled');
             
             deckItem.innerHTML = `
@@ -3284,7 +3288,7 @@ const renderMoveTargets = (filterText = '') => {
                 if (section.title.toLowerCase().includes(lowerFilter) || deck.title.toLowerCase().includes(lowerFilter)) {
                     const secItem = document.createElement('div');
                     secItem.className = 'move-target-item section';
-                    const isCurrent = currentMoveCard && deck.id === currentDeckId && currentMoveCard.sectionId === section.id;
+                    const isCurrent = S.currentMoveCard && deck.id === S.currentDeckId && S.currentMoveCard.sectionId === section.id;
                     if (isCurrent) secItem.classList.add('disabled');
 
                     secItem.innerHTML = `
@@ -3317,23 +3321,23 @@ const renderMoveTargets = (filterText = '') => {
 };
 
 const openMoveCardModal = (card) => {
-    currentMoveCard = card;
+    S.currentMoveCard = card;
     document.getElementById('input-move-search').value = '';
     renderMoveTargets();
     document.getElementById('modal-move-card').classList.remove('hidden');
     setTimeout(() => document.getElementById('input-move-search').focus(), 100);
 };
 
-let currentMoveSectionId = null;
+S.currentMoveSectionId = null;
 
 const openMoveSectionModal = (sectionId) => {
-    currentMoveSectionId = sectionId;
+    S.currentMoveSectionId = sectionId;
     const select = document.getElementById('select-move-section-deck');
     if (!select) return;
     select.innerHTML = '';
 
-    appData.decks.forEach(deck => {
-        if (deck.id === currentDeckId) return; // Cannot move to current deck
+    S.appData.decks.forEach(deck => {
+        if (deck.id === S.currentDeckId) return; // Cannot move to current deck
         const option = document.createElement('option');
         option.value = deck.id;
         option.innerText = deck.title;
@@ -3348,12 +3352,12 @@ const openMoveSectionModal = (sectionId) => {
     document.getElementById('modal-move-section').classList.remove('hidden');
 };
 
-let currentMoveItem = null;
-let currentMoveItemType = null;
+S.currentMoveItem = null;
+S.currentMoveItemType = null;
 
 const openMoveItemModal = (item, type) => {
-    currentMoveItem = item;
-    currentMoveItemType = type;
+    S.currentMoveItem = item;
+    S.currentMoveItemType = type;
     const select = document.getElementById('select-move-bookshelf');
     select.innerHTML = '';
     
@@ -3363,7 +3367,7 @@ const openMoveItemModal = (item, type) => {
     defaultOption.innerText = 'Ingen bokhylla (Huvudvyn)';
     select.appendChild(defaultOption);
 
-    appData.bookshelves.forEach(shelf => {
+    S.appData.bookshelves.forEach(shelf => {
         const option = document.createElement('option');
         option.value = shelf.id;
         option.innerText = shelf.title;
@@ -3374,11 +3378,11 @@ const openMoveItemModal = (item, type) => {
     document.getElementById('modal-move-item').classList.remove('hidden');
 };
 
-let currentSectionToEdit = null;
-let preselectSectionId = null;
+S.currentSectionToEdit = null;
+S.preselectSectionId = null;
 
 const openSectionModal = (section = null) => {
-    currentSectionToEdit = section;
+    S.currentSectionToEdit = section;
     const modal = document.getElementById('modal-new-section');
     const title = document.getElementById('section-modal-title');
     const input = document.getElementById('new-section-name');
@@ -3397,11 +3401,11 @@ const openSectionModal = (section = null) => {
 
 const closeSectionModal = () => {
     document.getElementById('modal-new-section').classList.add('hidden');
-    currentSectionToEdit = null;
+    S.currentSectionToEdit = null;
 };
 
 const deleteSection = async (sectionId) => {
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
 
     const section = deck.sections.find(s => s.id === sectionId);
@@ -3433,10 +3437,10 @@ const deleteSection = async (sectionId) => {
     renderCards(deck.cards);
 };
 
-let currentNoteCard = null;
+S.currentNoteCard = null;
 
 const openNoteCardModal = (card = null) => {
-    currentNoteCard = card;
+    S.currentNoteCard = card;
     document.getElementById('note-card-modal-title').textContent = card ? 'Redigera anteckning' : 'Lägg till anteckning';
     document.getElementById('note-card-content').value = card ? (card.content || '') : '';
     document.getElementById('modal-note-card').classList.remove('hidden');
@@ -3444,17 +3448,17 @@ const openNoteCardModal = (card = null) => {
 
 
 const openEditCardModal = (card) => {
-    currentEditCard = card;
+    S.currentEditCard = card;
     document.getElementById('edit-card-front').value = card.front;
     document.getElementById('edit-card-back').value = card.back;
     document.getElementById('edit-card-longform').checked = card.isLongForm || false;
     // Load existing images into temp array
-    editCardImages = card.backImages ? [...card.backImages] : [];
+    S.editCardImages = card.backImages ? [...card.backImages] : [];
     const refreshEditPreviews = (idx) => {
-        if (typeof idx === 'number') editCardImages.splice(idx, 1);
+        if (typeof idx === 'number') S.editCardImages.splice(idx, 1);
         renderImagePreviews(
             document.getElementById('edit-card-back-image-preview'),
-            editCardImages,
+            S.editCardImages,
             refreshEditPreviews
         );
     };
@@ -3476,7 +3480,7 @@ const getApiKey = async () => {
 
 // --- AI CONTEXT HELPER ---
 const buildDeckContext = (deckId) => {
-    const deck = deckId ? appData.decks.find(d => d.id === deckId) : null;
+    const deck = deckId ? S.appData.decks.find(d => d.id === deckId) : null;
     if (!deck || !deck.cards || deck.cards.length === 0) return '';
 
     const cards = deck.cards.filter(c => c.type !== 'note');
@@ -3493,7 +3497,7 @@ const buildDeckContext = (deckId) => {
 };
 
 // --- DECK AI INSIGHTS ---
-let deckInsightsAbort = null;
+S.deckInsightsAbort = null;
 
 // Cache: { deckId: { cardCount, sectionCount, summaryHtml, timestamp } }
 const deckSummaryCache = {};
@@ -3570,7 +3574,7 @@ Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga kort
 window.generateDeckSummary = async () => {
     const summaryText = document.getElementById('deck-ai-summary-text');
     const summaryBox = document.getElementById('deck-ai-summary');
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
 
     summaryText.innerHTML = '<div class="ai-shimmer"></div>';
@@ -3611,7 +3615,7 @@ Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI so
         summaryText.innerHTML = html;
         renderLatex(summaryText);
         summaryBox.classList.add('deck-ai-loaded');
-        deckSummaryCache[currentDeckId] = { cardCount: info.cards.length, sectionCount: info.sections.length, summaryHtml: html, timestamp: Date.now() };
+        deckSummaryCache[S.currentDeckId] = { cardCount: info.cards.length, sectionCount: info.sections.length, summaryHtml: html, timestamp: Date.now() };
     } catch (e) {
         console.error('AI summary error:', e);
         summaryText.innerHTML = '<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">Kunde inte ladda sammanfattning.</span>';
@@ -3622,7 +3626,7 @@ Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI so
 window.generateDeckSuggestion = async () => {
     const suggestionContent = document.getElementById('deck-ai-suggestion-content');
     const suggestionBox = document.getElementById('deck-ai-suggestion');
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
 
     suggestionContent.innerHTML = '<div class="ai-shimmer"></div>';
@@ -3649,12 +3653,12 @@ window.addSuggestedCard = (btnEl) => {
     const card = suggestionContent._pendingCard;
     if (!card) return;
 
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
 
     deck.cards.push(createCard(card.front, card.back, false, [], null));
     saveData();
-    openDeck(currentDeckId, currentSectionId);
+    openDeck(S.currentDeckId, S.currentSectionId);
     showToast('Kort tillagt!');
 };
 
@@ -3665,7 +3669,7 @@ window.refreshSuggestedCard = () => {
     (async () => {
         const apiKey = await getApiKey();
         if (!apiKey) return;
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         if (!deck) return;
         const info = buildDeckCardList(deck);
         try {
@@ -3700,7 +3704,7 @@ const fetchExplanation = async (apiKey, card) => {
                 system: 'Du är en hjälpsam och pedagogisk lärare. Ge en kort, koncis förklaring eller minnesregel (max 300 ord totalt) för följande flashcard-fråga och svar. Målet är att hjälpa eleven förstå eller minnas svaret bättre. Eleven är däremot en vuxen person som förväntar sig rigorositet. Anpassa din förklaring efter den nivå och stil som framgår av kontexten.',
                 messages: [{
                     role: 'user',
-                    content: `Fråga: ${card.front}\nSvar: ${card.back}${buildDeckContext(currentDeckId)}`
+                    content: `Fråga: ${card.front}\nSvar: ${card.back}${buildDeckContext(S.currentDeckId)}`
                 }]
             })
         });
@@ -3738,16 +3742,16 @@ const fetchTestQuestion = async (apiKey, card, modifier = null) => {
     document.getElementById('ai-loading').classList.remove('hidden');
     document.getElementById('ai-text').innerText = '';
 
-    const deckCtx = buildDeckContext(currentDeckId);
+    const deckCtx = buildDeckContext(S.currentDeckId);
     let userContent = `Skapa en tentafråga som DIREKT testar och tillämpar detta flashcard:\nKort-fråga: ${card.front}\nKort-svar: ${card.back}${deckCtx}`;
 
-    if (modifier && currentAiResponseRaw) {
+    if (modifier && S.currentAiResponseRaw) {
         if (modifier === 'easier') {
-            userContent = `Din tidigare provfråga var:\n${currentAiResponseRaw}\n\nGör nu en NY provfråga på exakt samma koncept för detta flashcard, men gör den Tydligt LÄTTARE att förstå eller räkna ut.`;
+            userContent = `Din tidigare provfråga var:\n${S.currentAiResponseRaw}\n\nGör nu en NY provfråga på exakt samma koncept för detta flashcard, men gör den Tydligt LÄTTARE att förstå eller räkna ut.`;
         } else if (modifier === 'harder') {
-            userContent = `Din tidigare provfråga var:\n${currentAiResponseRaw}\n\nGör nu en NY provfråga på exakt samma koncept för detta flashcard, men gör den Tydligt SVÅRARE och mer komplex.`;
+            userContent = `Din tidigare provfråga var:\n${S.currentAiResponseRaw}\n\nGör nu en NY provfråga på exakt samma koncept för detta flashcard, men gör den Tydligt SVÅRARE och mer komplex.`;
         } else if (modifier === 'similar') {
-            userContent = `Din tidigare provfråga var:\n${currentAiResponseRaw}\n\nGör nu en helt NY, LIKNANDE provfråga (samma svårighetsgrad) på exakt samma koncept för detta flashcard. Ange andra siffror eller scenarion.`;
+            userContent = `Din tidigare provfråga var:\n${S.currentAiResponseRaw}\n\nGör nu en helt NY, LIKNANDE provfråga (samma svårighetsgrad) på exakt samma koncept för detta flashcard. Ange andra siffror eller scenarion.`;
         }
     }
 
@@ -3777,13 +3781,13 @@ const fetchTestQuestion = async (apiKey, card, modifier = null) => {
         }
 
         const data = await response.json();
-        currentAiResponseRaw = data.content[0].text;
+        S.currentAiResponseRaw = data.content[0].text;
 
         document.getElementById('ai-loading').classList.add('hidden');
         document.getElementById('test-question-actions').classList.remove('hidden');
 
         const aiTextElement = document.getElementById('ai-text');
-        aiTextElement.innerHTML = safeParse(currentAiResponseRaw);
+        aiTextElement.innerHTML = safeParse(S.currentAiResponseRaw);
 
         renderLatex(aiTextElement);
 
@@ -3802,9 +3806,9 @@ const renderProposedCards = () => {
     container.innerHTML = '';
 
     // Update summary count
-    document.getElementById('topic-summary-count').innerText = `${proposedTopicCards.length} kort skapade. Anpassa eller välj vilka du vill behålla.`;
+    document.getElementById('topic-summary-count').innerText = `${S.proposedTopicCards.length} kort skapade. Anpassa eller välj vilka du vill behålla.`;
     
-    proposedTopicCards.forEach((card, index) => {
+    S.proposedTopicCards.forEach((card, index) => {
         const div = document.createElement('div');
         div.className = 'ai-generated-card-item';
         div.setAttribute('data-index', index);
@@ -3838,14 +3842,14 @@ const renderProposedCards = () => {
     container.querySelectorAll('.ai-card-front-input').forEach(ta => {
         ta.addEventListener('input', (e) => {
             const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-            proposedTopicCards[idx].front = e.currentTarget.value;
+            S.proposedTopicCards[idx].front = e.currentTarget.value;
         });
     });
 
     container.querySelectorAll('.ai-card-back-input').forEach(ta => {
         ta.addEventListener('input', (e) => {
             const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-            proposedTopicCards[idx].back = e.currentTarget.value;
+            S.proposedTopicCards[idx].back = e.currentTarget.value;
         });
     });
 
@@ -3860,7 +3864,7 @@ const renderProposedCards = () => {
     container.querySelectorAll('.btn-ai-card-delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-            proposedTopicCards.splice(idx, 1);
+            S.proposedTopicCards.splice(idx, 1);
             renderProposedCards();
             updateSaveCountBadge();
         });
@@ -3877,7 +3881,7 @@ const renderProposedCards = () => {
     updateSaveCountBadge();
 
     // Show/hide topic preview step
-    if (proposedTopicCards.length === 0) {
+    if (S.proposedTopicCards.length === 0) {
         document.getElementById('topic-preview-step').classList.add('hidden');
         document.getElementById('topic-setup-step').classList.remove('hidden');
     }
@@ -3916,13 +3920,13 @@ const regenerateSingleCard = async (index) => {
     }
 
     // Build blacklist of existing proposed questions to avoid duplication
-    const blacklist = proposedTopicCards
+    const blacklist = S.proposedTopicCards
         .map((c, i) => i !== index ? `- ${c.front}` : "")
         .filter(q => q !== "")
         .join('\n');
 
     let deckContext = "";
-    const deck = appData.decks.find(d => d.id === currentDeckId);
+    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (deck && deck.cards.length > 0) {
         deckContext = deck.cards.map(c => `- ${c.front}`).join('\n');
         const sampleSize = Math.min(5, deck.cards.length);
@@ -3930,23 +3934,23 @@ const regenerateSingleCard = async (index) => {
         deckContext += `\n\nFör att förstå nivå och stil, här är några fullständiga kort:\n${samples}`;
     }
 
-    const difficultyPrompt = aiGeneratorOptions.difficulty === 'beginner' 
+    const difficultyPrompt = S.aiGeneratorOptions.difficulty === 'beginner' 
         ? 'Fokusera på grundläggande definitioner och enkla förklaringar (Nybörjarnivå).'
-        : aiGeneratorOptions.difficulty === 'advanced'
+        : S.aiGeneratorOptions.difficulty === 'advanced'
         ? 'Fokusera på djupgående detaljer, bevis eller formler. Använd LaTeX (Avancerad nivå).'
         : 'Fokusera på mellannivå (Medelnivå).';
 
-    const focusPrompt = aiGeneratorOptions.focus === 'definitions'
+    const focusPrompt = S.aiGeneratorOptions.focus === 'definitions'
         ? 'Fokusera på begrepp och deras definitioner.'
-        : aiGeneratorOptions.focus === 'practical'
+        : S.aiGeneratorOptions.focus === 'practical'
         ? 'Fokusera på praktisk tillämpning, scenarier, problem eller kodexempel.'
-        : aiGeneratorOptions.focus === 'details'
+        : S.aiGeneratorOptions.focus === 'details'
         ? 'Fokusera på exakta fakta och parametrar.'
         : 'Skapa ett välbalanserat kort.';
 
     const systemInstructions = 'Du är en pedagogisk expert. Skapa ett flashcard i JSON-format. Svara med ENBART ett städat JSON-objekt: {"front": "fråga", "back": "svar"}. Ingen markdown, inget brus. Om matematik ingår, använd LaTeX med $ eller $$.';
 
-    const userInstructions = `Skapa ett helt nytt flashcard baserat på ämnet/texten "${currentTopicRawInput}".
+    const userInstructions = `Skapa ett helt nytt flashcard baserat på ämnet/texten "${S.currentTopicRawInput}".
 ${difficultyPrompt}
 ${focusPrompt}
 
@@ -3983,7 +3987,7 @@ Svara med ett enda JSON-objekt.`;
 
         const newCard = JSON.parse(rawContent);
         if (newCard && newCard.front && newCard.back) {
-            proposedTopicCards[index] = { front: newCard.front, back: newCard.back };
+            S.proposedTopicCards[index] = { front: newCard.front, back: newCard.back };
         }
         renderProposedCards();
     } catch (e) {
@@ -4003,7 +4007,7 @@ const fetchCardsByTopic = async (apiKey, topic, modifier = null, deck = null) =>
     // Set loading message based on source type
     const loadingTitle = document.getElementById('topic-loading-title');
     const loadingText = document.getElementById('topic-loading-text');
-    if (aiGeneratorOptions.sourceType === 'text') {
+    if (S.aiGeneratorOptions.sourceType === 'text') {
         loadingTitle.innerText = "Analyserar dina anteckningar...";
         loadingText.innerText = "AI läser igenom din text och formulerar pedagogiska kort...";
     } else {
@@ -4011,7 +4015,7 @@ const fetchCardsByTopic = async (apiKey, topic, modifier = null, deck = null) =>
         loadingText.innerText = "Funderar och strukturerar frågor på ämnet...";
     }
 
-    const qty = aiGeneratorOptions.quantity || 'auto';
+    const qty = S.aiGeneratorOptions.quantity || 'auto';
     const isAuto = qty === 'auto';
     const qtyPhrase = isAuto ? 'ett lämpligt antal (mellan 5 och 20 stycken, anpassat för att täcka allt väsentligt material utan att skapa redundans)' : `exakt ${qty}`;
     
@@ -4025,25 +4029,25 @@ const fetchCardsByTopic = async (apiKey, topic, modifier = null, deck = null) =>
 
     // 2. Build instructions based on settings
     let sourceInstruction = "";
-    if (aiGeneratorOptions.sourceType === 'text') {
+    if (S.aiGeneratorOptions.sourceType === 'text') {
         sourceInstruction = `Du MÅSTE utgå strikt ifrån följande text/anteckningar som källmaterial. Hämta all information och fakta från denna text:\n\n"""\n${topic}\n"""`;
     } else {
         sourceInstruction = `Generera kort baserat på följande ämne/nyckelord: "${topic}".`;
     }
 
     let difficultyPrompt = "Fokusera på medelnivå (Medelnivå).";
-    if (aiGeneratorOptions.difficulty === 'beginner') {
+    if (S.aiGeneratorOptions.difficulty === 'beginner') {
         difficultyPrompt = "Fokusera på grundläggande definitioner, enkla förklaringar och kärnkoncept. Förklara pedagogiskt och undvik onödig jargong (Nybörjarnivå).";
-    } else if (aiGeneratorOptions.difficulty === 'advanced') {
+    } else if (S.aiGeneratorOptions.difficulty === 'advanced') {
         difficultyPrompt = "Fokusera på djupgående detaljer, teoretisk bakgrund, formler, ekvationer eller kantfall. Använd LaTeX för all matematik och formler (Avancerad nivå).";
     }
 
     let focusPrompt = "Skapa en bra blandning av begreppsdefinitioner, faktakort och praktiska tillämpningsfrågor.";
-    if (aiGeneratorOptions.focus === 'definitions') {
+    if (S.aiGeneratorOptions.focus === 'definitions') {
         focusPrompt = "Korten ska fokusera strikt på nyckelbegrepp och deras definitioner. Framsidan ska innehålla begreppet eller en fråga om vad det betyder, baksidan ska innehålla den exakta definitionen och en kort förklaring.";
-    } else if (aiGeneratorOptions.focus === 'practical') {
+    } else if (S.aiGeneratorOptions.focus === 'practical') {
         focusPrompt = "Korten ska fokusera på praktisk tillämpning, kodexempel, scenarier eller problemlösning. Ställ praktiska frågor, visa hur man gör i praktiken.";
-    } else if (aiGeneratorOptions.focus === 'details') {
+    } else if (S.aiGeneratorOptions.focus === 'details') {
         focusPrompt = "Korten ska fokusera på exakta detaljer, fakta, datum, formler eller parametrar som kräver utantillkunskap.";
     }
 
@@ -4058,8 +4062,8 @@ Korten ska vara pedagogiska, extremt korrekta och anpassade för effektiv spaced
 ${contextSnippet}`;
 
     // 3. Handle modifiers (Easier, Harder, Practical adjustments)
-    if (modifier && proposedTopicCards.length > 0) {
-        let prevCardsStr = proposedTopicCards.map(c => `F: ${c.front}\nS: ${c.back}`).join('\n\n');
+    if (modifier && S.proposedTopicCards.length > 0) {
+        let prevCardsStr = S.proposedTopicCards.map(c => `F: ${c.front}\nS: ${c.back}`).join('\n\n');
         if (modifier === 'easier') {
             instructions = `Din förra lista med kort var:\n${prevCardsStr}\n\nGenerera nu ${isAuto ? 'ett lämpligt antal' : qty} helt nya kort baserat på samma källa men gör dem TYDLIGT LÄTTARE, mer grundläggande och enklare att förstå.`;
         } else if (modifier === 'harder') {
@@ -4100,8 +4104,8 @@ ${contextSnippet}`;
         if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
         else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
 
-        proposedTopicCards = fixLatexInCards(JSON.parse(rawContent));
-        if (!Array.isArray(proposedTopicCards)) throw new Error("Format returnerat var ej en städad Array.");
+        S.proposedTopicCards = fixLatexInCards(JSON.parse(rawContent));
+        if (!Array.isArray(S.proposedTopicCards)) throw new Error("Format returnerat var ej en städad Array.");
 
         // Transitions: Hide Loading step, show Preview step
         document.getElementById('topic-loading-step').classList.add('hidden');
@@ -4124,7 +4128,7 @@ const fetchStudyAi = async (apiKey, card, question) => {
     document.getElementById('study-ai-loading').classList.remove('hidden');
     document.getElementById('study-ai-chat').classList.add('hidden');
 
-    const instructions = `Du agerar som en hjälpsam tutor/lärare under en flashcard-repetition. Eleven har precis sett detta flashcard:\n\nFråga: ${card.front}\nSvar: ${card.back}\n\nEleven ställer nu följande fråga om kortet: "${question}"\n\nBesvara frågan direkt, kärnfullt och pedagogiskt. Använd LaTeX för eventuell matematik.${buildDeckContext(currentDeckId)}`;
+    const instructions = `Du agerar som en hjälpsam tutor/lärare under en flashcard-repetition. Eleven har precis sett detta flashcard:\n\nFråga: ${card.front}\nSvar: ${card.back}\n\nEleven ställer nu följande fråga om kortet: "${question}"\n\nBesvara frågan direkt, kärnfullt och pedagogiskt. Använd LaTeX för eventuell matematik.${buildDeckContext(S.currentDeckId)}`;
 
     try {
         const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
@@ -4165,7 +4169,7 @@ const fetchStudyAi = async (apiKey, card, question) => {
     }
 };
 
-let pendingAiSort = null;
+S.pendingAiSort = null;
 
 const fetchAiSort = async (apiKey, deck) => {
     const unsortedCards = deck.cards.filter(c => !c.sectionId && c.type !== 'note');
@@ -4237,7 +4241,7 @@ const fetchAiSort = async (apiKey, deck) => {
             if (card) sectionGroups[item.section].push(card);
         });
 
-        pendingAiSort = { deck, sectionGroups };
+        S.pendingAiSort = { deck, sectionGroups };
 
         loading.classList.add('hidden');
         preview.classList.remove('hidden');
@@ -4270,8 +4274,8 @@ const fetchAiSort = async (apiKey, deck) => {
 };
 
 const applyAiSort = () => {
-    if (!pendingAiSort) return;
-    const { deck, sectionGroups } = pendingAiSort;
+    if (!S.pendingAiSort) return;
+    const { deck, sectionGroups } = S.pendingAiSort;
 
     Object.entries(sectionGroups).forEach(([sectionName, cards]) => {
         let section = (deck.sections || []).find(s => s.title === sectionName);
@@ -4287,9 +4291,9 @@ const applyAiSort = () => {
     });
 
     saveData();
-    pendingAiSort = null;
+    S.pendingAiSort = null;
     document.getElementById('modal-ai-sort').classList.add('hidden');
-    openDeck(currentDeckId);
+    openDeck(S.currentDeckId);
     showToast('Sortering tillämpad!');
 };
 
@@ -4299,13 +4303,13 @@ const fetchDiaryCards = async (apiKey, diaryText) => {
     document.getElementById('diary-actions-container').classList.add('hidden');
     document.getElementById('btn-close-diary-top').classList.add('hidden');
 
-    const deckInfo = appData.decks.map(d => {
+    const deckInfo = S.appData.decks.map(d => {
         const sectionNames = (d.sections || []).map(s => s.title);
-        const bookshelf = d.bookshelfId ? appData.bookshelves.find(s => s.id === d.bookshelfId) : null;
+        const bookshelf = d.bookshelfId ? S.appData.bookshelves.find(s => s.id === d.bookshelfId) : null;
         return { name: d.title, bookshelf: bookshelf ? bookshelf.title : null, sections: sectionNames };
     });
     const deckListStr = deckInfo.length > 0 ? JSON.stringify(deckInfo) : '(inga lekar finns ännu)';
-    const bookshelfNames = appData.bookshelves.map(s => s.title);
+    const bookshelfNames = S.appData.bookshelves.map(s => s.title);
     const bookshelfStr = bookshelfNames.length > 0 ? bookshelfNames.join(', ') : '(inga bokhyllor finns ännu)';
 
     try {
@@ -4338,8 +4342,8 @@ const fetchDiaryCards = async (apiKey, diaryText) => {
         if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
         else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
 
-        proposedDiaryCards = fixLatexInCards(JSON.parse(rawContent));
-        if (!Array.isArray(proposedDiaryCards)) throw new Error("AI returnerade inte en array.");
+        S.proposedDiaryCards = fixLatexInCards(JSON.parse(rawContent));
+        if (!Array.isArray(S.proposedDiaryCards)) throw new Error("AI returnerade inte en array.");
 
         document.getElementById('diary-loading').classList.add('hidden');
         document.getElementById('diary-cards-container').classList.remove('hidden');
@@ -4357,10 +4361,10 @@ const fetchDiaryCards = async (apiKey, diaryText) => {
 const renderDiaryCards = () => {
     const container = document.getElementById('diary-cards-container');
     container.innerHTML = '';
-    const deckNames = appData.decks.map(d => d.title);
-    const bookshelfNames = appData.bookshelves.map(s => s.title);
+    const deckNames = S.appData.decks.map(d => d.title);
+    const bookshelfNames = S.appData.bookshelves.map(s => s.title);
 
-    proposedDiaryCards.forEach((card, index) => {
+    S.proposedDiaryCards.forEach((card, index) => {
         const div = document.createElement('div');
         div.className = 'preview-card';
         div.style.flexDirection = 'column';
@@ -4376,7 +4380,7 @@ const renderDiaryCards = () => {
         ).join('');
         const hasBookshelfMatch = bookshelfNames.includes(card.suggestedBookshelf);
 
-        const selectedDeck = appData.decks.find(d => d.title === card.suggestedDeck);
+        const selectedDeck = S.appData.decks.find(d => d.title === card.suggestedDeck);
         const sectionNames = selectedDeck ? (selectedDeck.sections || []).map(s => s.title) : [];
         const sectionOptionsHtml = sectionNames.map(name =>
             `<option value="${name}" ${name === card.suggestedSection ? 'selected' : ''}>${name}</option>`
@@ -4424,7 +4428,7 @@ const renderDiaryCards = () => {
     container.querySelectorAll('.preview-card-remove').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-            proposedDiaryCards.splice(idx, 1);
+            S.proposedDiaryCards.splice(idx, 1);
             renderDiaryCards();
         });
     });
@@ -4436,19 +4440,19 @@ const renderDiaryCards = () => {
             // Sync all current inputs back to proposedDiaryCards array first
             container.querySelectorAll('.diary-deck-select').forEach(s => {
                 const i = parseInt(s.getAttribute('data-index'), 10);
-                proposedDiaryCards[i].suggestedDeck = s.value.startsWith('__new__:') ? s.value.replace('__new__:', '') : s.value;
+                S.proposedDiaryCards[i].suggestedDeck = s.value.startsWith('__new__:') ? s.value.replace('__new__:', '') : s.value;
             });
             container.querySelectorAll('.diary-bookshelf-select').forEach(s => {
                 const i = parseInt(s.getAttribute('data-index'), 10);
-                proposedDiaryCards[i].suggestedBookshelf = s.value.startsWith('__new__:') ? s.value.replace('__new__:', '') : s.value;
+                S.proposedDiaryCards[i].suggestedBookshelf = s.value.startsWith('__new__:') ? s.value.replace('__new__:', '') : s.value;
             });
             container.querySelectorAll('.diary-section-select').forEach(s => {
                 const i = parseInt(s.getAttribute('data-index'), 10);
-                proposedDiaryCards[i].suggestedSection = s.value.startsWith('__new__:') ? s.value.replace('__new__:', '') : s.value;
+                S.proposedDiaryCards[i].suggestedSection = s.value.startsWith('__new__:') ? s.value.replace('__new__:', '') : s.value;
             });
 
             // Reset this card's section since the deck changed
-            proposedDiaryCards[idx].suggestedSection = null;
+            S.proposedDiaryCards[idx].suggestedSection = null;
             renderDiaryCards();
         });
     });
@@ -4456,18 +4460,18 @@ const renderDiaryCards = () => {
     container.querySelectorAll('.diary-bookshelf-select').forEach(sel => {
         sel.addEventListener('change', (e) => {
             const idx = parseInt(sel.getAttribute('data-index'), 10);
-            proposedDiaryCards[idx].suggestedBookshelf = sel.value.startsWith('__new__:') ? sel.value.replace('__new__:', '') : sel.value;
+            S.proposedDiaryCards[idx].suggestedBookshelf = sel.value.startsWith('__new__:') ? sel.value.replace('__new__:', '') : sel.value;
         });
     });
 
     container.querySelectorAll('.diary-section-select').forEach(sel => {
         sel.addEventListener('change', (e) => {
             const idx = parseInt(sel.getAttribute('data-index'), 10);
-            proposedDiaryCards[idx].suggestedSection = sel.value.startsWith('__new__:') ? sel.value.replace('__new__:', '') : sel.value;
+            S.proposedDiaryCards[idx].suggestedSection = sel.value.startsWith('__new__:') ? sel.value.replace('__new__:', '') : sel.value;
         });
     });
 
-    if (proposedDiaryCards.length === 0) {
+    if (S.proposedDiaryCards.length === 0) {
         document.getElementById('diary-actions-container').classList.add('hidden');
         document.getElementById('btn-close-diary-top').classList.remove('hidden');
     }
@@ -4476,7 +4480,7 @@ const renderDiaryCards = () => {
     // Logic was moved to the bottom of the file for reliability
 
     const handleBackgroundBack = () => {
-        switch(currentViewName) {
+        switch(S.currentViewName) {
             case 'deck':
             case 'notebook':
                 switchView('library');
@@ -4510,16 +4514,16 @@ const renderDiaryCards = () => {
         
         switchView('library');
     });
-    document.getElementById('btn-back-deck').addEventListener('click', () => openDeck(currentDeckId));
-    document.getElementById('btn-back-notebook').addEventListener('click', () => openNotebook(currentNotebookId));
+    document.getElementById('btn-back-deck').addEventListener('click', () => openDeck(S.currentDeckId));
+    document.getElementById('btn-back-notebook').addEventListener('click', () => openNotebook(S.currentNotebookId));
 
     document.getElementById('btn-complete-back').addEventListener('click', () => {
-        if (isPlaygroundSession || lastSessionWasPlayground) {
-            lastSessionWasPlayground = false;
+        if (S.isPlaygroundSession || S.lastSessionWasPlayground) {
+            S.lastSessionWasPlayground = false;
             switchView('playground');
             renderPlayground();
-        } else if (currentDeckId) {
-            openDeck(currentDeckId);
+        } else if (S.currentDeckId) {
+            openDeck(S.currentDeckId);
         } else {
             renderLibrary();
             switchView('library');
@@ -4532,13 +4536,13 @@ const renderDiaryCards = () => {
     });
 
     document.getElementById('btn-end-study').addEventListener('click', () => {
-        if (isPlaygroundSession || lastSessionWasPlayground) {
-            lastSessionWasPlayground = false;
-            isPlaygroundSession = false;
+        if (S.isPlaygroundSession || S.lastSessionWasPlayground) {
+            S.lastSessionWasPlayground = false;
+            S.isPlaygroundSession = false;
             switchView('playground');
             renderPlayground();
-        } else if (currentDeckId) {
-            openDeck(currentDeckId);
+        } else if (S.currentDeckId) {
+            openDeck(S.currentDeckId);
         } else {
             renderLibrary();
             switchView('library');
@@ -4552,9 +4556,9 @@ const renderDiaryCards = () => {
     // Delete Deck / Notebook
     document.getElementById('btn-delete-deck').addEventListener('click', async () => {
         if (await showConfirmModal('Radera kortlek', 'Är du säker på att du vill ta bort hela kortleken? Detta kan inte ångras.', 'Radera', true)) {
-            appData.decks = appData.decks.filter(d => d.id !== currentDeckId);
+            S.appData.decks = S.appData.decks.filter(d => d.id !== S.currentDeckId);
             saveData();
-            currentDeckId = null;
+            S.currentDeckId = null;
             renderLibrary();
             switchView('library');
             showToast('Kortlek borttagen');
@@ -4563,9 +4567,9 @@ const renderDiaryCards = () => {
 
     document.getElementById('btn-delete-notebook').addEventListener('click', async () => {
         if (await showConfirmModal('Radera anteckningsblock', 'Är du säker på att du vill ta bort hela anteckningsblocket? Detta kan inte ångras.', 'Radera', true)) {
-            appData.notebooks = appData.notebooks.filter(n => n.id !== currentNotebookId);
+            S.appData.notebooks = S.appData.notebooks.filter(n => n.id !== S.currentNotebookId);
             saveData();
-            currentNotebookId = null;
+            S.currentNotebookId = null;
             renderLibrary();
             switchView('library');
             showToast('Anteckningsblock borttaget');
@@ -4583,7 +4587,7 @@ const renderDiaryCards = () => {
             alert('Kunde inte hitta en giltig API-nyckel. Vänligen öppna .env-filen i projektmappen och klistra in din Anthropic (Claude) API-nyckel där, ladda sedan om sidan.');
             return;
         }
-        fetchExplanation(apiKey, currentAiCard);
+        fetchExplanation(apiKey, S.currentAiCard);
     });
 
     document.getElementById('btn-test-ai').addEventListener('click', async () => {
@@ -4592,12 +4596,12 @@ const renderDiaryCards = () => {
             alert('Kunde inte hitta en giltig API-nyckel. Vänligen öppna .env-filen i projektmappen och klistra in din Anthropic (Claude) API-nyckel där, ladda sedan om sidan.');
             return;
         }
-        fetchTestQuestion(apiKey, currentAiCard, null);
+        fetchTestQuestion(apiKey, S.currentAiCard, null);
     });
 
     const handleModifierClick = async (modifier) => {
         const apiKey = await getApiKey();
-        if (apiKey) fetchTestQuestion(apiKey, currentAiCard, modifier);
+        if (apiKey) fetchTestQuestion(apiKey, S.currentAiCard, modifier);
     };
 
     document.getElementById('btn-test-easier').addEventListener('click', () => handleModifierClick('easier'));
@@ -4606,15 +4610,15 @@ const renderDiaryCards = () => {
 
     // Topic Generator Handlers
     document.getElementById('btn-ai-sort')?.addEventListener('click', async () => {
-        if (!currentDeckId) return;
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        if (!S.currentDeckId) return;
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         if (!deck) return;
         const apiKey = await getApiKey();
         if (apiKey) fetchAiSort(apiKey, deck);
     });
 
     document.getElementById('btn-cancel-ai-sort')?.addEventListener('click', () => {
-        pendingAiSort = null;
+        S.pendingAiSort = null;
         document.getElementById('modal-ai-sort').classList.add('hidden');
     });
 
@@ -4623,12 +4627,12 @@ const renderDiaryCards = () => {
     });
 
     document.getElementById('btn-open-topic-generator').addEventListener('click', () => {
-        if (!currentDeckId) return;
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        if (!S.currentDeckId) return;
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         if (!deck) return;
 
-        proposedTopicCards = [];
-        currentTopicRawInput = "";
+        S.proposedTopicCards = [];
+        S.currentTopicRawInput = "";
         
         // Reset inputs
         document.getElementById('input-topic-name').value = '';
@@ -4637,7 +4641,7 @@ const renderDiaryCards = () => {
         document.getElementById('new-section-name-container').classList.add('hidden');
         
         // Reset Options
-        aiGeneratorOptions = {
+        S.aiGeneratorOptions = {
             sourceType: 'topic',
             quantity: 'auto',
             difficulty: 'intermediate',
@@ -4690,7 +4694,7 @@ const renderDiaryCards = () => {
         document.getElementById('toggle-source-text').classList.remove('active');
         document.getElementById('topic-input-container').classList.remove('hidden');
         document.getElementById('text-input-container').classList.add('hidden');
-        aiGeneratorOptions.sourceType = 'topic';
+        S.aiGeneratorOptions.sourceType = 'topic';
     });
 
     document.getElementById('toggle-source-text').addEventListener('click', () => {
@@ -4698,7 +4702,7 @@ const renderDiaryCards = () => {
         document.getElementById('toggle-source-topic').classList.remove('active');
         document.getElementById('text-input-container').classList.remove('hidden');
         document.getElementById('topic-input-container').classList.add('hidden');
-        aiGeneratorOptions.sourceType = 'text';
+        S.aiGeneratorOptions.sourceType = 'text';
     });
 
     // Qty and Diff Options Handlers
@@ -4707,7 +4711,7 @@ const renderDiaryCards = () => {
             document.querySelectorAll('.btn-option-qty').forEach(b => b.classList.remove('active'));
             e.currentTarget.classList.add('active');
             const qtyVal = e.currentTarget.getAttribute('data-qty');
-            aiGeneratorOptions.quantity = qtyVal === 'auto' ? 'auto' : parseInt(qtyVal, 10);
+            S.aiGeneratorOptions.quantity = qtyVal === 'auto' ? 'auto' : parseInt(qtyVal, 10);
         });
     });
 
@@ -4715,18 +4719,18 @@ const renderDiaryCards = () => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.btn-option-diff').forEach(b => b.classList.remove('active'));
             e.currentTarget.classList.add('active');
-            aiGeneratorOptions.difficulty = e.currentTarget.getAttribute('data-diff');
+            S.aiGeneratorOptions.difficulty = e.currentTarget.getAttribute('data-diff');
         });
     });
 
     // Focus handler
     document.getElementById('select-topic-focus').addEventListener('change', (e) => {
-        aiGeneratorOptions.focus = e.target.value;
+        S.aiGeneratorOptions.focus = e.target.value;
     });
 
     // Section handler
     document.getElementById('select-topic-section').addEventListener('change', (e) => {
-        aiGeneratorOptions.sectionId = e.target.value;
+        S.aiGeneratorOptions.sectionId = e.target.value;
         if (e.target.value === '__new__') {
             document.getElementById('new-section-name-container').classList.remove('hidden');
         } else {
@@ -4748,7 +4752,7 @@ const renderDiaryCards = () => {
     // Submit Wizard Handler
     document.getElementById('btn-submit-topic-wizard').addEventListener('click', async () => {
         let inputVal = "";
-        if (aiGeneratorOptions.sourceType === 'topic') {
+        if (S.aiGeneratorOptions.sourceType === 'topic') {
             inputVal = document.getElementById('input-topic-name').value.trim();
             if (!inputVal) {
                 showToast("Fyll i ett ämne eller koncept!");
@@ -4762,33 +4766,33 @@ const renderDiaryCards = () => {
             }
         }
 
-        currentTopicRawInput = inputVal;
+        S.currentTopicRawInput = inputVal;
         const apiKey = await getApiKey();
         if (!apiKey || apiKey === 'klistra_in_din_nyckel_här_utan_citattecken') {
             alert('Kunde inte hitta en giltig API-nyckel. Vänligen öppna .env-filen i projektmappen och klistra in din Anthropic (Claude) API-nyckel där, ladda sedan om sidan.');
             return;
         }
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         fetchCardsByTopic(apiKey, inputVal, null, deck);
     });
 
     // Modifiers Handlers
     document.getElementById('btn-topic-modifier-easier').addEventListener('click', async () => {
         const apiKey = await getApiKey();
-        const deck = appData.decks.find(d => d.id === currentDeckId);
-        if (apiKey) fetchCardsByTopic(apiKey, currentTopicRawInput, 'easier', deck);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        if (apiKey) fetchCardsByTopic(apiKey, S.currentTopicRawInput, 'easier', deck);
     });
 
     document.getElementById('btn-topic-modifier-harder').addEventListener('click', async () => {
         const apiKey = await getApiKey();
-        const deck = appData.decks.find(d => d.id === currentDeckId);
-        if (apiKey) fetchCardsByTopic(apiKey, currentTopicRawInput, 'harder', deck);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        if (apiKey) fetchCardsByTopic(apiKey, S.currentTopicRawInput, 'harder', deck);
     });
 
     document.getElementById('btn-topic-modifier-practical').addEventListener('click', async () => {
         const apiKey = await getApiKey();
-        const deck = appData.decks.find(d => d.id === currentDeckId);
-        if (apiKey) fetchCardsByTopic(apiKey, currentTopicRawInput, 'practical', deck);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        if (apiKey) fetchCardsByTopic(apiKey, S.currentTopicRawInput, 'practical', deck);
     });
 
     // Toggle Select All
@@ -4804,8 +4808,8 @@ const renderDiaryCards = () => {
 
     // Save cards logic
     document.getElementById('btn-save-topic-cards-new').addEventListener('click', () => {
-        if (!currentDeckId || proposedTopicCards.length === 0) return;
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        if (!S.currentDeckId || S.proposedTopicCards.length === 0) return;
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         if (!deck) return;
 
         // Gather all checked items and edited inputs
@@ -4831,7 +4835,7 @@ const renderDiaryCards = () => {
 
         // Handle target section folder
         let sectionId = null;
-        if (aiGeneratorOptions.sectionId === '__new__') {
+        if (S.aiGeneratorOptions.sectionId === '__new__') {
             const newSecName = document.getElementById('input-new-section-name').value.trim();
             if (!newSecName) {
                 showToast("Fyll i ett namn för den nya mappen!");
@@ -4846,8 +4850,8 @@ const renderDiaryCards = () => {
                 deck.sections.push(newSec);
                 sectionId = newSec.id;
             }
-        } else if (aiGeneratorOptions.sectionId) {
-            sectionId = aiGeneratorOptions.sectionId;
+        } else if (S.aiGeneratorOptions.sectionId) {
+            sectionId = S.aiGeneratorOptions.sectionId;
         }
 
         cardsToSave.forEach(c => {
@@ -4863,7 +4867,7 @@ const renderDiaryCards = () => {
     // Diary Handlers
     const closeDiaryModal = () => document.getElementById('modal-diary').classList.add('hidden');
     document.getElementById('btn-open-diary').addEventListener('click', () => {
-        proposedDiaryCards = [];
+        S.proposedDiaryCards = [];
         document.getElementById('input-diary-text').value = '';
         document.getElementById('diary-cards-container').innerHTML = '';
         document.getElementById('diary-cards-container').classList.add('hidden');
@@ -4884,14 +4888,14 @@ const renderDiaryCards = () => {
     });
 
     document.getElementById('btn-save-diary-cards').addEventListener('click', () => {
-        if (proposedDiaryCards.length === 0) return;
+        if (S.proposedDiaryCards.length === 0) return;
         const deckSelects = document.querySelectorAll('.diary-deck-select');
         const bookshelfSelects = document.querySelectorAll('.diary-bookshelf-select');
         const sectionSelects = document.querySelectorAll('.diary-section-select');
         let savedCount = 0;
 
         deckSelects.forEach((sel, i) => {
-            const card = proposedDiaryCards[i];
+            const card = S.proposedDiaryCards[i];
             if (!card) return;
             let deckTarget;
 
@@ -4899,10 +4903,10 @@ const renderDiaryCards = () => {
             if (deckName.startsWith('__new__:')) {
                 deckName = deckName.replace('__new__:', '');
             }
-            deckTarget = appData.decks.find(d => d.title === deckName);
+            deckTarget = S.appData.decks.find(d => d.title === deckName);
             if (!deckTarget && sel.value.startsWith('__new__:')) {
                 deckTarget = { id: Date.now().toString() + '_' + i, title: deckName, cards: [], bookshelfId: null, color: '#4F46E5', sections: [] };
-                appData.decks.push(deckTarget);
+                S.appData.decks.push(deckTarget);
             }
 
             if (!deckTarget) return;
@@ -4913,10 +4917,10 @@ const renderDiaryCards = () => {
                 if (shelfName.startsWith('__new__:')) {
                     shelfName = shelfName.replace('__new__:', '');
                 }
-                let shelf = appData.bookshelves.find(s => s.title === shelfName);
+                let shelf = S.appData.bookshelves.find(s => s.title === shelfName);
                 if (!shelf && bookshelfSel.value.startsWith('__new__:')) {
                     shelf = { id: Date.now().toString() + '_shelf_' + i, title: shelfName, color: null };
-                    appData.bookshelves.push(shelf);
+                    S.appData.bookshelves.push(shelf);
                 }
                 if (shelf) {
                     deckTarget.bookshelfId = shelf.id;
@@ -4966,14 +4970,14 @@ const renderDiaryCards = () => {
 
     document.getElementById('option-create-deck')?.addEventListener('click', () => {
         modalCreateOptions.classList.add('hidden');
-        currentCreationType = 'deck';
+        S.currentCreationType = 'deck';
         modalDeck.querySelector('h2').innerText = 'Ny kortlek';
         modalDeck.classList.remove('hidden');
     });
 
     document.getElementById('option-create-notebook')?.addEventListener('click', () => {
         modalCreateOptions.classList.add('hidden');
-        currentCreationType = 'notebook';
+        S.currentCreationType = 'notebook';
         modalDeck.querySelector('h2').innerText = 'Nytt anteckningsblock';
         modalDeck.classList.remove('hidden');
     });
@@ -4985,7 +4989,7 @@ const renderDiaryCards = () => {
 
     // Deck & Notebook Creation
     const modalDeck = document.getElementById('modal-new-deck');
-    let currentCreationType = 'deck'; // 'deck' or 'notebook'
+    S.currentCreationType = 'deck'; // 'deck' or 'notebook'
 
     document.getElementById('btn-cancel-deck').addEventListener('click', () => {
         modalDeck.classList.add('hidden');
@@ -5005,13 +5009,13 @@ const renderDiaryCards = () => {
         const name = document.getElementById('new-deck-name').value.trim();
         const selectedColor = document.querySelector('#deck-color-picker .color-dot.selected')?.dataset.color || '#4F46E5';
         if (name) {
-            if (currentCreationType === 'deck') {
+            if (S.currentCreationType === 'deck') {
                 const newDeck = { id: Date.now().toString(), title: name, cards: [], bookshelfId: null, color: selectedColor, sections: [] };
-                appData.decks.push(newDeck);
+                S.appData.decks.push(newDeck);
                 showToast('Kortlek skapad!');
             } else {
                 const newNotebook = { id: Date.now().toString(), title: name, notes: [], bookshelfId: null };
-                appData.notebooks.push(newNotebook);
+                S.appData.notebooks.push(newNotebook);
                 showToast('Anteckningsblock skapat!');
             }
             saveData();
@@ -5032,8 +5036,8 @@ const renderDiaryCards = () => {
         const name = document.getElementById('new-bookshelf-name').value.trim();
         if (name) {
             const newBookshelf = { id: Date.now().toString(), title: name };
-            if (!appData.bookshelves) appData.bookshelves = [];
-            appData.bookshelves.push(newBookshelf);
+            if (!S.appData.bookshelves) S.appData.bookshelves = [];
+            S.appData.bookshelves.push(newBookshelf);
             saveData();
             renderLibrary();
             document.getElementById('modal-new-bookshelf').classList.add('hidden');
@@ -5045,34 +5049,34 @@ const renderDiaryCards = () => {
     // Bookshelf Deletion
     document.getElementById('btn-cancel-delete-bookshelf')?.addEventListener('click', () => {
         document.getElementById('modal-delete-bookshelf').classList.add('hidden');
-        currentBookshelfToDelete = null;
+        S.currentBookshelfToDelete = null;
     });
 
     document.getElementById('btn-delete-bookshelf-keep')?.addEventListener('click', () => {
-        if (!currentBookshelfToDelete) return;
+        if (!S.currentBookshelfToDelete) return;
         // Move items to root
-        appData.decks.forEach(d => { if (d.bookshelfId === currentBookshelfToDelete) d.bookshelfId = null; });
-        appData.notebooks.forEach(n => { if (n.bookshelfId === currentBookshelfToDelete) n.bookshelfId = null; });
+        S.appData.decks.forEach(d => { if (d.bookshelfId === S.currentBookshelfToDelete) d.bookshelfId = null; });
+        S.appData.notebooks.forEach(n => { if (n.bookshelfId === S.currentBookshelfToDelete) n.bookshelfId = null; });
         // Delete bookshelf
-        appData.bookshelves = appData.bookshelves.filter(b => b.id !== currentBookshelfToDelete);
+        S.appData.bookshelves = S.appData.bookshelves.filter(b => b.id !== S.currentBookshelfToDelete);
         saveData();
         renderLibrary();
         document.getElementById('modal-delete-bookshelf').classList.add('hidden');
-        currentBookshelfToDelete = null;
+        S.currentBookshelfToDelete = null;
         showToast('Bokhylla raderad, allt innehåll behölls.');
     });
 
     document.getElementById('btn-delete-bookshelf-delete')?.addEventListener('click', () => {
-        if (!currentBookshelfToDelete) return;
+        if (!S.currentBookshelfToDelete) return;
         // Delete items
-        appData.decks = appData.decks.filter(d => d.bookshelfId !== currentBookshelfToDelete);
-        appData.notebooks = appData.notebooks.filter(n => n.bookshelfId !== currentBookshelfToDelete);
+        S.appData.decks = S.appData.decks.filter(d => d.bookshelfId !== S.currentBookshelfToDelete);
+        S.appData.notebooks = S.appData.notebooks.filter(n => n.bookshelfId !== S.currentBookshelfToDelete);
         // Delete bookshelf
-        appData.bookshelves = appData.bookshelves.filter(b => b.id !== currentBookshelfToDelete);
+        S.appData.bookshelves = S.appData.bookshelves.filter(b => b.id !== S.currentBookshelfToDelete);
         saveData();
         renderLibrary();
         document.getElementById('modal-delete-bookshelf').classList.add('hidden');
-        currentBookshelfToDelete = null;
+        S.currentBookshelfToDelete = null;
         showToast('Bokhylla och allt dess innehåll raderat.');
     });
 
@@ -5083,7 +5087,7 @@ const renderDiaryCards = () => {
 
     document.getElementById('btn-cancel-move-card')?.addEventListener('click', () => {
         document.getElementById('modal-move-card').classList.add('hidden');
-        currentMoveCard = null;
+        S.currentMoveCard = null;
     });
 
     document.getElementById('input-move-search')?.addEventListener('input', (e) => {
@@ -5092,32 +5096,32 @@ const renderDiaryCards = () => {
 
     document.getElementById('btn-confirm-move-card')?.addEventListener('click', () => {
         const selection = document.getElementById('selected-move-target').value;
-        if (!selection || !currentMoveCard) return;
+        if (!selection || !S.currentMoveCard) return;
 
         const [targetDeckId, targetSectionId] = selection.split(':');
         
-        const currentDeck = appData.decks.find(d => d.id === currentDeckId);
-        const targetDeck = appData.decks.find(d => d.id === targetDeckId);
+        const currentDeck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        const targetDeck = S.appData.decks.find(d => d.id === targetDeckId);
         
         if (currentDeck && targetDeck) {
             // Remove from current deck
-            currentDeck.cards = currentDeck.cards.filter(c => c.id !== currentMoveCard.id);
+            currentDeck.cards = currentDeck.cards.filter(c => c.id !== S.currentMoveCard.id);
             
             // Set new properties
-            currentMoveCard.sectionId = (targetSectionId === 'root') ? null : targetSectionId;
+            S.currentMoveCard.sectionId = (targetSectionId === 'root') ? null : targetSectionId;
             
             // Add to target deck
-            targetDeck.cards.push(currentMoveCard);
+            targetDeck.cards.push(S.currentMoveCard);
             
             saveData();
             renderCards(currentDeck.cards);
             document.getElementById('modal-move-card').classList.add('hidden');
-            currentMoveCard = null;
+            S.currentMoveCard = null;
             showToast("Kortet flyttades!");
             renderLibrary();
             
             // If moved to current deck (different folder), stay in view
-            if (targetDeckId === currentDeckId) {
+            if (targetDeckId === S.currentDeckId) {
                 renderCards(currentDeck.cards);
             }
         }
@@ -5125,45 +5129,45 @@ const renderDiaryCards = () => {
 
     document.getElementById('btn-cancel-move-item')?.addEventListener('click', () => {
         document.getElementById('modal-move-item').classList.add('hidden');
-        currentMoveItem = null;
-        currentMoveItemType = null;
+        S.currentMoveItem = null;
+        S.currentMoveItemType = null;
     });
 
     document.getElementById('form-move-item')?.addEventListener('submit', (e) => {
         e.preventDefault();
-        if (!currentMoveItem) return;
+        if (!S.currentMoveItem) return;
         
         let targetBookshelfId = document.getElementById('select-move-bookshelf').value;
         if (targetBookshelfId === 'root') targetBookshelfId = null;
 
-        let sourceList = currentMoveItemType === 'deck' ? appData.decks : appData.notebooks;
-        let itemRef = sourceList.find(i => i.id === currentMoveItem.id);
+        let sourceList = S.currentMoveItemType === 'deck' ? S.appData.decks : S.appData.notebooks;
+        let itemRef = sourceList.find(i => i.id === S.currentMoveItem.id);
         if (itemRef) {
             itemRef.bookshelfId = targetBookshelfId;
             saveData();
             renderLibrary();
             document.getElementById('modal-move-item').classList.add('hidden');
-            currentMoveItem = null;
-            currentMoveItemType = null;
+            S.currentMoveItem = null;
+            S.currentMoveItemType = null;
             showToast("Objektet flyttades!");
         }
     });
 
     document.getElementById('btn-cancel-move-section')?.addEventListener('click', () => {
         document.getElementById('modal-move-section').classList.add('hidden');
-        currentMoveSectionId = null;
+        S.currentMoveSectionId = null;
     });
 
     document.getElementById('form-move-section')?.addEventListener('submit', (e) => {
         e.preventDefault();
-        if (!currentMoveSectionId || !currentDeckId) return;
+        if (!S.currentMoveSectionId || !S.currentDeckId) return;
 
         const targetDeckId = document.getElementById('select-move-section-deck').value;
-        const sourceDeck = appData.decks.find(d => d.id === currentDeckId);
-        const targetDeck = appData.decks.find(d => d.id === targetDeckId);
+        const sourceDeck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        const targetDeck = S.appData.decks.find(d => d.id === targetDeckId);
 
         if (sourceDeck && targetDeck) {
-            const sectionIdx = sourceDeck.sections.findIndex(s => s.id === currentMoveSectionId);
+            const sectionIdx = sourceDeck.sections.findIndex(s => s.id === S.currentMoveSectionId);
             if (sectionIdx > -1) {
                 const section = sourceDeck.sections[sectionIdx];
                 
@@ -5173,16 +5177,16 @@ const renderDiaryCards = () => {
                 targetDeck.sections.push(section);
 
                 // 2. Move cards belonging to section
-                const cardsToMove = sourceDeck.cards.filter(c => c.sectionId === currentMoveSectionId);
-                sourceDeck.cards = sourceDeck.cards.filter(c => c.sectionId !== currentMoveSectionId);
+                const cardsToMove = sourceDeck.cards.filter(c => c.sectionId === S.currentMoveSectionId);
+                sourceDeck.cards = sourceDeck.cards.filter(c => c.sectionId !== S.currentMoveSectionId);
                 targetDeck.cards.push(...cardsToMove);
 
                 saveData();
                 renderLibrary();
                 renderSidebar();
-                openDeck(currentDeckId);
+                openDeck(S.currentDeckId);
                 document.getElementById('modal-move-section').classList.add('hidden');
-                currentMoveSectionId = null;
+                S.currentMoveSectionId = null;
                 showToast("Mappen flyttades!");
             }
         }
@@ -5190,33 +5194,33 @@ const renderDiaryCards = () => {
 
     document.getElementById('form-edit-card').addEventListener('submit', (e) => {
         e.preventDefault();
-        if (!currentEditCard || !currentDeckId) return;
+        if (!S.currentEditCard || !S.currentDeckId) return;
 
         const newFront = document.getElementById('edit-card-front').value.trim();
         const newBack = document.getElementById('edit-card-back').value.trim();
         const isLongForm = document.getElementById('edit-card-longform').checked;
 
         if (newFront && newBack) {
-            const deck = appData.decks.find(d => d.id === currentDeckId);
-            const cardProxy = deck.cards.find(c => c.id === currentEditCard.id);
+            const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+            const cardProxy = deck.cards.find(c => c.id === S.currentEditCard.id);
             if (cardProxy) {
                 cardProxy.front = newFront;
                 cardProxy.back = newBack;
                 cardProxy.isLongForm = isLongForm;
-                cardProxy.backImages = [...editCardImages];
+                cardProxy.backImages = [...S.editCardImages];
                 saveData();
                 renderCards(deck.cards);
-                openDeck(currentDeckId);
+                openDeck(S.currentDeckId);
                 showToast('Kort uppdaterat!');
             }
             document.getElementById('modal-edit-card').classList.add('hidden');
-            editCardImages = [];
+            S.editCardImages = [];
         }
     });
 
     document.getElementById('btn-add-note-card').addEventListener('click', (e) => {
         e.stopPropagation();
-        currentNoteCard = null;
+        S.currentNoteCard = null;
         const modal = document.getElementById('modal-note-card');
         document.getElementById('note-card-modal-title').textContent = 'Lägg till anteckning';
         document.getElementById('note-card-content').value = '';
@@ -5230,10 +5234,10 @@ const renderDiaryCards = () => {
     document.getElementById('form-note-card').addEventListener('submit', (e) => {
         e.preventDefault();
         const content = document.getElementById('note-card-content').value.trim();
-        if (!content || !currentDeckId) return;
-        const deck = appData.decks.find(d => d.id === currentDeckId);
-        if (currentNoteCard) {
-            const cardProxy = deck.cards.find(c => c.id === currentNoteCard.id);
+        if (!content || !S.currentDeckId) return;
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
+        if (S.currentNoteCard) {
+            const cardProxy = deck.cards.find(c => c.id === S.currentNoteCard.id);
             if (cardProxy) cardProxy.content = content;
             showToast('Anteckning uppdaterad!');
         } else {
@@ -5243,7 +5247,7 @@ const renderDiaryCards = () => {
         saveData();
         renderCards(deck.cards);
         document.getElementById('modal-note-card').classList.add('hidden');
-        currentNoteCard = null;
+        S.currentNoteCard = null;
     });
 
     // document.getElementById('btn-add-card').addEventListener('click', () => switchView('addCard'));
@@ -5253,8 +5257,8 @@ const renderDiaryCards = () => {
         const back = document.getElementById('card-back').value.trim();
         const isLongForm = document.getElementById('card-longform').checked;
         const selectedSectionId = document.getElementById('card-section-select').value || null;
-        if (front && back && currentDeckId) {
-            const deck = appData.decks.find(d => d.id === currentDeckId);
+        if (front && back && S.currentDeckId) {
+            const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
             
             let finalSectionId = selectedSectionId;
             if (selectedSectionId && selectedSectionId.startsWith('__new__:')) {
@@ -5270,7 +5274,7 @@ const renderDiaryCards = () => {
                 }
             }
 
-            deck.cards.push(createCard(front, back, isLongForm, [...addCardImages], finalSectionId));
+            deck.cards.push(createCard(front, back, isLongForm, [...S.addCardImages], finalSectionId));
             saveData();
 
             populateAddCardSections(deck);
@@ -5278,8 +5282,8 @@ const renderDiaryCards = () => {
             document.getElementById('card-front').value = '';
             document.getElementById('card-back').value = '';
             document.getElementById('card-longform').checked = false;
-            addCardImages = [];
-            renderImagePreviews(document.getElementById('card-back-image-preview'), addCardImages, () => {});
+            S.addCardImages = [];
+            renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, () => {});
             showToast('Kort sparat!');
             document.getElementById('card-front').focus();
         }
@@ -5321,14 +5325,14 @@ const renderDiaryCards = () => {
         const files = Array.from(e.target.files);
         for (const file of files) {
             if (!file.type.startsWith('image/')) continue;
-            try { addCardImages.push(await fileToDataUrl(file)); } catch {}
+            try { S.addCardImages.push(await fileToDataUrl(file)); } catch {}
         }
         e.target.value = '';
         const previewRefresh = (idx) => {
-            addCardImages.splice(idx, 1);
-            renderImagePreviews(document.getElementById('card-back-image-preview'), addCardImages, previewRefresh);
+            S.addCardImages.splice(idx, 1);
+            renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, previewRefresh);
         };
-        renderImagePreviews(document.getElementById('card-back-image-preview'), addCardImages, previewRefresh);
+        renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, previewRefresh);
     });
 
     // Wire Edit Card image upload
@@ -5339,14 +5343,14 @@ const renderDiaryCards = () => {
         const files = Array.from(e.target.files);
         for (const file of files) {
             if (!file.type.startsWith('image/')) continue;
-            try { editCardImages.push(await fileToDataUrl(file)); } catch {}
+            try { S.editCardImages.push(await fileToDataUrl(file)); } catch {}
         }
         e.target.value = '';
         const previewRefresh = (idx) => {
-            editCardImages.splice(idx, 1);
-            renderImagePreviews(document.getElementById('edit-card-back-image-preview'), editCardImages, previewRefresh);
+            S.editCardImages.splice(idx, 1);
+            renderImagePreviews(document.getElementById('edit-card-back-image-preview'), S.editCardImages, previewRefresh);
         };
-        renderImagePreviews(document.getElementById('edit-card-back-image-preview'), editCardImages, previewRefresh);
+        renderImagePreviews(document.getElementById('edit-card-back-image-preview'), S.editCardImages, previewRefresh);
     });
 
     const populateAddCardSections = (deck, selectedVal = null) => {
@@ -5380,16 +5384,16 @@ const renderDiaryCards = () => {
     // Reset addCardImages and populate section dropdown when navigating to Add Card view
     document.getElementById('btn-add-card').addEventListener('click', () => {
         switchView('addCard');
-        addCardImages = [];
-        renderImagePreviews(document.getElementById('card-back-image-preview'), addCardImages, () => {});
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        S.addCardImages = [];
+        renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, () => {});
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         
         let initialSelectVal = null;
-        if (preselectSectionId) {
-            initialSelectVal = preselectSectionId;
-            preselectSectionId = null;
-        } else if (currentSectionId) {
-            initialSelectVal = currentSectionId;
+        if (S.preselectSectionId) {
+            initialSelectVal = S.preselectSectionId;
+            S.preselectSectionId = null;
+        } else if (S.currentSectionId) {
+            initialSelectVal = S.currentSectionId;
         }
         populateAddCardSections(deck, initialSelectVal);
     }, true);
@@ -5407,19 +5411,19 @@ const renderDiaryCards = () => {
         e.preventDefault();
         const name = document.getElementById('new-section-name').value.trim();
         if (!name) return;
-        const deck = appData.decks.find(d => d.id === currentDeckId);
+        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         if (!deck) return;
         if (!deck.sections) deck.sections = [];
 
-        if (currentSectionToEdit) {
-            currentSectionToEdit.title = name;
+        if (S.currentSectionToEdit) {
+            S.currentSectionToEdit.title = name;
         } else {
             const newSection = { id: Date.now().toString() + '_sec', title: name };
             deck.sections.push(newSection);
         }
         saveData();
         closeSectionModal();
-        openDeck(currentDeckId, currentSectionId);
+        openDeck(S.currentDeckId, S.currentSectionId);
     });
 
     const runAutoFolder = async (questionText) => {
@@ -5431,7 +5435,7 @@ const renderDiaryCards = () => {
         btnAuto.innerHTML = 'Auto ';
 
         try {
-            const deck = appData.decks.find(d => d.id === currentDeckId);
+            const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
             const existingSections = (deck.sections || []).map(s => ({ id: s.id, title: s.title }));
 
             const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
@@ -5508,7 +5512,7 @@ const renderDiaryCards = () => {
 
     // Note Actions
     document.getElementById('btn-add-note').addEventListener('click', () => {
-        currentNoteId = null;
+        S.currentNoteId = null;
         document.getElementById('note-content').value = '';
         document.getElementById('note-form-title').innerText = 'Lägg till anteckning';
         switchView('addNote');
@@ -5517,11 +5521,11 @@ const renderDiaryCards = () => {
     document.getElementById('form-add-note').addEventListener('submit', (e) => {
         e.preventDefault();
         const content = document.getElementById('note-content').value.trim();
-        if (content && currentNotebookId) {
-            const notebook = appData.notebooks.find(n => n.id === currentNotebookId);
-            if (currentNoteId) {
+        if (content && S.currentNotebookId) {
+            const notebook = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
+            if (S.currentNoteId) {
                 // Update
-                const note = notebook.notes.find(n => n.id === currentNoteId);
+                const note = notebook.notes.find(n => n.id === S.currentNoteId);
                 note.content = content;
                 showToast('Anteckning uppdaterad!');
             } else {
@@ -5530,7 +5534,7 @@ const renderDiaryCards = () => {
                 showToast('Anteckning sparad!');
             }
             saveData();
-            openNotebook(currentNotebookId);
+            openNotebook(S.currentNotebookId);
         }
     });
 
@@ -5576,7 +5580,7 @@ const renderDiaryCards = () => {
                     system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
                     messages: [{
                         role: 'user',
-                        content: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(currentDeckId)}`
+                        content: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`
                     }]
                 })
             });
@@ -5617,7 +5621,7 @@ const renderDiaryCards = () => {
             return;
         }
 
-        const card = currentStudyCards[currentStudyIndex];
+        const card = S.currentStudyCards[S.currentStudyIndex];
         if (card) fetchStudyAi(apiKey, card, question);
     });
 
@@ -5649,9 +5653,9 @@ const renderDiaryCards = () => {
             if (flashcardEl) flashcardEl.style.minHeight = finalHeight + 'px';
         });
 
-        if (playgroundMode === 'action') {
+        if (S.playgroundMode === 'action') {
             actionReveal();
-        } else if (playgroundMode === 'fritext') {
+        } else if (S.playgroundMode === 'fritext') {
             fritextReveal();
         } else {
             document.getElementById('study-actions').classList.remove('hidden');
@@ -5659,7 +5663,7 @@ const renderDiaryCards = () => {
     };
 
     const actionReveal = (allCards) => {
-        const cards = currentStudyCards;
+        const cards = S.currentStudyCards;
         const startTimeSession = Date.now();
         
         let score = 0;
@@ -5677,15 +5681,15 @@ const renderDiaryCards = () => {
         // Personal best tracking
         let pbKey = 'spaced_rep_action_pb_all';
         let pbTitle = 'Hela biblioteket';
-        if (playgroundFilterSource && playgroundFilterSource.size > 0) {
+        if (S.playgroundFilterSource && S.playgroundFilterSource.size > 0) {
             const deckIds = new Set();
-            playgroundFilterSource.forEach(val => {
+            S.playgroundFilterSource.forEach(val => {
                 const match = val.match(/^deck:([^:]+)/);
                 if (match) deckIds.add(match[1]);
             });
             if (deckIds.size === 1) {
                 const singleDeckId = Array.from(deckIds)[0];
-                const deckObj = appData.decks.find(d => d.id === singleDeckId);
+                const deckObj = S.appData.decks.find(d => d.id === singleDeckId);
                 pbKey = `spaced_rep_action_pb_${singleDeckId}`;
                 pbTitle = deckObj ? deckObj.title : 'Fokusområde';
             } else {
@@ -6235,12 +6239,12 @@ const renderDiaryCards = () => {
             if (currentPhase !== 'review') return;
             currentPhase = 'rating-submitted';
             if (rating === 1) {
-                playgroundSessionStats.again++;
+                S.playgroundSessionStats.again++;
             } else {
-                playgroundSessionStats.correct++;
+                S.playgroundSessionStats.correct++;
             }
             
-            currentStudyIndex = cardIdx;
+            S.currentStudyIndex = cardIdx;
             processRating(rating);
             
             cardIdx++;
@@ -6265,7 +6269,7 @@ const renderDiaryCards = () => {
                 localStorage.setItem(pbKey, score);
             }
             
-            playgroundSessionStats.correct = score; 
+            S.playgroundSessionStats.correct = score; 
 
             const timeSpent = Math.round((Date.now() - startTimeSession) / 1000);
             const perfectPct = totalWordsProcessed > 0 ? Math.round((totalPerfects / totalWordsProcessed) * 100) : 0;
@@ -6332,7 +6336,7 @@ const renderDiaryCards = () => {
             currentPhase = 'restarting';
             cleanup();
             
-            currentStudyCards = fisherYatesShuffle([...cards]);
+            S.currentStudyCards = fisherYatesShuffle([...cards]);
             score = 0;
             combo = 0;
             maxCombo = 0;
@@ -6349,7 +6353,7 @@ const renderDiaryCards = () => {
     };
 
     const lucktextReveal = () => {
-        const cards = currentStudyCards;
+        const cards = S.currentStudyCards;
         const startTimeSession = Date.now();
 
         let score = 0;
@@ -6364,15 +6368,15 @@ const renderDiaryCards = () => {
 
         let pbKey = 'spaced_rep_lucktext_pb_all';
         let pbTitle = 'Hela biblioteket';
-        if (playgroundFilterSource && playgroundFilterSource.size > 0) {
+        if (S.playgroundFilterSource && S.playgroundFilterSource.size > 0) {
             const deckIds = new Set();
-            playgroundFilterSource.forEach(val => {
+            S.playgroundFilterSource.forEach(val => {
                 const match = val.match(/^deck:([^:]+)/);
                 if (match) deckIds.add(match[1]);
             });
             if (deckIds.size === 1) {
                 const singleDeckId = Array.from(deckIds)[0];
-                const deckObj = appData.decks.find(d => d.id === singleDeckId);
+                const deckObj = S.appData.decks.find(d => d.id === singleDeckId);
                 pbKey = `spaced_rep_lucktext_pb_${singleDeckId}`;
                 pbTitle = deckObj ? deckObj.title : 'Fokusområde';
             } else {
@@ -6559,7 +6563,7 @@ const renderDiaryCards = () => {
             currentPhase = 'restarting';
             cleanup();
 
-            currentStudyCards = fisherYatesShuffle([...cards]);
+            S.currentStudyCards = fisherYatesShuffle([...cards]);
             score = 0;
             combo = 0;
             maxCombo = 0;
@@ -6849,7 +6853,7 @@ const renderDiaryCards = () => {
             if (currentPhase !== 'review') return;
             currentPhase = 'rating-submitted';
 
-            currentStudyIndex = cardIdx;
+            S.currentStudyIndex = cardIdx;
             processRating(rating);
             cardIdx++;
 
@@ -6868,7 +6872,7 @@ const renderDiaryCards = () => {
                 localStorage.setItem(pbKey, score);
             }
 
-            playgroundSessionStats.correct = totalCorrectBlanks;
+            S.playgroundSessionStats.correct = totalCorrectBlanks;
 
             const timeSpent = Math.round((Date.now() - startTimeSession) / 1000);
             const blankPct = totalBlanks > 0 ? Math.round((totalCorrectBlanks / totalBlanks) * 100) : 0;
@@ -6943,7 +6947,7 @@ const renderDiaryCards = () => {
     };
 
     const fritextReveal = () => {
-        const card = currentStudyCards[currentStudyIndex];
+        const card = S.currentStudyCards[S.currentStudyIndex];
         if (!card) return;
 
         const studyBack = document.getElementById('study-back-text');
@@ -7189,7 +7193,7 @@ const renderDiaryCards = () => {
             flashcardContainer.classList.add('swipe-left');
             setTimeout(() => {
                 flashcardContainer.classList.remove('swipe-left');
-                currentStudyIndex++;
+                S.currentStudyIndex++;
                 renderStudyCard();
             }, 300);
         });
@@ -7206,8 +7210,8 @@ const renderDiaryCards = () => {
 
     // Keyboard shortcuts for study: Space/Enter to flip, 1-4 to rate
     document.addEventListener('keydown', (e) => {
-        if (currentViewName !== 'study') return;
-        if (playgroundMode) return; // Ignore standard study keyboard shortcuts when in a playground mode game
+        if (S.currentViewName !== 'study') return;
+        if (S.playgroundMode) return; // Ignore standard study keyboard shortcuts when in a playground mode game
         // Don't intercept if user is typing in the AI input
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
@@ -7225,7 +7229,7 @@ const renderDiaryCards = () => {
 
 // --- FRITEXT SESSION OVERLAY ---
 const fritextSessionReveal = () => {
-    const cards = currentStudyCards;
+    const cards = S.currentStudyCards;
     let cardIdx = 0;
     let totalScore = 0;
     let totalKeywords = 0;
@@ -7316,8 +7320,8 @@ const fritextSessionReveal = () => {
             totalKeywords += total;
             totalMatched += matched;
 
-            if (pct >= 50) playgroundSessionStats.correct++;
-            else playgroundSessionStats.again++;
+            if (pct >= 50) S.playgroundSessionStats.correct++;
+            else S.playgroundSessionStats.again++;
 
             const kwHtml = keywords.map(kw => `<span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:6px;font-size:0.8rem;font-weight:600;margin:0.15rem;${kw.found ? 'background:rgba(52,168,83,0.2);color:#34A853;border:1px solid rgba(52,168,83,0.3);' : 'background:rgba(234,67,53,0.1);color:rgba(234,67,53,0.7);border:1px solid rgba(234,67,53,0.2);'}">${escapeHtml(kw.original)}</span>`).join('');
 
@@ -7388,7 +7392,7 @@ const fritextSessionReveal = () => {
 
 // --- JEOPARDY OVERLAY ---
 const jeopardyReveal = () => {
-    const cards = currentStudyCards;
+    const cards = S.currentStudyCards;
     let cardIdx = 0;
 
     const overlay = document.createElement('div');
@@ -7483,7 +7487,7 @@ const jeopardyReveal = () => {
 
 // --- DAMMIGA KORT OVERLAY ---
 const dammigaReveal = () => {
-    const cards = currentStudyCards;
+    const cards = S.currentStudyCards;
     let cardIdx = 0;
     const now = Date.now();
 
@@ -7558,10 +7562,10 @@ const dammigaReveal = () => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const rating = parseInt(btn.getAttribute('data-rating'), 10);
-                    currentStudyIndex = cardIdx;
+                    S.currentStudyIndex = cardIdx;
                     processRating(rating);
-                    if (rating === 1) playgroundSessionStats.again++;
-                    else playgroundSessionStats.correct++;
+                    if (rating === 1) S.playgroundSessionStats.again++;
+                    else S.playgroundSessionStats.correct++;
                     cardIdx++;
                     showCard();
                 });
@@ -7575,10 +7579,10 @@ const dammigaReveal = () => {
                     e.preventDefault();
                     document.removeEventListener('keydown', rateKH);
                     const rating = parseInt(e.key, 10);
-                    currentStudyIndex = cardIdx;
+                    S.currentStudyIndex = cardIdx;
                     processRating(rating);
-                    if (rating === 1) playgroundSessionStats.again++;
-                    else playgroundSessionStats.correct++;
+                    if (rating === 1) S.playgroundSessionStats.again++;
+                    else S.playgroundSessionStats.correct++;
                     cardIdx++;
                     showCard();
                 }
@@ -7612,7 +7616,7 @@ const dammigaReveal = () => {
 
 // --- SUDDEN DEATH OVERLAY ---
 const suddenDeathReveal = (allCards) => {
-    const cards = currentStudyCards;
+    const cards = S.currentStudyCards;
     const startTimeSession = Date.now();
     
     // Score & gamification state
@@ -7643,15 +7647,15 @@ const suddenDeathReveal = (allCards) => {
     // Determine highscore key & title based on playground focus filter
     let pbKey = 'spaced_rep_sd_pb_all';
     let pbTitle = 'Hela biblioteket';
-    if (playgroundFilterSource && playgroundFilterSource.size > 0) {
+    if (S.playgroundFilterSource && S.playgroundFilterSource.size > 0) {
         const deckIds = new Set();
-        playgroundFilterSource.forEach(val => {
+        S.playgroundFilterSource.forEach(val => {
             const match = val.match(/^deck:([^:]+)/);
             if (match) deckIds.add(match[1]);
         });
         if (deckIds.size === 1) {
             const singleDeckId = Array.from(deckIds)[0];
-            const deckObj = appData.decks.find(d => d.id === singleDeckId);
+            const deckObj = S.appData.decks.find(d => d.id === singleDeckId);
             pbKey = `spaced_rep_sd_pb_${singleDeckId}`;
             pbTitle = deckObj ? deckObj.title : 'Fokusområde';
         } else {
@@ -7824,7 +7828,7 @@ const suddenDeathReveal = (allCards) => {
         
         // Shuffle fresh subset
         const freshCards = fisherYatesShuffle([...cards]);
-        currentStudyCards = freshCards;
+        S.currentStudyCards = freshCards;
         
         score = 0;
         streak = 0;
@@ -7951,7 +7955,7 @@ const suddenDeathReveal = (allCards) => {
         }
         
         // Sync stats to globally accessible playground session
-        playgroundSessionStats.correct = score; 
+        S.playgroundSessionStats.correct = score; 
 
         const isVictory = lives > 0 && cardIdx >= cards.length;
         const screenClass = isVictory ? 'victory' : '';
@@ -8464,7 +8468,7 @@ const suddenDeathReveal = (allCards) => {
 // --- TRANSPORTBANDET OVERLAY ---
 const transportbandetReveal = () => {
     // Determine the top 4 section titles (by card count) from the candidate pool
-    const allCandidates = currentStudyCards;
+    const allCandidates = S.currentStudyCards;
     const sectionCountMap = {};
     allCandidates.forEach(c => {
         sectionCountMap[c._sectionTitle] = (sectionCountMap[c._sectionTitle] || 0) + 1;
@@ -8497,15 +8501,15 @@ const transportbandetReveal = () => {
     // Determine highscore key & title based on playground focus filter
     let pbKey = 'spaced_rep_tb_pb_all';
     let pbTitle = 'Hela biblioteket';
-    if (playgroundFilterSource && playgroundFilterSource.size > 0) {
+    if (S.playgroundFilterSource && S.playgroundFilterSource.size > 0) {
         const deckIds = new Set();
-        playgroundFilterSource.forEach(val => {
+        S.playgroundFilterSource.forEach(val => {
             const match = val.match(/^deck:([^:]+)/);
             if (match) deckIds.add(match[1]);
         });
         if (deckIds.size === 1) {
             const singleDeckId = Array.from(deckIds)[0];
-            const deckObj = appData.decks.find(d => d.id === singleDeckId);
+            const deckObj = S.appData.decks.find(d => d.id === singleDeckId);
             pbKey = `spaced_rep_tb_pb_${singleDeckId}`;
             pbTitle = deckObj ? deckObj.title : 'Fokusområde';
         } else {
@@ -8623,7 +8627,7 @@ const transportbandetReveal = () => {
         }
         
         // Sync stats
-        playgroundSessionStats.correct = score;
+        S.playgroundSessionStats.correct = score;
 
         const isVictory = lives > 0 && cardIdx >= cards.length;
         const screenClass = isVictory ? 'victory' : '';
@@ -8694,7 +8698,7 @@ const transportbandetReveal = () => {
         cleanup();
         
         cards = fisherYatesShuffle(filteredPool).slice(0, 20);
-        currentStudyCards = cards;
+        S.currentStudyCards = cards;
         
         cardIdx = 0;
         score = 0;
@@ -8870,14 +8874,14 @@ const transportbandetReveal = () => {
                 if (streak > maxStreak) maxStreak = streak;
                 
                 correctCount++;
-                playgroundSessionStats.correct++;
+                S.playgroundSessionStats.correct++;
                 fallingCard.classList.add('tb-correct');
                 bins[activeBinIdx].classList.add('tb-bin-flash-correct');
                 showFloatingFeedback(`+${gained}`, 'correct');
             } else {
                 streak = 0;
                 lives--;
-                playgroundSessionStats.again++;
+                S.playgroundSessionStats.again++;
                 fallingCard.classList.add('tb-wrong');
                 bins[activeBinIdx].classList.add('tb-bin-flash-wrong');
                 if (correctIdx >= 0 && correctIdx < bins.length) {
@@ -8991,7 +8995,7 @@ const transportbandetReveal = () => {
 
 // --- DRAGKAMPEN OVERLAY ---
 const dragkampenReveal = (allCards) => {
-    const cards = currentStudyCards;
+    const cards = S.currentStudyCards;
     let meterValue = 0;
     let cardIdx = 0;
     let correctCount = 0;
@@ -9065,7 +9069,7 @@ const dragkampenReveal = (allCards) => {
 
     const showEndScreen = (won) => {
         cleanup();
-        playgroundSessionStats._dragkampenWon = won;
+        S.playgroundSessionStats._dragkampenWon = won;
         const timeSpent = Math.round((Date.now() - startTime) / 1000);
         const content = overlay.querySelector('.cinema-content');
         content.innerHTML = `
@@ -9132,8 +9136,8 @@ const dragkampenReveal = (allCards) => {
             if (roundKeyHandler) document.removeEventListener('keydown', roundKeyHandler);
 
             const correct = userSaysTrue === isCorrectAnswer;
-            if (correct) { meterValue = Math.min(100, meterValue + 10); correctCount++; playgroundSessionStats.correct++; }
-            else { meterValue = Math.max(-100, meterValue - 15); playgroundSessionStats.again++; }
+            if (correct) { meterValue = Math.min(100, meterValue + 10); correctCount++; S.playgroundSessionStats.correct++; }
+            else { meterValue = Math.max(-100, meterValue - 15); S.playgroundSessionStats.again++; }
             updateMeter();
 
             buttonsEl.style.display = 'none';
@@ -9198,7 +9202,7 @@ const initApp = () => {
         
 
         document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isPlaygroundSession) playgroundEscAbort = true;
+        if (e.key === 'Escape' && S.isPlaygroundSession) S.playgroundEscAbort = true;
     }, true);
 
         // Backup: run auto-backup once conditions are met, show status, wire buttons
@@ -9238,18 +9242,18 @@ const initApp = () => {
                     openModals[openModals.length - 1].classList.add('hidden');
                     return;
                 }
-                if (currentViewName === 'complete') {
+                if (S.currentViewName === 'complete') {
                     document.getElementById('btn-complete-back').click();
-                } else if (currentViewName === 'study' && !document.getElementById('cinema-overlay')) {
+                } else if (S.currentViewName === 'study' && !document.getElementById('cinema-overlay')) {
                     document.getElementById('btn-end-study').click();
-                } else if (currentViewName === 'deck') {
+                } else if (S.currentViewName === 'deck') {
                     filterBookshelf(null);
-                } else if (currentViewName === 'addCard') {
-                    openDeck(currentDeckId);
-                } else if (currentViewName === 'notebook') {
+                } else if (S.currentViewName === 'addCard') {
+                    openDeck(S.currentDeckId);
+                } else if (S.currentViewName === 'notebook') {
                     filterBookshelf(null);
-                } else if (currentViewName === 'addNote') {
-                    openNotebook(currentNotebookId);
+                } else if (S.currentViewName === 'addNote') {
+                    openNotebook(S.currentNotebookId);
                 }
             }
         });
@@ -9271,7 +9275,7 @@ const initApp = () => {
             const val = e.target.value.trim();
             if (librarySearchTimeout) clearTimeout(librarySearchTimeout);
             librarySearchTimeout = setTimeout(() => {
-                librarySearchFilter = val;
+                S.librarySearchFilter = val;
                 renderLibrary();
             }, 100);
         });
@@ -9363,7 +9367,7 @@ if (document.readyState === 'loading') {
 
 const renameDeck = async (event, id, type = 'deck') => {
     event.stopPropagation();
-    const list = type === 'deck' ? appData.decks : appData.notebooks;
+    const list = type === 'deck' ? S.appData.decks : S.appData.notebooks;
     const item = list.find(i => i.id === id);
     if (!item) return;
     const newTitle = await showPromptModal('Skriv in nytt namn:', item.title);
@@ -9371,9 +9375,9 @@ const renameDeck = async (event, id, type = 'deck') => {
         item.title = newTitle.trim();
         saveData();
         renderLibrary();
-        if (type === 'deck' && currentDeckId === id) {
+        if (type === 'deck' && S.currentDeckId === id) {
             document.getElementById('current-deck-title').innerText = item.title;
-        } else if (type === 'notebook' && currentNotebookId === id) {
+        } else if (type === 'notebook' && S.currentNotebookId === id) {
             document.getElementById('current-notebook-title').innerText = item.title;
         }
     }
@@ -9396,8 +9400,8 @@ if (typeof CityBuilder !== 'undefined') window.CityBuilder = CityBuilder;
 // GLOBAL SEARCH ENGINE (COMMAND PALETTE)
 // ==========================================
 
-let activeSearchResultIndex = -1;
-let currentSearchResults = [];
+S.activeSearchResultIndex = -1;
+S.currentSearchResults = [];
 
 const openGlobalSearch = () => {
     const modal = document.getElementById('modal-global-search');
@@ -9406,8 +9410,8 @@ const openGlobalSearch = () => {
     
     modal.classList.remove('hidden');
     input.value = '';
-    activeSearchResultIndex = -1;
-    currentSearchResults = [];
+    S.activeSearchResultIndex = -1;
+    S.currentSearchResults = [];
     performGlobalSearch();
     
     setTimeout(() => input.focus(), 50);
@@ -9436,8 +9440,8 @@ const performGlobalSearch = () => {
 
     const query = input.value.trim().toLowerCase();
     resultsContainer.innerHTML = '';
-    activeSearchResultIndex = -1;
-    currentSearchResults = [];
+    S.activeSearchResultIndex = -1;
+    S.currentSearchResults = [];
 
     if (!query) {
         resultsContainer.innerHTML = `
@@ -9457,7 +9461,7 @@ const performGlobalSearch = () => {
     const matchedNotes = [];
 
     // 1. Search Bookshelves
-    appData.bookshelves.forEach(shelf => {
+    S.appData.bookshelves.forEach(shelf => {
         if (shelf.title.toLowerCase().includes(query)) {
             matchedBookshelves.push({
                 type: 'bookshelf',
@@ -9474,8 +9478,8 @@ const performGlobalSearch = () => {
     });
 
     // 2. Search Decks & Sections & Cards
-    appData.decks.forEach(deck => {
-        const bookshelf = deck.bookshelfId ? appData.bookshelves.find(s => s.id === deck.bookshelfId) : null;
+    S.appData.decks.forEach(deck => {
+        const bookshelf = deck.bookshelfId ? S.appData.bookshelves.find(s => s.id === deck.bookshelfId) : null;
         const deckPath = bookshelf ? `${bookshelf.title}` : 'Rotkatalog';
 
         // Check Deck title
@@ -9553,8 +9557,8 @@ const performGlobalSearch = () => {
     });
 
     // 3. Search Notebooks & Notes
-    appData.notebooks.forEach(notebook => {
-        const bookshelf = notebook.bookshelfId ? appData.bookshelves.find(s => s.id === notebook.bookshelfId) : null;
+    S.appData.notebooks.forEach(notebook => {
+        const bookshelf = notebook.bookshelfId ? S.appData.bookshelves.find(s => s.id === notebook.bookshelfId) : null;
         const shelfPath = bookshelf ? `${bookshelf.title}` : 'Rotkatalog';
 
         if (notebook.title.toLowerCase().includes(query)) {
@@ -9626,7 +9630,7 @@ const performGlobalSearch = () => {
         `;
 
         group.items.forEach(item => {
-            currentSearchResults.push(item);
+            S.currentSearchResults.push(item);
             const idx = globalIndex++;
 
             let iconStyle = '';
@@ -9666,25 +9670,25 @@ const performGlobalSearch = () => {
 };
 
 const navigateSearchResults = (direction) => {
-    if (currentSearchResults.length === 0) return;
+    if (S.currentSearchResults.length === 0) return;
     
-    if (activeSearchResultIndex >= 0) {
-        const prevEl = document.querySelector(`.search-result-item[data-index="${activeSearchResultIndex}"]`);
+    if (S.activeSearchResultIndex >= 0) {
+        const prevEl = document.querySelector(`.search-result-item[data-index="${S.activeSearchResultIndex}"]`);
         if (prevEl) prevEl.classList.remove('active');
     }
 
-    if (activeSearchResultIndex === -1 && direction === 1) {
-        activeSearchResultIndex = 0;
+    if (S.activeSearchResultIndex === -1 && direction === 1) {
+        S.activeSearchResultIndex = 0;
     } else {
-        activeSearchResultIndex += direction;
-        if (activeSearchResultIndex >= currentSearchResults.length) {
-            activeSearchResultIndex = 0;
-        } else if (activeSearchResultIndex < 0) {
-            activeSearchResultIndex = currentSearchResults.length - 1;
+        S.activeSearchResultIndex += direction;
+        if (S.activeSearchResultIndex >= S.currentSearchResults.length) {
+            S.activeSearchResultIndex = 0;
+        } else if (S.activeSearchResultIndex < 0) {
+            S.activeSearchResultIndex = S.currentSearchResults.length - 1;
         }
     }
 
-    const activeEl = document.querySelector(`.search-result-item[data-index="${activeSearchResultIndex}"]`);
+    const activeEl = document.querySelector(`.search-result-item[data-index="${S.activeSearchResultIndex}"]`);
     if (activeEl) {
         activeEl.classList.add('active');
         activeEl.scrollIntoView({ block: 'nearest' });
@@ -9692,15 +9696,15 @@ const navigateSearchResults = (direction) => {
 };
 
 const triggerActiveSearchResult = () => {
-    if (activeSearchResultIndex >= 0 && activeSearchResultIndex < currentSearchResults.length) {
-        currentSearchResults[activeSearchResultIndex].action();
+    if (S.activeSearchResultIndex >= 0 && S.activeSearchResultIndex < S.currentSearchResults.length) {
+        S.currentSearchResults[S.activeSearchResultIndex].action();
     }
 };
 
 const highlightCard = (cardId) => {
     let foundDeck = null;
     let foundCard = null;
-    appData.decks.forEach(d => {
+    S.appData.decks.forEach(d => {
         const c = d.cards.find(card => card.id === cardId);
         if (c) {
             foundDeck = d;
@@ -9746,13 +9750,13 @@ const highlightSection = (deckId, sectionId) => {
 
 const openNote = (notebookId, noteId) => {
     openNotebook(notebookId);
-    const notebook = appData.notebooks.find(n => n.id === notebookId);
+    const notebook = S.appData.notebooks.find(n => n.id === notebookId);
     if (!notebook) return;
     const note = notebook.notes.find(n => n.id === noteId);
     if (!note) return;
     
     setTimeout(() => {
-        currentNoteId = note.id;
+        S.currentNoteId = note.id;
         document.getElementById('note-content').value = note.content;
         document.getElementById('note-form-title').innerText = 'Visa anteckning';
         switchView('addNote');
@@ -9780,5 +9784,5 @@ window.highlightCard = highlightCard;
 window.highlightSection = highlightSection;
 window.openNote = openNote;
 window._triggerSearchResult = (idx) => {
-    if (currentSearchResults[idx]) currentSearchResults[idx].action();
+    if (S.currentSearchResults[idx]) S.currentSearchResults[idx].action();
 };
