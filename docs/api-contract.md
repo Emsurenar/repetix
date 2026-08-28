@@ -85,8 +85,13 @@ ska känna igen vilken nyckel som ligger inne, utan att avslöja den.
 { "providers": [{ "provider": "anthropic", "hint": "sk-ant...4f2a", "lastVerified": "2026-08-28T12:00:00Z" }] }
 ```
 
-Returnerar aldrig chiffertexten. Databasen saknar dessutom select-policy på
-tabellen, så inte ens en klient med giltig token kan läsa ut den.
+Returnerar aldrig chiffertexten: vyn den läser innehåller inte kolumnen.
+
+Chiffertexten kan däremot hämtas av den inloggade själv, för sin egen rad, via
+databasfunktionen `get_my_ai_key`. Det är avsiktligt och ofarligt — utan
+`AI_KEY_SECRET`, som bara finns i serverns miljö och aldrig i databasen, är
+chiffertexten oanvändbar. Det verkliga försvaret är krypteringen, inte att dölja
+den krypterade texten.
 
 ## DELETE /api/ai-key?provider=anthropic
 
