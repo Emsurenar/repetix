@@ -400,12 +400,14 @@
   cursor: not-allowed;
 }
 
+/* Handlingen hör till raden den ändrar, inte till en egen rad under den. En
+ * tom etikettkolumn bredvid en ensam knapp är ett hål i rytmen. */
 .settings-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s2);
-  padding-top: var(--s5);
+  margin-top: var(--s3);
 }
 
 .settings-key-others {
