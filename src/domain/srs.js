@@ -17,6 +17,47 @@ export const RATING = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Hur mycket längre Lätt sträcker sig än Bra. */
+const EASY_BONUS = 1.3;
+
+/** Svårt växer, men långsammare än ease factor skulle ge. */
+const HARD_FACTOR = 1.2;
+
+/** Lätt på ett helt nytt kort hoppar direkt hit, förbi inlärningsstegen. */
+const NEW_EASY_DAYS = 4;
+
+/**
+ * Golv för ett korrekt besvarat kort.
+ *
+ * Ett kort med repetition över noll men intervall noll är inkonsekvent data —
+ * det kan bara uppstå ur en trasig import eller en gammal bugg. Utan golvet
+ * ger multiplikationen noll för varje betyg, och ordningen mellan betygen
+ * kollapsar just för de kort som redan är i dåligt skick.
+ */
+const MIN_HARD_DAYS = 0.5;
+const MIN_GOOD_DAYS = 1;
+
+/** Hoppet ett kort tar när det lämnar inlärningsfasen. */
+const GRADUATING_DAYS = 6;
+
+/**
+ * Intervallet betyget Bra ger. Bruten ur `schedule` eftersom Lätt räknas som
+ * detta gånger en bonus — det är så ordningen mellan betygen garanteras.
+ *
+ * Första gången ger 1 dag och andra gången ett hopp till 6, det klassiska
+ * SM-2-mönstret. Därefter multipliceras föregående intervall med ease factor.
+ *
+ * De sex dagarna är ett golv, inte ett tak. Som fast värde tvingade de tillbaka
+ * ett kort som redan hunnit längre — svarade man Lätt på ett nytt kort fick det
+ * fyra dagar, och ett Bra därefter kortade ner det till sex i stället för att
+ * följa kortets ease. Med golvet växer intervallet alltid monotont.
+ */
+function goodInterval(repetition, interval, easeFactor) {
+  if (repetition === 0) return 1;
+  const berakat = Math.max(interval * easeFactor, MIN_GOOD_DAYS);
+  return repetition === 1 ? Math.max(GRADUATING_DAYS, berakat) : berakat;
+}
+
 /** Kort som betygsatts Igen visas igen efter en minut, inte efter en dag. */
 const AGAIN_DELAY_MS = 60 * 1000;
 
@@ -61,14 +102,21 @@ export function schedule(state, rating) {
     interval = 0;
   } else if (rating === RATING.HARD) {
     easeFactor = Math.max(MIN_EASE, easeFactor - 0.15);
-    interval = repetition === 0 ? 0.5 : interval * 1.2;
+    interval = repetition === 0 ? 0.5 : Math.max(interval * HARD_FACTOR, MIN_HARD_DAYS);
     repetition += 1;
   } else if (rating === RATING.GOOD) {
-    interval = repetition === 0 ? 1 : repetition === 1 ? 6 : interval * easeFactor;
+    interval = goodInterval(repetition, interval, easeFactor);
     repetition += 1;
   } else if (rating === RATING.EASY) {
+    // Lätt definieras utifrån Bra i stället för med en egen formel. Tidigare
+    // räknades Lätt som interval * ease * 1.3, medan Bra vid andra
+    // repetitionen hoppar till fasta 6 dagar — vid interval 1 gav det Lätt
+    // 3,25 dagar mot Bras 6. Att svara att kortet var lätt straffade alltså
+    // användaren. Med den här konstruktionen kan ordningen inte brytas för
+    // något tillstånd, i stället för att råka stämma för vissa.
+    interval =
+      repetition === 0 ? NEW_EASY_DAYS : goodInterval(repetition, interval, easeFactor) * EASY_BONUS;
     easeFactor += 0.15;
-    interval = repetition === 0 ? 4 : interval * easeFactor * 1.3;
     repetition += 1;
   }
 

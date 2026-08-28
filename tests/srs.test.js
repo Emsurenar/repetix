@@ -123,11 +123,10 @@ describe('previewInterval', () => {
     }
   });
 
-  it('skiljer sig fran den gamla formeln for Latt', () => {
+  it('raknar Latt som Bra ganger bonusen', () => {
     const kort = { repetition: 3, interval: 10, easeFactor: 2.5 };
-    const gammalFormel = kort.interval * kort.easeFactor * 1.3; // 32.5
-    expect(previewInterval(kort, RATING.EASY)).toBeCloseTo(10 * 2.65 * 1.3, 10);
-    expect(previewInterval(kort, RATING.EASY)).not.toBeCloseTo(gammalFormel, 10);
+    const bra = previewInterval(kort, RATING.GOOD);
+    expect(previewInterval(kort, RATING.EASY)).toBeCloseTo(bra * 1.3, 10);
   });
 });
 
@@ -153,5 +152,51 @@ describe('initialSchedule', () => {
     const s = initialSchedule(1000);
     expect(isDue(s, 1000)).toBe(true);
     expect(s.easeFactor).toBe(2.5);
+  });
+});
+
+
+describe('ordningen mellan betygen', () => {
+  // Detta ar invarianten hela omskrivningen handlar om. Tidigare gav Latt
+  // interval * ease * 1.3 medan Bra vid andra repetitionen hoppade till fasta
+  // 6 dagar: vid interval 1 blev Latt 3,25 mot Bras 6. Att svara att kortet
+  // var latt straffade alltsa anvandaren, och knappen visade det svart pa
+  // vitt. Har provas invarianten over hela det tillstandsrum korten kan na.
+  const tillstand = [];
+  for (const repetition of [0, 1, 2, 3, 5, 12, 40]) {
+    for (const interval of [0, 0.5, 1, 6, 21, 100, 365]) {
+      for (const easeFactor of [1.3, 1.7, 2.5, 3.4]) {
+        tillstand.push({ repetition, interval, easeFactor });
+      }
+    }
+  }
+
+  it.each(tillstand)(
+    'Igen <= Svart < Bra < Latt for rep=$repetition iv=$interval ef=$easeFactor',
+    (kort) => {
+      const igen = schedule(kort, RATING.AGAIN).interval;
+      const svart = schedule(kort, RATING.HARD).interval;
+      const bra = schedule(kort, RATING.GOOD).interval;
+      const latt = schedule(kort, RATING.EASY).interval;
+
+      expect(igen).toBeLessThanOrEqual(svart);
+      expect(svart).toBeLessThan(bra);
+      expect(bra).toBeLessThan(latt);
+    }
+  );
+
+  it('det konkreta fallet som var trasigt: ett kort repeterat en gang', () => {
+    const kort = { repetition: 1, interval: 1, easeFactor: 2.5 };
+    expect(schedule(kort, RATING.GOOD).interval).toBe(6);
+    expect(schedule(kort, RATING.EASY).interval).toBeCloseTo(7.8, 10);
+    // Fore rattningen: 1 * 2.5 * 1.3 = 3,25 dagar, alltsa kortare an Bra.
+    expect(schedule(kort, RATING.EASY).interval).toBeGreaterThan(
+      schedule(kort, RATING.GOOD).interval
+    );
+  });
+
+  it('Latt hojer fortfarande ease med 0,15', () => {
+    expect(schedule({ repetition: 3, interval: 10, easeFactor: 2.5 }, RATING.EASY).easeFactor)
+      .toBeCloseTo(2.65, 10);
   });
 });

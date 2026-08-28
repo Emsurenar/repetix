@@ -65,6 +65,31 @@ export async function initAuth() {
   return currentUser;
 }
 
+/**
+ * Vilka inloggningssätt som är påslagna i Supabase-projektet.
+ *
+ * Frågas i stället för att hårdkodas, så att repot fungerar för den som
+ * självhostar utan Google: knappen dyker upp av sig själv när leverantören
+ * aktiveras, och visas aldrig när ett klick bara hade gett ett felmeddelande.
+ */
+let providerCache = null;
+
+export async function enabledProviders() {
+  if (!supabase) return {};
+  if (providerCache) return providerCache;
+  try {
+    const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: anonKey } });
+    if (!res.ok) return {};
+    const data = await res.json();
+    providerCache = data.external ?? {};
+    return providerCache;
+  } catch {
+    // Utan nätet vet vi inte. Att gissa fel åt hållet "påslagen" ger en knapp
+    // som inte fungerar, så vi visar hellre ingen.
+    return {};
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Kontoåtgärder
 //

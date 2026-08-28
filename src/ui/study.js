@@ -2,7 +2,13 @@ import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { fisherYatesShuffle } from '../core/utils.js';
 import { getLocalDateString, loadRecords, saveRecords } from '../domain/stats.js';
-import { RATING, nextReviewAt, schedule, withScheduleDefaults } from '../domain/srs.js';
+import {
+    RATING,
+    nextReviewAt,
+    previewInterval,
+    schedule,
+    withScheduleDefaults,
+} from '../domain/srs.js';
 import { reviewRow, stripTransientFields } from '../domain/model.js';
 import { recordReview } from '../core/sync.js';
 import { getUserId } from '../core/supabase.js';
@@ -158,19 +164,16 @@ export const renderStudyCard = () => {
     // Extract times to present to user
     document.getElementById('time-1').innerText = '< 1m';
 
-    // Time predictions calculations
-    const calcNextInterval = (ease, interval, rep, rating) => {
-        if (rating === 1) return 0;
-        if (rating === 2) return rep === 0 ? 0.5 : interval * 1.2;
-        if (rating === 3) return rep === 0 ? 1 : (rep === 1 ? 6 : interval * ease);
-        if (rating === 4) return rep === 0 ? 4 : (interval * ease * 1.3);
-    };
+    // Forhandsvisningen fragar samma funktion som faktiskt schemalagger, i
+    // stallet for en egen kopia av formeln. Kopian rakande med den gamla
+    // ease-faktorn, medan Svart och Latt andrar ease i samma steg — knapparna
+    // visade darfor andra siffror an korten fick.
+    const formatInt = (days) => (days < 1 ? '< 1d' : Math.round(days) + 'd');
+    const tillstand = withScheduleDefaults(card);
 
-    const formatInt = (days) => days < 1 ? '< 1d' : Math.round(days) + 'd';
-
-    document.getElementById('time-2').innerText = formatInt(calcNextInterval(card.easeFactor, card.interval, card.repetition, 2));
-    document.getElementById('time-3').innerText = formatInt(calcNextInterval(card.easeFactor, card.interval, card.repetition, 3));
-    document.getElementById('time-4').innerText = formatInt(calcNextInterval(card.easeFactor, card.interval, card.repetition, 4));
+    document.getElementById('time-2').innerText = formatInt(previewInterval(tillstand, RATING.HARD));
+    document.getElementById('time-3').innerText = formatInt(previewInterval(tillstand, RATING.GOOD));
+    document.getElementById('time-4').innerText = formatInt(previewInterval(tillstand, RATING.EASY));
 
     // Dynamically size the flashcard to fit content
     const flashcardInner = document.getElementById('flashcard-inner');

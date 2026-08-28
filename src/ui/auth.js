@@ -6,6 +6,7 @@
 
 import {
   cloudConfigured,
+  enabledProviders,
   onAuthChange,
   sendPasswordReset,
   signIn,
@@ -172,6 +173,11 @@ export function initAuthUi({ onSignedIn: signedInCallback } = {}) {
   });
 
   setMode('signin');
+
+  // Visa Google-knappen bara om leverantoren faktiskt ar paslagen i projektet.
+  void enabledProviders().then((providers) => {
+    show(el('auth-google'), Boolean(providers.google));
+  });
 
   onAuthChange((user) => {
     if (user) {
