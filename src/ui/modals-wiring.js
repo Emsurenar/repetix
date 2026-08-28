@@ -19,6 +19,10 @@ import { switchView } from './router.js';
  * gick de inte att nå med tangentbord alls — och den rad som visas bär
  * aria-current="page" så att man hör var man står.
  */
+/* Sidopanelens rader lägger sig på plats en gång per sidladdning, inte en
+ * gång per omritning. */
+let harLagtSig = false;
+
 export const renderSidebar = () => {
     const tree = document.getElementById('sidebar-tree');
     if (!tree) return;
@@ -101,10 +105,14 @@ export const renderSidebar = () => {
     }
 
     tree.innerHTML = html;
-    /* Under en sökning ritas trädet om vid varje tangenttryck. Då ska raderna
-     * bara byta, inte lägga sig på plats en gång till. */
+
+    /* Panelen ritas om vid varje vybyte, varje sparning och varje tangenttryck
+     * i söket. Inflyttningen hör till första gången man ser listan — spelas den
+     * varje gång blinkar hela biblioteket bort och tillbaka så fort man klickar
+     * någonstans i appen. */
     tree.classList.toggle('stagger', !filter);
-    if (!filter) {
+    if (!filter && !harLagtSig) {
+        harLagtSig = true;
         tree.classList.add('is-entering');
         clearTimeout(tree._entryTimer);
         tree._entryTimer = setTimeout(() => tree.classList.remove('is-entering'), 700);

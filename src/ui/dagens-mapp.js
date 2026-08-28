@@ -82,11 +82,11 @@ export const renderDagensMapp = () => {
     const isLibraryEmpty = S.appData.decks.length === 0 && S.appData.notebooks.length === 0 && S.appData.bookshelves.length === 0;
     if (isSearchActive || S.currentBookshelfFilterId || isLibraryEmpty) {
         container.innerHTML = '';
-        container.style.display = 'none';
+        container.hidden = true;
         return;
     }
     
-    container.style.display = 'block';
+    container.hidden = false;
     
     const dagens = getDagensMapp();
     if (!dagens) {
@@ -138,7 +138,7 @@ export const renderDagensMapp = () => {
                 <h2 class="today-folder-title">${escapeHtml(dagens.deckTitle)} <span>/</span> ${escapeHtml(dagens.sectionTitle)}</h2>
                 <p class="today-folder-meta num">
                     <span>${dueCards} kort</span>
-                    ${ticksHtml(dueCards, dueCards)}
+                    ${ticksHtml(dueCards, 0)}
                     ${uppskattadTid(dueCards) ? `<span class="today-folder-time">${uppskattadTid(dueCards)}</span>` : ''}
                 </p>
             </div>

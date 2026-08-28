@@ -138,6 +138,24 @@
   animation: rise-in var(--dur-3) var(--ease-out) both;
 }
 
+/* Den vy man lämnar tonar bort medan den nya kommer in. Den tas ur flödet så
+ * att sidan inte hoppar när två vyer finns samtidigt, och pekaren går rakt
+ * igenom den — den är på väg bort och ska inte gå att träffa. */
+@keyframes view-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.view.is-leaving {
+  position: absolute;
+  inset: var(--s6) var(--s6) auto;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  pointer-events: none;
+  animation: view-out var(--dur-2) var(--ease-in) forwards;
+}
+
 /* ======================================================================
  * FÖRSKJUTNING
  *

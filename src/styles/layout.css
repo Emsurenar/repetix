@@ -318,6 +318,7 @@
  * ====================================================================== */
 
 #app-container {
+  position: relative;
   min-height: 100dvh;
   margin-left: var(--sidebar-w);
   padding: var(--s6) var(--s6) var(--s8);
@@ -329,11 +330,6 @@
   transition:
     margin-left var(--dur-3) var(--ease-out),
     padding-top var(--dur-3) var(--ease-out);
-}
-
-.app-main {
-  max-width: 62rem;
-  margin: 0 auto;
 }
 
 /* Infälld sidopanel: innehållet tar hela bredden. */
@@ -456,6 +452,10 @@ body.sidebar-collapsed .sidebar-toggle {
  * att sväva ovanför den. */
 .view-header {
   display: flex;
+  /* Raden är alltid minst en kontrollhöjd hög. Utan det satt rubriken fem
+   * pixlar högre i de vyer som saknar knappar, och sidhuvudet guppade när man
+   * gick mellan biblioteket och ett formulär. */
+  min-height: var(--control-h);
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;

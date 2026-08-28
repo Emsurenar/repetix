@@ -30,8 +30,33 @@ export const switchView = (viewName, sectionId = null) => {
     // andra gomt allt. Bada vyerna blev da synliga samtidigt, staplade.
     // Overtoningen gors numera av CSS-animationen pa .view och behover ingen
     // fordrojning.
+    /* Korsovertoning. Den utgaende vyn doldes tidigare i samma bildruta som
+     * den inkommande borjade pa noll — resultatet var en tom yta i ett par
+     * tiondelar vid varje byte, vilket ar den enskilt storsta anledningen till
+     * att appen kandes hackig.
+     *
+     * Den utgaende vyn tas ur floden med position:absolute medan den tonar,
+     * sa att sidan inte hoppar, och doljs forst nar rorelsen ar over. Den
+     * inkommande visas fortfarande synkront: det ar den ordningen som en gang
+     * loste kapplopningen dar tva vyer kunde bli synliga samtidigt. */
+    const inkommandeVy = views[viewName];
     for (const v of Object.values(views)) {
-        v.classList.toggle('hidden', v !== views[viewName]);
+        if (v === inkommandeVy) {
+            v.classList.remove('hidden', 'is-leaving');
+            continue;
+        }
+        const varSynlig = !v.classList.contains('hidden');
+        if (varSynlig && bytterVy) {
+            v.classList.add('is-leaving');
+            clearTimeout(v._leaveTimer);
+            v._leaveTimer = setTimeout(() => {
+                v.classList.remove('is-leaving');
+                v.classList.add('hidden');
+            }, 180);
+        } else {
+            v.classList.remove('is-leaving');
+            v.classList.add('hidden');
+        }
     }
     window.scrollTo(0, 0);
 

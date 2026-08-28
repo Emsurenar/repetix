@@ -91,21 +91,25 @@ const renderLibrarySummary = () => {
     // Svenskt tusentalsavstånd: 1 340 läses snabbare än 1340 i en kolumn.
     const fmt = (n) => n.toLocaleString('sv-SE');
 
-    /* Talet bekräftar sin egen ändring en gång och är sedan tyst. Utan det
+    /* Ett tal som ändrats bekräftar det en gång och är sedan tyst. Utan det
      * byter siffran i tysthet medan man tittar någon annanstans, och man får
-     * aldrig veta att repetitionen räknades. */
-    const forra = dueEl.textContent;
-    dueEl.textContent = fmt(due);
-    if (forra && forra !== dueEl.textContent) {
-        dueEl.classList.remove('is-updated');
+     * aldrig veta att repetitionen räknades. Gäller alla tre — att bara ett av
+     * dem svarade såg ut som ett fel i de andra två. */
+    const satt = (el, varde) => {
+        const forra = el.textContent;
+        el.textContent = varde;
+        if (!forra || forra === varde) return;
+        el.classList.remove('is-updated');
         // Framtvingar omstart av animationen även när klassen precis togs bort.
-        void dueEl.offsetWidth;
-        dueEl.classList.add('is-updated');
-    }
+        void el.offsetWidth;
+        el.classList.add('is-updated');
+    };
+
+    satt(dueEl, fmt(due));
     // Accent bara när det finns något kvar att göra. En nolla ska inte ropa.
     dueEl.classList.toggle('is-accent', due > 0);
-    streakEl.textContent = fmt(currentStreak(counts));
-    reviewsEl.textContent = fmt(total);
+    satt(streakEl, fmt(currentStreak(counts)));
+    satt(reviewsEl, fmt(total));
 };
 
 export const renderLibrary = () => {
@@ -170,6 +174,18 @@ export const renderLibrary = () => {
         const itemEl = document.createElement('div');
         const done = type === 'deck' && isDeckFullyReviewed(item);
         itemEl.className = `deck-card ${type === 'notebook' ? 'notebook' : ''} ${done ? 'deck-done' : ''}`;
+        /* Kortet ar bibliotekets viktigaste objekt och var enbart musstyrt: en
+         * div med klickhanterare, utan tabindex och utan roll. Enda vagen in
+         * med tangentbord gick via sidopanelen. */
+        itemEl.tabIndex = 0;
+        itemEl.setAttribute('role', 'button');
+        itemEl.setAttribute('aria-label', `${item.title}, öppna`);
+        itemEl.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.target.closest('.row-menu')) return;
+            e.preventDefault();
+            itemEl.click();
+        });
         itemEl.draggable = true;
         itemEl.dataset.id = item.id;
         itemEl.dataset.type = type;
