@@ -1,10 +1,11 @@
+import { aiErrorMessage, callAI } from './call.js';
 import { S } from '../core/state.js';
-import { fetchWithRetry } from '../core/utils.js';
 import { fixLatexInCards, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
+import { showToast } from '../ui/toast.js';
 
 
-export const fetchDiaryCards = async (apiKey, diaryText) => {
+export const fetchDiaryCards = async (diaryText) => {
     document.getElementById('diary-loading').classList.remove('hidden');
     document.getElementById('diary-cards-container').classList.add('hidden');
     document.getElementById('diary-actions-container').classList.add('hidden');
@@ -20,32 +21,16 @@ export const fetchDiaryCards = async (apiKey, diaryText) => {
     const bookshelfStr = bookshelfNames.length > 0 ? bookshelfNames.join(', ') : '(inga bokhyllor finns ännu)';
 
     try {
-        const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 4000,
-                system: `Du är en pedagogisk expert. Användaren skriver fritt om vad de lärt sig idag. Din uppgift är att extrahera nyckelinsikter och skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block. Formatet MÅSTE vara:\n[{"front": "fråga", "back": "svar", "suggestedDeck": "Namn på föreslagen kortlek", "suggestedBookshelf": "Namn på bokhylla eller null", "suggestedSection": "Namn på mapp i kortleken eller null"}]\n\nAnvändarens befintliga kortlekar med bokhyllor och mappar: ${deckListStr}\nBefintliga bokhyllor: [${bookshelfStr}]\n\nRegler:\n- Om en lärdom passar i en befintlig kortlek, använd det exakta namnet.\n- Om ingen kortlek passar, föreslå ett nytt namn.\n- Föreslå vilken bokhylla kortleken ska tillhöra (befintlig eller ny). Använd null om osäker.\n- Föreslå vilken mapp (section) i kortleken kortet ska placeras i. Använd befintliga mappnamn om de passar, annars föreslå ett nytt namn. Använd null om ingen mapp behövs.\nVIKTIGT: Matematik formateras med LaTeX via dollartecken ($). Använd aldrig backslash-parenteser.\nAnpassa antalet kort efter innehållet, vanligtvis 3–15 kort.`,
-                messages: [{
-                    role: 'user',
-                    content: `Här är mina lärdomar från idag:\n\n${diaryText}`
-                }]
-            })
+        const text = await callAI({
+            system: `Du är en pedagogisk expert. Användaren skriver fritt om vad de lärt sig idag. Din uppgift är att extrahera nyckelinsikter och skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block. Formatet MÅSTE vara:\n[{"front": "fråga", "back": "svar", "suggestedDeck": "Namn på föreslagen kortlek", "suggestedBookshelf": "Namn på bokhylla eller null", "suggestedSection": "Namn på mapp i kortleken eller null"}]\n\nAnvändarens befintliga kortlekar med bokhyllor och mappar: ${deckListStr}\nBefintliga bokhyllor: [${bookshelfStr}]\n\nRegler:\n- Om en lärdom passar i en befintlig kortlek, använd det exakta namnet.\n- Om ingen kortlek passar, föreslå ett nytt namn.\n- Föreslå vilken bokhylla kortleken ska tillhöra (befintlig eller ny). Använd null om osäker.\n- Föreslå vilken mapp (section) i kortleken kortet ska placeras i. Använd befintliga mappnamn om de passar, annars föreslå ett nytt namn. Använd null om ingen mapp behövs.\nVIKTIGT: Matematik formateras med LaTeX via dollartecken ($). Använd aldrig backslash-parenteser.\nAnpassa antalet kort efter innehållet, vanligtvis 3–15 kort.`,
+            user: `Här är mina lärdomar från idag:\n\n${diaryText}`,
+            maxTokens: 4000,
+            json: true,
         });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-        }
-
-        const data = await response.json();
-        let rawContent = data.content[0].text.trim();
+        // Fence-strippningen behålls trots json: true som skydd mot en
+        // leverantör som ändå lägger på ett markdown-block.
+        let rawContent = text.trim();
         if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
         else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
 
@@ -58,10 +43,11 @@ export const fetchDiaryCards = async (apiKey, diaryText) => {
         renderDiaryCards();
 
     } catch (e) {
-        console.error("AI Diary Error:", e);
         document.getElementById('diary-loading').classList.add('hidden');
         document.getElementById('btn-close-diary-top').classList.remove('hidden');
-        alert("Gick inte att analysera. Fel: " + e.message);
+        // Dagboksmodalen har inget eget resultatfält för fel, så meddelandet
+        // går via toast i stället för en blockerande alert.
+        showToast(aiErrorMessage(e));
     }
 };
 

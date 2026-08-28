@@ -1,6 +1,5 @@
-import { getApiKey } from './client.js';
+import { aiErrorMessage, callAI } from './call.js';
 import { S } from '../core/state.js';
-import { fetchWithRetry } from '../core/utils.js';
 import { showToast } from '../ui/toast.js';
 
 
@@ -115,13 +114,6 @@ const regenerateSingleCard = async (index) => {
     const actionButtons = cardEl.querySelectorAll('button');
     actionButtons.forEach(btn => btn.style.display = 'none');
 
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-        alert("Hittade ingen API-nyckel.");
-        renderProposedCards();
-        return;
-    }
-
     // Build blacklist of existing proposed questions to avoid duplication
     const blacklist = S.proposedTopicCards
         .map((c, i) => i !== index ? `- ${c.front}` : "")
@@ -164,26 +156,16 @@ ${deckContext}
 Svara med ett enda JSON-objekt.`;
 
     try {
-        const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 1000,
-                system: systemInstructions,
-                messages: [{ role: 'user', content: userInstructions }]
-            })
+        const text = await callAI({
+            system: systemInstructions,
+            user: userInstructions,
+            maxTokens: 1000,
+            json: true,
         });
 
-        if (!response.ok) throw new Error("HTTP " + response.status);
-
-        const data = await response.json();
-        let rawContent = data.content[0].text.trim();
+        // Fence-strippningen behålls trots json: true som skydd mot en
+        // leverantör som ändå lägger på ett markdown-block.
+        let rawContent = text.trim();
 
         if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
         else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
@@ -194,8 +176,7 @@ Svara med ett enda JSON-objekt.`;
         }
         renderProposedCards();
     } catch (e) {
-        console.error("Regenerate card error:", e);
-        showToast("Kunde inte generera nytt kort: " + e.message);
+        showToast(aiErrorMessage(e));
         renderProposedCards();
     }
 };

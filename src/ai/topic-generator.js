@@ -1,10 +1,11 @@
+import { aiErrorMessage, callAI } from './call.js';
 import { renderProposedCards } from './proposed-cards.js';
 import { S } from '../core/state.js';
-import { fetchWithRetry } from '../core/utils.js';
 import { fixLatexInCards } from '../ui/images.js';
+import { showToast } from '../ui/toast.js';
 
 
-export const fetchCardsByTopic = async (apiKey, topic, modifier = null, deck = null) => {
+export const fetchCardsByTopic = async (topic, modifier = null, deck = null) => {
     // Show Loading step, hide others
     document.getElementById('topic-setup-step').classList.add('hidden');
     document.getElementById('topic-preview-step').classList.add('hidden');
@@ -80,32 +81,16 @@ ${contextSnippet}`;
     }
 
     try {
-        const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 3500,
-                system: `Du är en pedagogisk expert. Din uppgift är att skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block, utan extra text. Formatet MÅSTE vara extremt strikt: [{"front": "fråga 1", "back": "svar 1"}].\nVIKTIGT: Eventuell matematik MÅSTE formateras med LaTeX. Eftersom du utvinner i JSON kan backslash försvinna. Använd därför konsekvent DUBBLA dollartecken $$ för block eller ENKLA dollartecken $ för inline formatering. Använd aldrig backslash-parenteser i din JSON.`,
-                messages: [{
-                    role: 'user',
-                    content: instructions
-                }]
-            })
+        const text = await callAI({
+            system: `Du är en pedagogisk expert. Din uppgift är att skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block, utan extra text. Formatet MÅSTE vara extremt strikt: [{"front": "fråga 1", "back": "svar 1"}].\nVIKTIGT: Eventuell matematik MÅSTE formateras med LaTeX. Eftersom du utvinner i JSON kan backslash försvinna. Använd därför konsekvent DUBBLA dollartecken $$ för block eller ENKLA dollartecken $ för inline formatering. Använd aldrig backslash-parenteser i din JSON.`,
+            user: instructions,
+            maxTokens: 3500,
+            json: true,
         });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-        }
-
-        const data = await response.json();
-        let rawContent = data.content[0].text.trim();
+        // Fence-strippningen behålls trots json: true som skydd mot en
+        // leverantör som ändå lägger på ett markdown-block.
+        let rawContent = text.trim();
 
         if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
         else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
@@ -123,9 +108,10 @@ ${contextSnippet}`;
         renderProposedCards();
 
     } catch (e) {
-        console.error("AI Topic Error:", e);
         document.getElementById('topic-loading-step').classList.add('hidden');
         document.getElementById('topic-setup-step').classList.remove('hidden');
-        alert("Gick inte att generera kort. Fel: " + e.message);
+        // Guiden är redan tillbaka på inställningssteget, så felet behöver inte
+        // blockera med en alert — en toast räcker och ser likadan ut överallt.
+        showToast(aiErrorMessage(e));
     }
 };

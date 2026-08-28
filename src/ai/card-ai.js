@@ -1,11 +1,11 @@
+import { aiErrorMessage, callAI } from './call.js';
 import { buildDeckContext } from './client.js';
 import { S } from '../core/state.js';
-import { fetchWithRetry } from '../core/utils.js';
 import { safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 
 
-export const fetchExplanation = async (apiKey, card) => {
+export const fetchExplanation = async (card) => {
     document.getElementById('btn-explain-ai').style.display = 'none';
     document.getElementById('btn-test-ai').style.display = 'none';
     document.getElementById('ai-explanation-container').classList.remove('hidden');
@@ -13,51 +13,32 @@ export const fetchExplanation = async (apiKey, card) => {
     document.getElementById('ai-text').innerText = '';
 
     try {
-        const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 600,
-                system: 'Du är en hjälpsam och pedagogisk lärare. Ge en kort, koncis förklaring eller minnesregel (max 300 ord totalt) för följande flashcard-fråga och svar. Målet är att hjälpa eleven förstå eller minnas svaret bättre. Eleven är däremot en vuxen person som förväntar sig rigorositet. Anpassa din förklaring efter den nivå och stil som framgår av kontexten.',
-                messages: [{
-                    role: 'user',
-                    content: `Fråga: ${card.front}\nSvar: ${card.back}${buildDeckContext(S.currentDeckId)}`
-                }]
-            })
+        const text = await callAI({
+            system: 'Du är en hjälpsam och pedagogisk lärare. Ge en kort, koncis förklaring eller minnesregel (max 300 ord totalt) för följande flashcard-fråga och svar. Målet är att hjälpa eleven förstå eller minnas svaret bättre. Eleven är däremot en vuxen person som förväntar sig rigorositet. Anpassa din förklaring efter den nivå och stil som framgår av kontexten.',
+            user: `Fråga: ${card.front}\nSvar: ${card.back}${buildDeckContext(S.currentDeckId)}`,
+            maxTokens: 600,
         });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-        }
-
-        const data = await response.json();
 
         document.getElementById('ai-loading').classList.add('hidden');
 
         const aiTextElement = document.getElementById('ai-text');
         // Render Markdown so newlines and formatting works
-        aiTextElement.innerHTML = safeParse(data.content[0].text);
+        aiTextElement.innerHTML = safeParse(text);
 
         // Auto-render LaTeX using KaTeX
         renderLatex(aiTextElement);
 
     } catch (e) {
-        console.error("Anthropic API Error:", e);
         document.getElementById('ai-loading').classList.add('hidden');
-        document.getElementById('ai-text').innerText = `Kunde inte hämta förklaring: ${e.message}`;
+        // Felet visas i samma fält som förklaringen skulle ha stått i, så att
+        // användaren hittar det där blicken redan är.
+        document.getElementById('ai-text').innerText = aiErrorMessage(e);
         document.getElementById('btn-explain-ai').style.display = 'flex';
         document.getElementById('btn-test-ai').style.display = 'flex';
     }
 };
 
-export const fetchTestQuestion = async (apiKey, card, modifier = null) => {
+export const fetchTestQuestion = async (card, modifier = null) => {
     document.getElementById('btn-explain-ai').style.display = 'none';
     document.getElementById('btn-test-ai').style.display = 'none';
     document.getElementById('test-question-actions').classList.add('hidden');
@@ -79,32 +60,13 @@ export const fetchTestQuestion = async (apiKey, card, modifier = null) => {
     }
 
     try {
-        const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 600,
-                system: 'Du är en sträng men pedagogisk examinator. Din uppgift är att testa elevens förståelse baserat PÅ EXAKT DEN information som finns på flashcardet.\nDu ska skapa EN (1) specifik tentafråga som direkt prövar kunskapen i flashcardet.\nMålet är att se om eleven verkligen kan tillämpa konceptet på kortet. Om kortet handlar om matematik, gör en passande räkneuppgift. Handlar det om något annat, gör en tillämpad faktafråga.\n\nFORMAT:\nSkriv först ut provfrågan.\nSkriv därefter, under rubriken "Lösning:", det korrekta svaret och en förklaring. Formatera all eventuell matematik med LaTeX.',
-                messages: [{
-                    role: 'user',
-                    content: userContent
-                }]
-            })
+        const text = await callAI({
+            system: 'Du är en sträng men pedagogisk examinator. Din uppgift är att testa elevens förståelse baserat PÅ EXAKT DEN information som finns på flashcardet.\nDu ska skapa EN (1) specifik tentafråga som direkt prövar kunskapen i flashcardet.\nMålet är att se om eleven verkligen kan tillämpa konceptet på kortet. Om kortet handlar om matematik, gör en passande räkneuppgift. Handlar det om något annat, gör en tillämpad faktafråga.\n\nFORMAT:\nSkriv först ut provfrågan.\nSkriv därefter, under rubriken "Lösning:", det korrekta svaret och en förklaring. Formatera all eventuell matematik med LaTeX.',
+            user: userContent,
+            maxTokens: 600,
         });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-        }
-
-        const data = await response.json();
-        S.currentAiResponseRaw = data.content[0].text;
+        S.currentAiResponseRaw = text;
 
         document.getElementById('ai-loading').classList.add('hidden');
         document.getElementById('test-question-actions').classList.remove('hidden');
@@ -115,9 +77,9 @@ export const fetchTestQuestion = async (apiKey, card, modifier = null) => {
         renderLatex(aiTextElement);
 
     } catch (e) {
-        console.error("Anthropic API Error:", e);
         document.getElementById('ai-loading').classList.add('hidden');
-        document.getElementById('ai-text').innerText = `Kunde inte hämta provfråga: ${e.message}`;
+        // Samma sak här: resultatfältet är platsen användaren tittar på.
+        document.getElementById('ai-text').innerText = aiErrorMessage(e);
         document.getElementById('btn-explain-ai').style.display = 'flex';
         document.getElementById('btn-test-ai').style.display = 'flex';
     }

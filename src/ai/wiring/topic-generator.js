@@ -1,4 +1,3 @@
-import { getApiKey } from '../client.js';
 import { updateSaveCountBadge } from '../proposed-cards.js';
 import { fetchCardsByTopic } from '../topic-generator.js';
 import { createCard } from '../../core/backup.js';
@@ -134,7 +133,7 @@ export function initAiWiringTopicGenerator() {
       });
 
       // Submit Wizard Handler
-      document.getElementById('btn-submit-topic-wizard').addEventListener('click', async () => {
+      document.getElementById('btn-submit-topic-wizard').addEventListener('click', () => {
           let inputVal = "";
           if (S.aiGeneratorOptions.sourceType === 'topic') {
               inputVal = document.getElementById('input-topic-name').value.trim();
@@ -151,32 +150,24 @@ export function initAiWiringTopicGenerator() {
           }
 
           S.currentTopicRawInput = inputVal;
-          const apiKey = await getApiKey();
-          if (!apiKey || apiKey === 'klistra_in_din_nyckel_här_utan_citattecken') {
-              alert('Kunde inte hitta en giltig API-nyckel. Vänligen öppna .env-filen i projektmappen och klistra in din Anthropic (Claude) API-nyckel där, ladda sedan om sidan.');
-              return;
-          }
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-          fetchCardsByTopic(apiKey, inputVal, null, deck);
+          fetchCardsByTopic(inputVal, null, deck);
       });
 
       // Modifiers Handlers
-      document.getElementById('btn-topic-modifier-easier').addEventListener('click', async () => {
-          const apiKey = await getApiKey();
+      document.getElementById('btn-topic-modifier-easier').addEventListener('click', () => {
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-          if (apiKey) fetchCardsByTopic(apiKey, S.currentTopicRawInput, 'easier', deck);
+          fetchCardsByTopic(S.currentTopicRawInput, 'easier', deck);
       });
 
-      document.getElementById('btn-topic-modifier-harder').addEventListener('click', async () => {
-          const apiKey = await getApiKey();
+      document.getElementById('btn-topic-modifier-harder').addEventListener('click', () => {
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-          if (apiKey) fetchCardsByTopic(apiKey, S.currentTopicRawInput, 'harder', deck);
+          fetchCardsByTopic(S.currentTopicRawInput, 'harder', deck);
       });
 
-      document.getElementById('btn-topic-modifier-practical').addEventListener('click', async () => {
-          const apiKey = await getApiKey();
+      document.getElementById('btn-topic-modifier-practical').addEventListener('click', () => {
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-          if (apiKey) fetchCardsByTopic(apiKey, S.currentTopicRawInput, 'practical', deck);
+          fetchCardsByTopic(S.currentTopicRawInput, 'practical', deck);
       });
 
       // Toggle Select All

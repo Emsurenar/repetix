@@ -241,18 +241,6 @@ export const openEditCardModal = (card) => {
     document.getElementById('modal-edit-card').classList.remove('hidden');
 };
 
-export const getApiKey = async () => {
-    try {
-        const res = await fetch('.env');
-        if (!res.ok) return null;
-        const text = await res.text();
-        const match = text.match(/ANTHROPIC_API_KEY=(.*)/);
-        return match ? match[1].trim() : null;
-    } catch (e) {
-        return null;
-    }
-};
-
 // --- AI CONTEXT HELPER ---
 export const buildDeckContext = (deckId) => {
     const deck = deckId ? S.appData.decks.find(d => d.id === deckId) : null;

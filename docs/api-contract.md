@@ -1,0 +1,150 @@
+# API-kontrakt
+
+Serverfunktionerna i `api/`. Kontraktet är gemensamt för klienten, serversidan
+och inställningsvyn — ändra det här först, inte i någon av implementationerna.
+
+## Varför en server alls
+
+Appen är BYOK: varje användare tar med sin egen API-nyckel. Nyckeln får aldrig
+nå webbläsaren, av två skäl. Den ska följa med mellan telefon och dator utan att
+klistras in på varje enhet, och en XSS-bugg i klienten ska inte kunna
+exfiltrera den. Därför lagras den krypterad och dekrypteras bara inne i
+serverfunktionen.
+
+Det löser också att flera leverantörer inte tillåter anrop direkt från en
+webbläsare.
+
+## Autentisering
+
+Varje anrop kräver användarens Supabase-token:
+
+```
+Authorization: Bearer <supabase access token>
+```
+
+Servern verifierar token mot Supabase och härleder `user_id` ur den. Klienten
+får aldrig skicka med ett eget användar-id — det vore ett direkt sätt att läsa
+någon annans nyckel.
+
+## POST /api/ai
+
+Utför ett AI-anrop med den inloggade användarens nyckel.
+
+```jsonc
+// Begäran
+{
+  "system": "valfri systemprompt",
+  "user": "meddelandet",
+  "maxTokens": 1000,        // valfritt, standard 1024
+  "json": false,            // valfritt, be leverantören svara med ren JSON
+  "provider": "anthropic",  // valfritt, annars användarens inställning
+  "model": "claude-opus-5"  // valfritt, annars användarens inställning
+}
+```
+
+```jsonc
+// Svar 200
+{ "text": "...", "provider": "anthropic", "model": "claude-opus-5" }
+```
+
+```jsonc
+// Fel
+{ "error": "Meddelande på svenska", "code": "no_key" }
+```
+
+| Kod | HTTP | Betyder |
+|---|---|---|
+| `unauthorized` | 401 | Ingen eller ogiltig Supabase-token |
+| `no_key` | 428 | Användaren har inte lagt in någon nyckel |
+| `invalid_key` | 401 | Leverantören avvisade nyckeln |
+| `rate_limited` | 429 | Leverantören svarade 429. Svaret bär `retryAfter` i sekunder när leverantören angav det |
+| `provider_error` | 502 | Leverantören svarade med fel |
+| `timeout` | 504 | Leverantören svarade inte inom 60 sekunder |
+| `bad_request` | 400 | Felaktig begäran från klienten |
+
+## POST /api/ai-key
+
+Sparar användarens nyckel. Nyckeln verifieras mot leverantören innan den
+lagras, så att en felskrivning upptäcks direkt i stället för vid nästa
+AI-anrop.
+
+```jsonc
+// Begäran
+{ "provider": "anthropic", "key": "sk-ant-..." }
+
+// Svar 200
+{ "ok": true, "hint": "sk-ant...4f2a", "verified": true }
+```
+
+`hint` är de fyra första och fyra sista tecknen. Det räcker för att användaren
+ska känna igen vilken nyckel som ligger inne, utan att avslöja den.
+
+## GET /api/ai-key
+
+```jsonc
+{ "providers": [{ "provider": "anthropic", "hint": "sk-ant...4f2a", "lastVerified": "2026-08-28T12:00:00Z" }] }
+```
+
+Returnerar aldrig chiffertexten. Databasen saknar dessutom select-policy på
+tabellen, så inte ens en klient med giltig token kan läsa ut den.
+
+## DELETE /api/ai-key?provider=anthropic
+
+```jsonc
+{ "ok": true }
+```
+
+## Leverantörer och modeller
+
+Adaptrarna översätter fyra skillnader: hur nyckeln skickas, var systemprompten
+hör hemma, vad tokengränsen heter, och var texten ligger i svaret.
+
+| Leverantör | Auth | Systemprompt | Tokengräns | Svarets text |
+|---|---|---|---|---|
+| `anthropic` | `x-api-key` | egen `system`-parameter | `max_tokens` | `content[0].text` |
+| `openai` | `Authorization: Bearer` | meddelande med `role: "system"` | `max_completion_tokens` | `choices[0].message.content` |
+| `google` | `x-goog-api-key` | `systemInstruction` | `maxOutputTokens` | `candidates[0].content.parts[0].text` |
+| `openrouter` | `Authorization: Bearer` | meddelande med `role: "system"` | `max_tokens` | `choices[0].message.content` |
+
+### Modellkatalog
+
+Listan är en bekvämlighet i inställningarna, inte en begränsning: användaren
+kan alltid skriva in ett eget modell-id, eftersom leverantörerna släpper nya
+modeller oftare än den här appen uppdateras.
+
+Anthropic, standard `claude-opus-5`:
+`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`, `claude-opus-4-8`,
+`claude-fable-5`
+
+OpenAI: `gpt-5.1`, `gpt-5.1-mini`, `gpt-5`
+Google: `gemini-3-pro`, `gemini-3-flash`
+OpenRouter: fritext, formatet är `leverantör/modell`
+
+## Miljövariabler
+
+Serversidan. Ingen av dem får ha `VITE_`-prefix — det skulle bygga in dem i
+klientpaketet.
+
+| Variabel | Syfte |
+|---|---|
+| `SUPABASE_URL` | Samma projekt som klienten |
+| `SUPABASE_SERVICE_ROLE_KEY` | Krävs för att läsa och skriva krypterade nycklar förbi radnivåsäkerheten |
+| `AI_KEY_SECRET` | 32 slumpade byte i base64. Huvudnyckeln som användarnycklarna krypteras med |
+
+## Kryptering
+
+AES-256-GCM. Varje nyckel får en egen slumpad initieringsvektor, och det
+lagrade värdet är `iv:authTag:chiffertext` i base64. Autentiseringstaggen gör
+att en manipulerad chiffertext avvisas i stället för att dekrypteras till
+skräp.
+
+`AI_KEY_SECRET` roteras genom att alla lagrade nycklar ogiltigförklaras och
+användarna får lägga in sina på nytt. Det är avsiktligt: alternativet vore att
+kunna dekryptera allt med den gamla nyckeln vid en rotation.
+
+## Lokal utveckling
+
+Vercels funktioner körs inte av Vites utvecklingsserver. Handlerna skrivs
+därför i Nodes `(req, res)`-form, vilket både Vercel och en Vite-middleware
+förstår, och monteras lokalt av en liten plugin. Samma kod kör alltså på båda
+ställena i stället för att divergera.

@@ -28,12 +28,14 @@ innehåller alla vymallar och modaler; `style.css` all styling.
 ```
 src/
   main.js       startpunkt: importerar moduler och anropar init-funktionerna
-  app/          vendor (marked, KaTeX), initApp
-  core/         state, storage, backup, utils
-  domain/       srs (ren SM-2), stats
+  app/          vendor (marked, KaTeX), initApp, molnlagret
+  core/         state, storage, supabase, sync, local-db, bilder
+  domain/       srs (ren SM-2), model, diff, stats, history
   ui/           en modul per vy, plus wiring/ för DOM-koppling
   games/        ett spelläge per modul
-  ai/           anrop, prompts, wiring
+  ai/           call (det enda anropslagret), models, prompts, wiring
+api/            serverfunktioner: ai, ai-key, _lib
+supabase/       databasmigrationer
 tests/          Vitest
 ```
 
@@ -50,6 +52,25 @@ definitioner. All DOM-koppling ligger i en exporterad `initXxx()`-funktion som
 `main.js` anropar, i samma ordning som den ursprungliga filen körde dem.
 Ordningen har betydelse — flytta inte anropen i `main.js` utan att kontrollera
 vad som beror på vad.
+
+## AI
+
+Allt går genom **en** funktion: `callAI({ system, user, maxTokens })` i
+`src/ai/call.js`. Lägg aldrig till ett direktanrop mot en leverantör — det var
+precis det som gav elva kopior av samma kod, med modellsträngen hårdkodad på
+elva ställen.
+
+Anropet går via `/api/ai`, som slår upp användarens krypterade nyckel och
+anropar vald leverantör. **Nyckeln når aldrig webbläsaren.** Fyra leverantörer
+stöds; skillnaderna mellan dem ligger isolerade i `api/_lib/providers.js`.
+
+Kontraktet mellan klient och server står i
+[docs/api-contract.md](docs/api-contract.md). Ändra det först, inte
+implementationerna.
+
+Standardmodell är `claude-opus-5`. Modellkatalogen i `src/ai/models.js` är en
+bekvämlighet, inte en begränsning — användaren kan skriva in ett eget modell-id,
+eftersom leverantörerna släpper nya modeller oftare än appen uppdateras.
 
 ## Data
 

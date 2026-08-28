@@ -30,6 +30,7 @@ import { initUiWiringAiActions } from './ui/wiring/ai-actions.js';
 import { initUiWiringStudy } from './ui/wiring/study.js';
 import { initAppInit } from './app/init.js';
 import { initUiSearch } from './ui/search.js';
+import { initSettings } from './ui/settings.js';
 
 export function start() {
   initCoreState();
@@ -55,6 +56,7 @@ export function start() {
   initUiWiringStudy();
   initAppInit();
   initUiSearch();
+  initSettings();
 }
 
 start();

@@ -1,4 +1,3 @@
-import { getApiKey } from '../client.js';
 import { fetchDiaryCards } from '../diary.js';
 import { createCard } from '../../core/backup.js';
 import { S } from '../../core/state.js';
@@ -24,12 +23,11 @@ export function initAiWiringDiary() {
       document.getElementById('btn-close-diary-top').addEventListener('click', closeDiaryModal);
       document.getElementById('btn-close-diary').addEventListener('click', closeDiaryModal);
 
-      document.getElementById('form-diary').addEventListener('submit', async (e) => {
+      document.getElementById('form-diary').addEventListener('submit', (e) => {
           e.preventDefault();
           const text = document.getElementById('input-diary-text').value.trim();
           if (!text) return;
-          const apiKey = await getApiKey();
-          if (apiKey) fetchDiaryCards(apiKey, text);
+          fetchDiaryCards(text);
       });
 
       document.getElementById('btn-save-diary-cards').addEventListener('click', () => {

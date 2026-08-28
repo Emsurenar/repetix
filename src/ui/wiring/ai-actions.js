@@ -1,9 +1,9 @@
-import { buildDeckContext, getApiKey } from '../../ai/client.js';
+import { aiErrorMessage, callAI } from '../../ai/call.js';
+import { buildDeckContext } from '../../ai/client.js';
 import { fetchStudyAi } from '../../ai/study-ai.js';
 import { createNote } from '../../core/backup.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
-import { fetchWithRetry } from '../../core/utils.js';
 import { openNotebook } from '../deck.js';
 import { switchView } from '../router.js';
 import { showToast } from '../toast.js';
@@ -11,9 +11,6 @@ import { populateAddCardSections } from './add-card.js';
 
 
     const runAutoFolder = async (questionText) => {
-        const apiKey = await getApiKey();
-        if (!apiKey || apiKey === 'klistra_in_din_nyckel_här_utan_citattecken') return;
-
         const btnAuto = document.getElementById('btn-auto-folder');
         btnAuto.disabled = true;
         btnAuto.innerHTML = 'Auto ';
@@ -22,31 +19,16 @@ import { populateAddCardSections } from './add-card.js';
             const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
             const existingSections = (deck.sections || []).map(s => ({ id: s.id, title: s.title }));
 
-            const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: 'claude-sonnet-4-6',
-                    max_tokens: 200,
-                    system: `Du är en expert på att organisera flashcards i mappar/kategorier. Analysera flashcard-frågan och välj den mest passande mappen från listan över befintliga mappar. Om ingen av de befintliga mapparna passar (eller om listan är tom), föreslå en helt ny passande mapp med ett kort, koncist och beskrivande namn (skrivet på samma språk som frågan, oftast svenska eller engelska).\n\nBefintliga mappar:\n${JSON.stringify(existingSections)}\n\nRegler för svar:\n- Om en befintlig mapp passar bra (tematiskt relaterad till frågan), välj den och svara med denna exakta JSON:\n{\n  "action": "existing",\n  "folderId": "id_på_mappen",\n  "folderTitle": "namn_på_mappen"\n}\n- Om ingen av de befintliga mapparna passar bra, eller om inga mappar finns, föreslå en ny och svara med denna exakta JSON:\n{\n  "action": "new",\n  "folderTitle": "Föreslaget Mappnamn"\n}\n\nSvara ENBART med den råa JSON-koden. Ingen introduktion, inga förklaringar, ingen markdown-kodblock.`,
-                    messages: [{
-                        role: 'user',
-                        content: `Fråga: "${questionText}"`
-                    }]
-                })
+            const text = await callAI({
+                system: `Du är en expert på att organisera flashcards i mappar/kategorier. Analysera flashcard-frågan och välj den mest passande mappen från listan över befintliga mappar. Om ingen av de befintliga mapparna passar (eller om listan är tom), föreslå en helt ny passande mapp med ett kort, koncist och beskrivande namn (skrivet på samma språk som frågan, oftast svenska eller engelska).\n\nBefintliga mappar:\n${JSON.stringify(existingSections)}\n\nRegler för svar:\n- Om en befintlig mapp passar bra (tematiskt relaterad till frågan), välj den och svara med denna exakta JSON:\n{\n  "action": "existing",\n  "folderId": "id_på_mappen",\n  "folderTitle": "namn_på_mappen"\n}\n- Om ingen av de befintliga mapparna passar bra, eller om inga mappar finns, föreslå en ny och svara med denna exakta JSON:\n{\n  "action": "new",\n  "folderTitle": "Föreslaget Mappnamn"\n}\n\nSvara ENBART med den råa JSON-koden. Ingen introduktion, inga förklaringar, ingen markdown-kodblock.`,
+                user: `Fråga: "${questionText}"`,
+                maxTokens: 200,
+                json: true,
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
-
-            const data = await response.json();
-            let rawContent = data.content[0].text.trim();
+            // Extraktionen behålls trots json: true som skydd mot en leverantör
+            // som ändå lägger på inledning eller markdown-block.
+            let rawContent = text.trim();
             const jsonStart = rawContent.indexOf('{');
             const jsonEnd = rawContent.lastIndexOf('}');
             if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
@@ -76,8 +58,7 @@ import { populateAddCardSections } from './add-card.js';
                 showToast('Kunde inte kategorisera automatiskt.');
             }
         } catch (e) {
-            console.error(e);
-            showToast('Ett fel uppstod vid automatisk kategorisering.');
+            showToast(aiErrorMessage(e));
         } finally {
             btnAuto.disabled = false;
             btnAuto.innerHTML = 'Auto ';
@@ -131,12 +112,6 @@ export function initUiWiringAiActions() {
               return;
           }
 
-          const apiKey = await getApiKey();
-          if (!apiKey || apiKey === 'klistra_in_din_nyckel_här_utan_citattecken') {
-              alert('Kunde inte hitta en giltig API-nyckel i .env för att generera ett svar.');
-              return;
-          }
-
           const btn = document.getElementById('btn-generate-answer');
           const backField = document.getElementById('card-back');
           const isLongFormInAdd = document.getElementById('card-longform')?.checked || false;
@@ -152,40 +127,20 @@ export function initUiWiringAiActions() {
               : "Din uppgift är att besvara flashcards med max 50 ord. MYCKET VIKTIGT: Du får absolut inte hitta på information eller gissa (hallucinera inte). Om du inte är 100% säker på sanningen, ska du bara svara: \"Jag vet inte\". Formatera ALL matematik med LaTeX via dollartecken, t.ex. $\\frac{1}{2}$ eller $\\sin(x)$.";
 
           try {
-              const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                      'x-api-key': apiKey,
-                      'anthropic-version': '2023-06-01',
-                      'anthropic-dangerous-direct-browser-access': 'true'
-                  },
-                  body: JSON.stringify({
-                      model: 'claude-sonnet-4-6',
-                      max_tokens: maxTokens,
-                      system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
-                      messages: [{
-                          role: 'user',
-                          content: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`
-                      }]
-                  })
+              const text = await callAI({
+                  system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
+                  user: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`,
+                  maxTokens,
               });
 
-              if (!response.ok) {
-                  const errData = await response.json().catch(() => ({}));
-                  throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-              }
-              const data = await response.json();
-
-              backField.value = data.content[0].text.trim();
+              backField.value = text.trim();
               showToast('Svar genererat!');
 
               // Auto-categorize into folder
               runAutoFolder(frontText);
 
           } catch (e) {
-              console.error("Anthropic API Error:", e);
-              showToast(`Ett fel uppstod: ${e.message}`);
+              showToast(aiErrorMessage(e));
           } finally {
               btn.disabled = false;
               btn.innerText = ' Generera svar';
@@ -195,19 +150,13 @@ export function initUiWiringAiActions() {
       // Study Session
       // btn-study event listener is now dynamically attached inside openDeck
 
-      document.getElementById('form-study-ai').addEventListener('submit', async (e) => {
+      document.getElementById('form-study-ai').addEventListener('submit', (e) => {
           e.preventDefault();
           const inputObj = document.getElementById('input-study-ai');
           const question = inputObj.value.trim();
           if (!question) return;
 
-          const apiKey = await getApiKey();
-          if (!apiKey) {
-              alert('En API-nyckel krävs. Lägg till din nyckel i .env först.');
-              return;
-          }
-
           const card = S.currentStudyCards[S.currentStudyIndex];
-          if (card) fetchStudyAi(apiKey, card, question);
+          if (card) fetchStudyAi(card, question);
       });
 }

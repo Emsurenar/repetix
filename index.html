@@ -27,6 +27,7 @@
         </nav>
         <div class="sidebar-account">
             <span id="sync-status" class="sync-status" data-state="local" role="status">Lokalt läge</span>
+            <button type="button" id="btn-open-settings" class="btn text sidebar-account-btn">Inställningar</button>
             <button type="button" id="btn-account" class="btn text sidebar-account-btn" hidden>Konto</button>
         </div>
     </aside>
@@ -315,6 +316,74 @@
             <p style="margin: 1rem 0 2rem; color: var(--text-secondary);">Du har repeterat alla schemalagda kort för den
                 här kortleken.</p>
             <button id="btn-complete-back" class="btn primary">Tillbaka till kortleken</button>
+        </section>
+
+        <!-- View: Settings -->
+        <section id="view-settings" class="view hidden">
+            <div class="view-header">
+                <div>
+                    <button type="button" id="btn-settings-back" class="btn text">← Tillbaka</button>
+                    <h1>Inställningar</h1>
+                </div>
+            </div>
+
+            <!-- Utan konto finns ingen server att lagra nyckeln hos. Vyn säger
+                 det rakt ut i stället för att visa ett formulär som ändå inte
+                 kan sparas. -->
+            <div id="settings-signed-out" class="settings-notice" hidden>
+                <p id="settings-notice-text" class="settings-notice-text"></p>
+                <button type="button" id="btn-settings-signin" class="btn primary">Logga in</button>
+            </div>
+
+            <div class="settings-section">
+                <h2 class="settings-section-title">AI</h2>
+
+                <div class="settings-field">
+                    <label for="settings-provider">Leverantör</label>
+                    <select id="settings-provider" class="settings-input"></select>
+                </div>
+
+                <div class="settings-field">
+                    <label for="settings-model">Modell</label>
+                    <select id="settings-model" class="settings-input"></select>
+                    <p class="settings-hint">Listan är en genväg, inte en gräns. Välj "Eget modell-id" för en modell som inte hunnit med hit.</p>
+                </div>
+
+                <div class="settings-field" id="settings-model-custom-field" hidden>
+                    <label for="settings-model-custom">Eget modell-id</label>
+                    <input type="text" id="settings-model-custom" class="settings-input" autocomplete="off" spellcheck="false">
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button" id="btn-settings-save-model" class="btn primary">Spara val</button>
+                </div>
+
+                <hr class="settings-divider">
+
+                <div class="settings-field">
+                    <label for="settings-api-key">API-nyckel</label>
+                    <input type="password" id="settings-api-key" class="settings-input" autocomplete="off" spellcheck="false" placeholder="Klistra in nyckeln">
+                    <p class="settings-hint">Nyckeln lagras krypterad på servern och används bara för dina egna anrop. Den skickas aldrig till webbläsaren.</p>
+                </div>
+
+                <p id="settings-key-status" class="settings-key-status" data-tone="info" role="status">Hämtar status...</p>
+                <p id="settings-key-others" class="settings-hint" hidden></p>
+
+                <div class="settings-actions">
+                    <button type="button" id="btn-settings-save-key" class="btn primary">Spara nyckel</button>
+                    <button type="button" id="btn-settings-delete-key" class="btn text settings-danger" hidden>Ta bort nyckel</button>
+                </div>
+
+                <p id="settings-message" class="settings-message" data-tone="info" role="status" hidden></p>
+            </div>
+
+            <div class="settings-section">
+                <h2 class="settings-section-title">Konto</h2>
+                <p id="settings-account-email" class="settings-account-email"></p>
+                <div class="settings-actions">
+                    <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
+                </div>
+            </div>
         </section>
 
     </main>

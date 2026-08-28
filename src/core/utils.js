@@ -14,24 +14,6 @@ export const fisherYatesShuffle = (arr) => {
     return arr;
 };
 
-export const fetchWithRetry = async (url, options, maxRetries = 3) => {
-    let delay = 1000;
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok && (response.status === 429 || response.status === 503 || response.status === 529 || response.status >= 500)) {
-                console.warn(`API overloaded (${response.status}), retrying in ${delay}ms...`);
-                await new Promise(r => setTimeout(r, delay));
-                delay *= 2; // Exponential backoff
-                continue;
-            }
-            return response;
-        } catch (error) {
-            if (i === maxRetries - 1) throw error;
-            console.warn(`Fetch failed (${error.message}), retrying in ${delay}ms...`);
-            await new Promise(r => setTimeout(r, delay));
-            delay *= 2;
-        }
-    }
-    throw new Error('Overloaded: API:et är överbelastat. Försök igen om en liten stund.');
-};
+// fetchWithRetry bodde här tidigare. Den fanns bara för Anthropic-anropen, och
+// omförsöken sitter numera i src/ai/call.js där de kan ta hänsyn till
+// felkoden och leverantörens Retry-After.

@@ -1,12 +1,13 @@
+import { aiErrorMessage, callAI } from './call.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
-import { escapeHtml, fetchWithRetry } from '../core/utils.js';
+import { escapeHtml } from '../core/utils.js';
 import { openDeck } from '../ui/deck.js';
 import { safeParse } from '../ui/images.js';
 import { showToast } from '../ui/toast.js';
 
 
-export const fetchAiSort = async (apiKey, deck) => {
+export const fetchAiSort = async (deck) => {
     const unsortedCards = deck.cards.filter(c => !c.sectionId && c.type !== 'note');
     if (unsortedCards.length === 0) {
         showToast('Inga osorterade kort att sortera.');
@@ -29,33 +30,17 @@ export const fetchAiSort = async (apiKey, deck) => {
     const cardSummaries = unsortedCards.map(c => ({ id: c.id, front: c.front, back: c.back }));
 
     try {
-        const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 4000,
-                system: `Du är en expert på att organisera flashcards i logiska mappar/kategorier. Analysera korten noggrant och gruppera dem i mappar baserat på ämne, tema, eller logisk koppling.\n\nBefintliga mappar i kortleken: ${existingSections.length > 0 ? JSON.stringify(existingSections) : '(inga mappar finns ännu)'}\n\nRegler:\n- Använd befintliga mappar om de passar. Matcha exakt på namn.\n- Skapa nya mappar med tydliga, koncisa namn när inget befintligt passar.\n- Varje kort MÅSTE tilldelas exakt en mapp.\n- Tänk djupt på den bästa grupperingen. Kort som hör ihop tematiskt ska hamna i samma mapp.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar.\n- Mapp-namn ska vara korta och beskrivande.\n\nSvara med ENBART en ren JSON-array:\n[{"cardId": "...", "section": "mappnamn"}]`,
-                messages: [{
-                    role: 'user',
-                    content: `Här är korten att sortera:\n${JSON.stringify(cardSummaries)}`
-                }]
-            })
+        const text = await callAI({
+            system: `Du är en expert på att organisera flashcards i logiska mappar/kategorier. Analysera korten noggrant och gruppera dem i mappar baserat på ämne, tema, eller logisk koppling.\n\nBefintliga mappar i kortleken: ${existingSections.length > 0 ? JSON.stringify(existingSections) : '(inga mappar finns ännu)'}\n\nRegler:\n- Använd befintliga mappar om de passar. Matcha exakt på namn.\n- Skapa nya mappar med tydliga, koncisa namn när inget befintligt passar.\n- Varje kort MÅSTE tilldelas exakt en mapp.\n- Tänk djupt på den bästa grupperingen. Kort som hör ihop tematiskt ska hamna i samma mapp.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar.\n- Mapp-namn ska vara korta och beskrivande.\n\nSvara med ENBART en ren JSON-array:\n[{"cardId": "...", "section": "mappnamn"}]`,
+            user: `Här är korten att sortera:\n${JSON.stringify(cardSummaries)}`,
+            maxTokens: 4000,
+            json: true,
         });
 
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-        }
+        // Extraktionen behålls trots json: true som skydd mot en leverantör som
+        // ändå lägger på inledning eller markdown-block.
+        let rawContent = text.trim();
 
-        const data = await response.json();
-        let rawContent = data.content[0].text.trim();
-        
         // Extract only the JSON array block robustly (ignores preambles and markdown block wraps)
         const arrayStart = rawContent.indexOf('[');
         const arrayEnd = rawContent.lastIndexOf(']');
@@ -102,9 +87,9 @@ export const fetchAiSort = async (apiKey, deck) => {
         });
 
     } catch (e) {
-        console.error("AI Sort Error:", e);
         loading.classList.add('hidden');
-        status.textContent = `Fel: ${e.message}`;
+        // Statusraden i sorteringsdialogen är resultatfältet här.
+        status.textContent = aiErrorMessage(e);
     }
 };
 
