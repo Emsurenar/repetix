@@ -17,11 +17,17 @@ export function onViewChange(fn) {
 // --- ROUTING / VIEW LOGIC ---
 export const switchView = (viewName, sectionId = null) => {
     S.currentViewName = viewName;
-    Object.values(views).forEach(v => v.classList.add('hidden'));
 
-    setTimeout(() => {
-        views[viewName].classList.remove('hidden');
-    }, 10);
+    // Vyn visas synkront. Tidigare doldes allt direkt och malvyn visades i en
+    // setTimeout pa 10 ms, vilket gjorde vaxlingen till en kapplopning: tva
+    // byten tatt inpa varandra — t.ex. att oppna en kortlek och genast starta
+    // en repetition — lat den forsta timeouten av-dolja sin vy EFTER att den
+    // andra gomt allt. Bada vyerna blev da synliga samtidigt, staplade.
+    // Overtoningen gors numera av CSS-animationen pa .view och behover ingen
+    // fordrojning.
+    for (const v of Object.values(views)) {
+        v.classList.toggle('hidden', v !== views[viewName]);
+    }
     window.scrollTo(0, 0);
     for (const fn of viewListeners) fn(viewName);
 

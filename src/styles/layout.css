@@ -70,18 +70,44 @@
   padding: 0 var(--s2) var(--s4);
 }
 
-/* En rad i trädet: bokhylla, kortlek eller navigering. */
+/* En rad i trädet: bokhylla, kortlek eller navigering.
+ *
+ * Raderna är knappar sedan tillgänglighetsgenomgången — som div med onclick
+ * gick de inte att nå med tangentbord alls. Knappens egna standardstilar
+ * nollställs därför här, annars ritar webbläsaren en grå ram runt varje rad. */
 .sidebar-item {
   display: flex;
   align-items: center;
   gap: var(--s2);
+  width: 100%;
   min-height: var(--control-h);
   padding: 0 var(--s2);
+  font-family: inherit;
   font-size: var(--t-sm);
+  text-align: left;
   color: var(--text-2);
+  background: transparent;
+  border: 0;
   border-radius: var(--r-md);
   cursor: pointer;
   user-select: none;
+}
+
+/* Namnet tar den plats som blir över och kapas med ellips i stället för att
+ * knuffa ut antalet förfallna kort ur panelen. */
+.sidebar-item-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Greppet för att dra om ordningen. Rent visuellt: det är dolt för
+ * skärmläsaren, och tangentbordet flyttar raden med Alt och pil. */
+.sidebar-drag-handle {
+  flex: 0 0 auto;
+  color: var(--line-strong);
+  cursor: grab;
 }
 
 .sidebar-item:hover {

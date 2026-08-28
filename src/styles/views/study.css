@@ -1,1 +1,666 @@
-/* Fylls i av etapp 4. */
+/* Studievyn — "Lugn precision".
+ *
+ * En repetition är det enda stället i appen där användaren ska glömma att det
+ * finns ett gränssnitt. Därför har vyn bara tre lager: en tunn rad med läget,
+ * en generös läsyta och en betygsrad. Inga skuggor, inga kort som svävar,
+ * ingen färgglädje som konkurrerar med själva frågan.
+ *
+ * Alla regler är avsiktligt scopade till #view-study. Spellägenas gamla
+ * stilmall (games-legacy.css) laddas EFTER den här filen och skriver om
+ * .btn-rate och .study-actions under 768px; utan id-scopet skulle den vinna på
+ * källordning och mobilen tappa hela betygsraden. Scopet löser det utan ett
+ * enda !important, och lämnar spelens egna betygsknappar orörda.
+ */
+
+#view-study {
+  display: flex;
+  flex-direction: column;
+  /* Sessionen fyller skärmen så att betygsraden alltid hamnar längst ned i
+   * stället för att flyta mitt på en halvtom sida. Avdraget är appskalets egna
+   * mått: innehållsytans luft upptill och nedtill plus brödsmulan. */
+  min-height: calc(100dvh - var(--s5) - var(--s8) - var(--control-h) - var(--s4));
+}
+
+/* ======================================================================
+ * TUNN RAD ÖVERST
+ *
+ * Brödsmulan ovanför vyn bär kortlek och mapp. Den här raden bär läget:
+ * avsluta till vänster, radera och räkneverket till höger. Markupen har
+ * framstegsraden först, men ögat vill läsa texten först — därav order.
+ * ====================================================================== */
+
+#view-study .study-header {
+  order: -1;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+}
+
+#view-study #btn-end-study {
+  order: 1;
+}
+
+#view-study .btn-delete-study {
+  order: 2;
+  margin-left: auto;
+  color: var(--text-3);
+}
+
+#view-study .btn-delete-study:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+#view-study .btn-delete-study svg {
+  /* Soptunnan är tydlig nog i 16px; tunnare streck gör den lugnare. */
+  stroke-width: 1.75;
+}
+
+#view-study #study-progress {
+  order: 3;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------
+ * TICKSKALA
+ *
+ * Ritas som en rad streck i stället för en sammanhängande stapel, så att
+ * framsteget kan läsas som "så här långt in i passet är jag" och inte bara som
+ * en procent. Skalan är samtidigt radens avgränsare mot läsytan — en linje
+ * under den hade blivit en linje för mycket.
+ *
+ * Rutmönstret ligger i bakgrunden på både spår och fyllning med samma
+ * ursprung, så att strecken står i linje när fyllningen växer. JS sätter bara
+ * bredden i procent; ingen räkning per kort behövs.
+ * -------------------------------------------------------------------- */
+
+#view-study .study-progress-bar {
+  order: 0;
+  height: 3px;
+  margin-top: var(--s3);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--surface-3) 0 14px,
+    transparent 14px 16px
+  );
+}
+
+#view-study .study-progress-bar-fill {
+  height: 100%;
+  /* Kanten markerar var man står just nu — samma roll som det mörka strecket i
+   * skissen. Med border-box syns den även vid 0 %, vilket är sant: man står
+   * vid början. */
+  border-right: 2px solid var(--text-1);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--accent) 0 14px,
+    transparent 14px 16px
+  );
+  transition: width var(--dur) var(--ease);
+}
+
+/* ======================================================================
+ * LÄSYTAN
+ * ====================================================================== */
+
+#view-study .flashcard-container {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s7) 0;
+}
+
+#view-study .flashcard {
+  width: 100%;
+  /* Radlängden avgör om en fråga går att läsa i ett svep. 46rem ligger strax
+   * över brödtextens optimum, vilket stämmer för serif i stor grad. */
+  max-width: 46rem;
+  cursor: pointer;
+  transition: opacity var(--dur) var(--ease);
+}
+
+/* Kortet lämnar skärmen när det betygsatts. JS lägger på en riktningsklass i
+ * 400 ms; vi tonar i stället för att kasta omkring kortet — samma tid,
+ * betydligt lugnare. */
+#view-study .flashcard.swipe-up,
+#view-study .flashcard.swipe-down,
+#view-study .flashcard.swipe-left,
+#view-study .flashcard.swipe-right {
+  opacity: 0;
+}
+
+/* Frågan. .content-text ger serif och luft; härifrån bara graden. */
+#view-study .flashcard-front .content-text {
+  font-size: var(--t-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+}
+
+/* Hårfin linje mellan fråga och svar. Den ligger kvar i båda lägena, så att
+ * ingenting hoppar när svaret vänds fram. */
+#view-study .flashcard-back {
+  margin-top: var(--s6);
+  padding-top: var(--s6);
+  border-top: 1px solid var(--line);
+}
+
+/* ----------------------------------------------------------------------
+ * DOLT SVAR
+ *
+ * Ett medvetet övertäckt ark, inte gråa skelettstreck: skelett betyder
+ * "laddar" i varje annan app, och då väntar man i stället för att svara.
+ * Diagonalrastret och etiketten säger i klartext att någon lagt ett ark över
+ * svaret och att det ligger kvar tills man själv lyfter det.
+ *
+ * Själva svarstexten tas ur flödet helt (display: none) och döljs inte bara
+ * visuellt — annars skulle höjden skvallra om hur långt svaret är, och en
+ * skärmläsare skulle läsa upp det man just skulle försöka minnas.
+ * -------------------------------------------------------------------- */
+
+#view-study .flashcard-inner:not(.flipped) #study-back-text {
+  display: none;
+}
+
+#view-study .flashcard-inner.flipped .answer-cover {
+  display: none;
+}
+
+#view-study .answer-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 7rem;
+  padding: var(--s5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background-color: var(--surface-2);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 7px,
+    var(--line-strong) 7px 8px
+  );
+}
+
+#view-study .answer-cover-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: var(--surface-0);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+#view-study .answer-cover-tag svg {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+/* ----------------------------------------------------------------------
+ * SVARET
+ *
+ * Första stycket är svaret och får serif i accent. Allt därefter är förklaring
+ * och går ned ett steg i grad och en nivå i ton. Uppdelningen görs på position
+ * i stället för på en klass, eftersom texten kommer ur markdown och inte kan
+ * märka upp sig själv.
+ * -------------------------------------------------------------------- */
+
+#view-study #study-back-text > * {
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+#view-study #study-back-text > p:first-child {
+  font-family: var(--font-content);
+  font-size: var(--t-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+  margin-bottom: var(--s4);
+}
+
+/* Långformat är ingen kort fras med en förklaring under, utan löpande text
+ * rakt igenom. Då vore accentfärgen på första stycket bara en godtycklig
+ * markering. */
+#view-study #study-back-text.long-form-content {
+  max-width: var(--measure);
+}
+
+#view-study #study-back-text.long-form-content > *,
+#view-study #study-back-text.long-form-content > p:first-child {
+  font-family: var(--font-content);
+  font-size: var(--t-lg);
+  font-weight: 400;
+  line-height: var(--lh-loose);
+  letter-spacing: normal;
+  color: var(--text-1);
+}
+
+#view-study #study-back-text code {
+  font-family: var(--font-data);
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+
+#view-study #study-back-text pre {
+  overflow-x: auto;
+  padding: var(--s3) var(--s4);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+/* Formler får scrolla i egen behållare i stället för att skjuta hela sidan i
+ * sidled på telefon. */
+#view-study .flashcard .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--s1);
+}
+
+/* Kortbilder. Klick öppnar ljusbordet — därav pekaren. */
+#view-study .card-back-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-top: var(--s4);
+}
+
+#view-study .card-back-images img {
+  max-width: min(100%, 18rem);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  cursor: zoom-in;
+}
+
+/* ======================================================================
+ * BETYGSRADEN
+ *
+ * Fyra knappar som ska läsas som en skala. Skalan bärs av en liten ramp i
+ * hörnet: fyra streck där de första N är färgade med stegets egen ton. Det är
+ * en bild av hur långt fram i tiden kortet hamnar, inte fyra likadana rutor.
+ * Tangentnumret står diskret i nedre hörnet och försvinner på touch.
+ * ====================================================================== */
+
+#view-study .study-actions {
+  flex: 0 0 auto;
+  /* Bredden sätts explicit trots att flexbarn normalt sträcks: en auto-marginal
+   * på tväraxeln stänger av stretch, och raden krympte då till innehållet. */
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-top: var(--s5);
+  border-top: 1px solid var(--line);
+}
+
+#view-study #study-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+}
+
+#view-study .btn-rate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s1);
+  /* Höjden följer pekdonet: 34 + 24 med mus, 44 + 24 med finger. Ingen fast
+   * pixelhöjd, så att träffytan aldrig kan hamna under 44 på touch. */
+  min-height: calc(var(--control-h) + var(--s5));
+  padding: var(--s3) var(--s4);
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--t-md);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+/* Varje steg pekar ut sin egen ton ur tokens. Aliaset gör att ramp, hover och
+ * ett framtida markerat läge kan dela en regel i stället för fyra. */
+#view-study .btn-rate.rating-1 {
+  --rate: var(--rate-1);
+}
+#view-study .btn-rate.rating-2 {
+  --rate: var(--rate-2);
+}
+#view-study .btn-rate.rating-3 {
+  --rate: var(--rate-3);
+}
+#view-study .btn-rate.rating-4 {
+  --rate: var(--rate-4);
+}
+
+#view-study .btn-rate:hover {
+  background: var(--surface-2);
+  border-color: var(--rate, var(--text-3));
+}
+
+#view-study .btn-rate:active {
+  background: var(--surface-3);
+}
+
+/* Radbrytningen i markupen behövs inte när knappen är en kolumn — den skulle
+ * bara lägga till ett tomt flexbarn. */
+#view-study .btn-rate br {
+  display: none;
+}
+
+#view-study .btn-rate small {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* Rampen: fyra streck, de första N i stegets ton. Övre lagret klipps av
+ * background-size till exakt N streck, undre lagret ritar alla fyra i
+ * neutralt. */
+#view-study .btn-rate::before {
+  content: '';
+  position: absolute;
+  top: var(--s3);
+  right: var(--s3);
+  width: 26px;
+  height: 2px;
+  background-repeat: no-repeat;
+  background-image:
+    repeating-linear-gradient(to right, var(--rate) 0 5px, transparent 5px 7px),
+    repeating-linear-gradient(to right, var(--surface-3) 0 5px, transparent 5px 7px);
+  background-size:
+    5px 100%,
+    100% 100%;
+}
+
+#view-study .btn-rate.rating-2::before {
+  background-size:
+    12px 100%,
+    100% 100%;
+}
+#view-study .btn-rate.rating-3::before {
+  background-size:
+    19px 100%,
+    100% 100%;
+}
+#view-study .btn-rate.rating-4::before {
+  background-size:
+    26px 100%,
+    100% 100%;
+}
+
+/* Tangentnumret. Hämtas ur data-rating så att siffran aldrig kan hamna i
+ * konflikt med den tangent JS faktiskt lyssnar på. */
+#view-study .btn-rate::after {
+  content: attr(data-rating);
+  position: absolute;
+  right: var(--s3);
+  bottom: var(--s2);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  color: var(--text-3);
+}
+
+/* Bra är det förväntade svaret och får ligga tänt, som i skissen. */
+#view-study .btn-rate.rating-3 {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+#view-study .btn-rate.rating-3:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+#view-study .btn-rate.rating-3 small,
+#view-study .btn-rate.rating-3::after {
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * VISA SVAR OCH TYSTA ÅTGÄRDER
+ * ====================================================================== */
+
+#view-study #study-flip-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+}
+
+#view-study #btn-flip {
+  width: 100%;
+  max-width: 22rem;
+  min-height: var(--control-h-lg);
+}
+
+#view-study .btn-skip {
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+#view-study .btn-skip:hover {
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+/* ----------------------------------------------------------------------
+ * AI OM KORTET
+ *
+ * Var tidigare en permanent panel mitt i vyn och drog blicken från frågan. Nu
+ * en tyst uppfällning under betygsraden: den som vill fråga öppnar den, den
+ * som repeterar ser den knappt.
+ * -------------------------------------------------------------------- */
+
+#view-study .study-ai {
+  margin-top: var(--s5);
+}
+
+#view-study .study-ai > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s2);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  list-style: none;
+}
+
+#view-study .study-ai > summary::-webkit-details-marker {
+  display: none;
+}
+
+#view-study .study-ai > summary:hover {
+  color: var(--text-1);
+}
+
+/* Vinkeln ritas av två kanter i stället för en ikonfil — en pil till behöver
+ * inte hämtas över nätet. */
+#view-study .study-ai > summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentcolor;
+  border-bottom: 1px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform var(--dur) var(--ease);
+}
+
+#view-study .study-ai[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+#view-study .study-ai-body {
+  padding-top: var(--s4);
+}
+
+#view-study #study-ai-chat {
+  max-height: 40vh;
+  overflow: auto;
+  overflow-wrap: break-word;
+  margin-bottom: var(--s3);
+  padding: var(--s4);
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+#view-study #form-study-ai {
+  display: flex;
+  gap: var(--s2);
+}
+
+#view-study #form-study-ai input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ======================================================================
+ * TOUCH
+ *
+ * Tangentnumren döljs på pekskärm. Det finns inget tangentbord där, och en
+ * siffra utan betydelse är bara brus i hörnet.
+ * ====================================================================== */
+
+@media (pointer: coarse) {
+  #view-study .btn-rate::after {
+    content: none;
+  }
+}
+
+/* ======================================================================
+ * MOBIL
+ *
+ * Vyn delas i namngivna band: Fråga, Svar, Betyg. Banden är det som gör att en
+ * liten skärm går att läsa — utan dem blir samma innehåll en enda lång kolumn
+ * där man inte vet vad man tittar på. Svarsbandet växer och tar allt som blir
+ * över, så att inget dött fält uppstår mellan frågan och tummen.
+ * ====================================================================== */
+
+@media (max-width: 900px) {
+  #view-study {
+    min-height: calc(100dvh - var(--s6) - var(--s8) - var(--control-h) - var(--s4));
+  }
+}
+
+@media (max-width: 600px) {
+  #view-study .flashcard-container {
+    align-items: stretch;
+    padding: var(--s4) 0 var(--s5);
+  }
+
+  #view-study .flashcard {
+    max-width: none;
+  }
+
+  #view-study .flashcard-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  #view-study .flashcard-front {
+    flex: 0 0 auto;
+    padding-bottom: var(--s5);
+  }
+
+  /* Bandetiketterna. De är rena läshållpunkter och ligger därför i CSS —
+   * markupen bär redan fram- och baksida som semantik. */
+  #view-study .flashcard-front::before,
+  #view-study .flashcard-back::before,
+  #view-study #study-actions::before {
+    display: block;
+    margin-bottom: var(--s3);
+    font-family: var(--font-data);
+    font-size: var(--t-micro);
+    font-weight: 500;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  #view-study .flashcard-front::before {
+    content: 'Fråga';
+  }
+
+  #view-study .flashcard-back::before {
+    content: 'Svar';
+  }
+
+  #view-study #study-actions::before {
+    content: 'Betyg';
+    grid-column: 1 / -1;
+  }
+
+  #view-study .flashcard-front .content-text {
+    font-size: var(--t-xl);
+  }
+
+  #view-study .flashcard-back {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-top: 0;
+    padding-top: var(--s5);
+  }
+
+  #view-study .answer-cover {
+    flex: 1 1 auto;
+    min-height: 6rem;
+  }
+
+  #view-study #study-back-text > p:first-child {
+    font-size: var(--t-xl);
+  }
+
+  /* Betygen som 2x2 i tumzonen. Fyra i bredd blir 80 px per knapp på 360, och
+   * då får varken namn eller intervall plats. */
+  #view-study #study-actions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s2);
+  }
+
+  #view-study .btn-rate {
+    padding: var(--s3);
+  }
+
+  #view-study #btn-flip {
+    max-width: none;
+  }
+}

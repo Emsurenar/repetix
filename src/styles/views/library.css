@@ -1,1 +1,434 @@
-/* Fylls i av etapp 4. */
+/* Biblioteksvyn: rubrikrad, nyckeltal, dagens mapp, kortleksrutnät, bokhyllor.
+ *
+ * Djupet kommer av ytkontrast och hårfina linjer. Inga skuggor: en skugga mot
+ * varmvitt blir antingen smutsig eller osynlig, och den gamla vyn hade fyra
+ * olika sorters skuggor som gjorde varje kort till en egen liten låda.
+ *
+ * Varje färg, grad och avstånd kommer ur tokens.css.
+ */
+
+/* ======================================================================
+ * RUBRIKRAD
+ *
+ * Skalet (.view-header, .view-actions) ligger i layout.css. Här sätts bara
+ * titelns grad: en vyrubrik behöver inte vara appens största text, den ska
+ * bara tala om var man är.
+ * ====================================================================== */
+
+.library-title {
+  font-size: var(--t-xl);
+}
+
+/* Sista säkerhetskopian. En upplysning, inte ett meddelande — den ska gå att
+ * läsa när man letar efter den och annars vara tyst. */
+.library-backup-note {
+  margin: 0 0 var(--s4);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.library-backup-note:empty {
+  display: none;
+}
+
+/* ======================================================================
+ * NYCKELTAL
+ *
+ * Tre tal i rad, avgränsade av linjer i stället för av kort. Talen sätts i
+ * monospace med tabellsiffror så att de står i kolumn i stället för att
+ * dansa när de ändras, och etiketten går under talet: man läser siffran
+ * först och får förklaringen efteråt.
+ * ====================================================================== */
+
+.library-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: var(--s6);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.library-figure {
+  padding: var(--s5) var(--s5) var(--s5) 0;
+  border-right: 1px solid var(--line);
+}
+
+.library-figure:last-child {
+  border-right: 0;
+}
+
+.library-figure-n {
+  display: block;
+  font-size: var(--t-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+/* Accent bara när talet betyder något att göra. En nolla ska inte skrika. */
+.library-figure-n.is-accent {
+  color: var(--accent);
+}
+
+.library-figure-l {
+  display: block;
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * DAGENS MAPP
+ *
+ * En enda panel, inte en banderoll med gradient och ikonplatta. Accentlinjen
+ * till vänster är hela markeringen som behövs för att skilja dagens
+ * rekommendation från rutnätet under.
+ * ====================================================================== */
+
+.today-folder {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  margin-bottom: var(--s6);
+  padding: var(--s4) var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r-lg);
+}
+
+/* Klart eller inget att rekommendera: samma form, tystare kant. Panelen ska
+ * inte fortsätta hävda att något är brådskande när det inte är det. */
+.today-folder.is-done,
+.today-folder.is-empty {
+  border-left-color: var(--line-strong);
+}
+
+.today-folder-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.today-folder-kicker {
+  margin: 0 0 var(--s2);
+  color: var(--accent);
+}
+
+.today-folder.is-done .today-folder-kicker,
+.today-folder.is-empty .today-folder-kicker {
+  color: var(--text-3);
+}
+
+.today-folder-title {
+  margin: 0;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  /* Ett långt kortleksnamn utan mellanslag ska brytas, inte skjuta panelen
+   * utanför skärmen. */
+  overflow-wrap: break-word;
+}
+
+/* Snedstrecket mellan kortlek och mapp är skiljetecken, inte innehåll. */
+.today-folder-title span {
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.today-folder-meta {
+  margin: var(--s2) 0 0;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.today-folder-due {
+  margin-left: var(--s3);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.today-folder-text {
+  max-width: 56ch;
+  margin: var(--s2) 0 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.today-folder-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--s2);
+}
+
+/* ======================================================================
+ * RUTNÄT
+ *
+ * auto-fill med ett golv i rem: kolumnerna följer textstorleken och inte en
+ * fast pixelbredd, så rutnätet bryter på rätt ställe även när användaren
+ * förstorat texten.
+ * ====================================================================== */
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--s4);
+  align-items: start;
+}
+
+/* Allt som inte är en kortlek löper över hela raden. Tidigare sattes detta
+ * som inline-stil från JS, vilket gjorde layouten omöjlig att ändra härifrån. */
+.grid-container > .bookshelf-container,
+.grid-container > .library-filter-row,
+.grid-container > .library-group-label,
+.grid-container > .empty-state,
+.grid-container > .bookshelf-empty {
+  grid-column: 1 / -1;
+}
+
+.library-filter-row {
+  margin-bottom: var(--s2);
+}
+
+.library-group-label {
+  margin-top: var(--s3);
+}
+
+/* ======================================================================
+ * KORTLEK I RUTNÄTET
+ *
+ * Identiteten uppe, talen nere. Framstegsstapeln sitter direkt ovanför sina
+ * egna siffror i samma block, så att den läses som deras stapel och inte som
+ * en dekoration någon annanstans på kortet.
+ * ====================================================================== */
+
+.deck-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  min-height: 8.5rem;
+  padding: var(--s4);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.deck-card:hover {
+  border-color: var(--line-strong);
+}
+
+/* Färdigrepeterad lek sjunker tillbaka mot bottenytan i stället för att
+ * markeras med en ny färg. Klart är ett lugnare tillstånd, inte ett gladare. */
+.deck-card.deck-done {
+  background: var(--surface-0);
+}
+
+.deck-card.dragging {
+  opacity: 0.5;
+}
+
+.deck-card.drag-over {
+  border-color: var(--accent);
+}
+
+.deck-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+
+.deck-card-title {
+  /* Optisk linjering mot menyknappen, som är en hel kontrollhöjd hög. */
+  padding-top: var(--s1);
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  overflow-wrap: break-word;
+  /* Två rader räcker; en lång kurstitel får inte trycka ned talen. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.deck-card-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin-top: auto;
+}
+
+.deck-card-nums {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.deck-card-count {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.deck-card-due {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* Noll förfallna är ingen prestation att färglägga. */
+.deck-card-due.is-clear {
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * BOKHYLLA
+ *
+ * En grupp, inte en låda i lådan. Rubrikraden och linjen under den håller
+ * ihop innehållet utan att lägga en ny ram runt kort som redan har ramar.
+ * ====================================================================== */
+
+.bookshelf-container {
+  margin-bottom: var(--s6);
+}
+
+.bookshelf-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--control-h);
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+
+.bookshelf-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--t-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookshelf-container.bookshelf-done .bookshelf-title {
+  color: var(--text-2);
+}
+
+/* Tom hylla är ett släppmål. Streckad kant säger att något ska hit, utan att
+ * se ut som ett kort som råkar vara tomt. */
+.bookshelf-empty {
+  margin: 0;
+  padding: var(--s5);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+/* ======================================================================
+ * RADMENY
+ *
+ * .row-menu och .row-menu-toggle definieras i components.css. Här nollställs
+ * bara <summary>-elementets inbyggda pil, som annars ritas bredvid ikonen.
+ * Samma två rader finns i deck.css: båda vyerna ska stå på egna ben.
+ * ====================================================================== */
+
+.row-menu > summary {
+  list-style: none;
+}
+
+.row-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ======================================================================
+ * TOMT LÄGE
+ *
+ * .empty-state kommer från components.css. Ikonen ritas likadant i alla vyer
+ * och definieras därför en gång, här.
+ * ====================================================================== */
+
+.empty-state-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--s4);
+  color: var(--text-3);
+}
+
+.empty-state-icon svg {
+  width: var(--s6);
+  height: var(--s6);
+}
+
+.empty-state h3 {
+  margin-bottom: var(--s2);
+  color: var(--text-1);
+}
+
+/* ======================================================================
+ * MOBIL
+ *
+ * Vid 600 pixlar och smalare bär varje pixel innehåll mer än den bär luft.
+ * Nyckeltalen ordnas om: det förfallna talet är dagens enda fråga och får
+ * hela raden, streak och totalsumma delar på raden under.
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .library-summary {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: var(--s5);
+  }
+
+  .library-figure {
+    padding: var(--s3) var(--s4) var(--s3) 0;
+  }
+
+  .library-figure:first-child {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .library-figure:nth-child(3) {
+    padding-left: var(--s4);
+  }
+
+  .library-figure:nth-child(2) .library-figure-n,
+  .library-figure:nth-child(3) .library-figure-n {
+    font-size: var(--t-lg);
+  }
+
+  .today-folder {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s3);
+    margin-bottom: var(--s5);
+    padding: var(--s3) var(--s4);
+  }
+
+  .today-folder-actions .btn {
+    flex: 1 1 0;
+    min-height: var(--control-h-lg);
+  }
+
+  /* Kortleken blir en rad i en lista. Talen och stapeln följer med, men
+   * kortet slutar göra anspråk på att vara en yta för sig. */
+  .deck-card {
+    gap: var(--s3);
+    min-height: 0;
+    padding: var(--s3) var(--s4);
+  }
+
+  .bookshelf-container {
+    margin-bottom: var(--s5);
+  }
+}

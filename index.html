@@ -3,10 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spaced Repetition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&family=Russo+One&family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Repetix</title>
+    <meta name="description" content="Repetitionsapp med spaced repetition, molnsynk och AI-stod.">
+    <meta name="theme-color" content="#0e6a5e">
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=Bangers&family=Bebas+Neue&family=Russo+One&family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -19,10 +26,14 @@
             </button>
         </div>
         <div class="sidebar-search">
-            <svg id="btn-global-search-trigger" style="cursor: pointer;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="sidebar-search" placeholder="Sök...">
+            <!-- Var tidigare en <svg> med onclick: osynlig för tangentbordet
+                 och namnlös för skärmläsaren. Nu en riktig knapp. -->
+            <button type="button" id="btn-global-search-trigger" class="sidebar-search-trigger" aria-label="Öppna global sök">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <input type="text" id="sidebar-search" placeholder="Sök..." aria-label="Filtrera sidopanelen">
         </div>
-        <nav id="sidebar-tree" class="sidebar-tree">
+        <nav id="sidebar-tree" class="sidebar-tree" aria-label="Bibliotek">
             <!-- Rendered by JS -->
         </nav>
         <div class="sidebar-account">
@@ -45,26 +56,26 @@
 
         <!-- View: Library (List of Decks) -->
         <section id="view-library" class="view active">
-            <div class="library-header-row">
+            <div class="view-header">
                 <h1 class="library-title">Mitt bibliotek</h1>
-                <div class="library-actions">
-                    <button id="btn-create-item-top" class="btn-action-chip" title="Skapa ny">
+                <div class="view-actions">
+                    <button id="btn-create-item-top" class="chip" title="Skapa ny">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Skapa ny
                     </button>
-                    <button id="btn-open-diary" class="btn-action-chip" title="Dagbok">
+                    <button id="btn-open-diary" class="chip" title="Dagbok">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                         Dagbok
                     </button>
-                    <button id="btn-study-all" class="btn-action-chip hidden" title="Repetition">
+                    <button id="btn-study-all" class="chip hidden" title="Repetition">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                         <span id="btn-study-all-label">Repetera</span>
                     </button>
-                    <button id="btn-export-backup" class="btn-action-chip" title="Ladda ner en säkerhetskopia (fil)">
+                    <button id="btn-export-backup" class="chip" title="Ladda ner en säkerhetskopia (fil)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Exportera
                     </button>
-                    <button id="btn-import-backup" class="btn-action-chip" title="Återställ från en säkerhetskopia (fil)">
+                    <button id="btn-import-backup" class="chip" title="Återställ från en säkerhetskopia (fil)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         Importera
                     </button>
@@ -72,7 +83,23 @@
                 </div>
             </div>
 
-            <div id="backup-status" style="font-size:0.75rem;opacity:0.6;margin:0 0 0.75rem;"></div>
+            <div id="backup-status" class="library-backup-note"></div>
+
+            <!-- Nyckeltal. Talen sätts av renderLibrarySummary() i src/ui/library.js. -->
+            <div id="library-summary" class="library-summary">
+                <div class="library-figure">
+                    <span id="library-stat-due" class="library-figure-n num">0</span>
+                    <span class="library-figure-l">kort förfallna idag</span>
+                </div>
+                <div class="library-figure">
+                    <span id="library-stat-streak" class="library-figure-n num">0</span>
+                    <span class="library-figure-l">dagars streak</span>
+                </div>
+                <div class="library-figure">
+                    <span id="library-stat-reviews" class="library-figure-n num">0</span>
+                    <span class="library-figure-l">repetitioner totalt</span>
+                </div>
+            </div>
 
             <div id="dagens-mapp-container"></div>
 
@@ -84,12 +111,17 @@
         <!-- View: Deck Details -->
         <section id="view-deck" class="view hidden">
             <div class="view-header">
-                <div>
+                <div class="deck-heading">
                     <button id="btn-back-library" class="btn text" style="display:none">← Tillbaka</button>
                     <h1 id="current-deck-title">Kortlek</h1>
+                    <p id="current-deck-meta" class="deck-heading-meta num"></p>
                 </div>
             </div>
-            <div id="deck-hero-status" class="deck-hero-status" onclick="if(this.dataset.action === 'study') document.getElementById('btn-study').click()">
+            <!-- Rutan är kortlekens enda väg in i en repetition, och var en
+                 div med onclick — alltså omöjlig att nå utan mus. role och
+                 tabindex gör den nåbar; Enter och mellanslag hanteras av
+                 tangentbordsstödet i src/ui/modals.js. -->
+            <div id="deck-hero-status" class="deck-hero-status" role="button" tabindex="0" aria-label="Starta repetition" onclick="if(this.dataset.action === 'study') document.getElementById('btn-study').click()">
                 <!-- Populated by JS -->
             </div>
             
@@ -117,7 +149,7 @@
                 <button id="btn-study" style="display:none;"></button> <!-- Hidden original button to preserve JS bindings -->
             </div>
             <div id="deck-ai-insights" class="deck-ai-insights hidden">
-                <div id="deck-ai-summary" class="deck-ai-summary deck-ai-clickable" onclick="generateDeckSummary()">
+                <div id="deck-ai-summary" class="panel deck-ai-summary deck-ai-clickable" role="button" tabindex="0" aria-label="Generera sammanfattning av kortleken" onclick="generateDeckSummary()">
                     <div class="deck-ai-summary-header">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                         <span>Sammanfattning</span>
@@ -126,7 +158,7 @@
                         <span class="deck-ai-placeholder">Klicka för att generera</span>
                     </div>
                 </div>
-                <div id="deck-ai-suggestion" class="deck-ai-suggestion deck-ai-clickable" onclick="generateDeckSuggestion()">
+                <div id="deck-ai-suggestion" class="panel deck-ai-suggestion deck-ai-clickable" role="button" tabindex="0" aria-label="Generera ett rekommenderat kort" onclick="generateDeckSuggestion()">
                     <div class="deck-ai-suggestion-header">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                         <span>Rekommenderat kort</span>
@@ -140,10 +172,8 @@
                 <!-- Cards preview will be rendered here -->
             </div>
 
-            <div
-                style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color); display: flex; justify-content: center;">
-                <button id="btn-delete-deck" class="btn text" style="color: #A62626; font-weight: 700;">Ta bort kortlek
-                    och dess innehåll</button>
+            <div class="deck-danger-zone">
+                <button id="btn-delete-deck" class="btn danger">Ta bort kortlek och dess innehåll</button>
             </div>
         </section>
 
@@ -161,11 +191,9 @@
                     <textarea id="card-front" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="card-back" style="display:flex; justify-content:space-between; align-items:center;">
+                    <label for="card-back" class="label-row">
                         Baksida (Svar)
-                        <button type="button" id="btn-generate-answer" class="btn text"
-                            style="font-size: 0.85rem; padding: 0.2rem 0.5rem; color: var(--primary-color);"> Generera
-                            svar</button>
+                        <button type="button" id="btn-generate-answer" class="label-action">Generera svar</button>
                     </label>
                     <textarea id="card-back" required></textarea>
                 </div>
@@ -189,9 +217,9 @@
                         </label>
                     </div>
                     <div class="grid-item" id="card-section-group">
-                        <label for="card-section-select" style="display:flex; justify-content:space-between; align-items:center; width: 100%;">
+                        <label for="card-section-select">
                             <span>Mapp</span>
-                            <button type="button" id="btn-auto-folder" class="btn text" style="font-size: 0.75rem; padding: 0.15rem 0.35rem; color: var(--primary-color); text-transform: none; letter-spacing: normal; font-weight: 600; display: inline-flex; align-items: center; gap: 0.15rem; cursor: pointer; border: none; background: transparent;">Auto </button>
+                            <button type="button" id="btn-auto-folder" class="label-action">Auto</button>
                         </label>
                         <div class="select-wrapper">
                             <select id="card-section-select">
@@ -204,7 +232,7 @@
                     </div>
                 </div>
                 <div id="card-back-image-preview" class="image-preview-container"></div>
-                <button type="submit" class="btn primary full-width">Spara kort</button>
+                <button type="submit" class="btn primary block">Spara kort</button>
             </form>
         </section>
 
@@ -223,10 +251,8 @@
                 <!-- Notes will be rendered here -->
             </div>
 
-            <div
-                style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border-color); display: flex; justify-content: center;">
-                <button id="btn-delete-notebook" class="btn text" style="color: #A62626; font-weight: 700;">Ta bort
-                    anteckningsblock och dess innehåll</button>
+            <div class="view-danger-zone">
+                <button id="btn-delete-notebook" class="btn danger">Ta bort anteckningsblock och dess innehåll</button>
             </div>
         </section>
 
@@ -241,9 +267,9 @@
             <form id="form-add-note" class="card-form">
                 <div class="form-group">
                     <label for="note-content">Innehåll</label>
-                    <textarea id="note-content" required style="min-height: 300px;"></textarea>
+                    <textarea id="note-content" required></textarea>
                 </div>
-                <button type="submit" class="btn primary full-width">Spara anteckning</button>
+                <button type="submit" class="btn primary block">Spara anteckning</button>
             </form>
         </section>
 
@@ -264,10 +290,16 @@
                 <div id="active-flashcard" class="flashcard">
                     <div class="flashcard-inner" id="flashcard-inner">
                         <div class="flashcard-front">
-                            <div id="study-front-text" style="width: 100%;">Laddar...</div>
+                            <div id="study-front-text" class="content-text">Laddar...</div>
                         </div>
                         <div class="flashcard-back">
-                            <div id="study-back-text" style="width: 100%;">Laddar...</div>
+                            <div class="answer-cover" aria-hidden="true">
+                                <span class="answer-cover-tag">
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.2" y="3" width="10.6" height="7" rx="1.4"/><path d="M2.4 10.2L10.6 2.8"/></svg>
+                                    Dolt tills du svarat
+                                </span>
+                            </div>
+                            <div id="study-back-text" class="content-text">Laddar...</div>
                         </div>
                     </div>
                 </div>
@@ -283,26 +315,24 @@
 
             <!-- Action visible before flipping -->
             <div id="study-flip-action" class="study-actions">
-                <button id="btn-flip" class="btn primary full-width large">Visa svar</button>
+                <button id="btn-flip" class="btn primary">Visa svar</button>
                 <button id="btn-skip" class="btn-skip" aria-label="Hoppa över detta kort">Hoppa över</button>
             </div>
 
-            <!-- AI Study Assistant -->
-            <div id="study-ai-assistant"
-                style="max-width: 600px; margin: 3rem auto 0; background: var(--surface-color); border-radius: var(--radius-md); padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
-                <h3
-                    style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary-color);">
-                     Fråga AI:n om kortet</h3>
-                <div id="study-ai-chat" class="hidden"
-                    style="margin-bottom: 1rem; padding: 1rem; background: rgba(0, 157, 255, 0.05); border-radius: var(--radius-sm); font-size: 0.95rem; max-height: 40vh; overflow-y: auto; overflow-x: auto; overflow-wrap: break-word;">
+            <!-- Fråga AI. Uppfällning i stället för permanent panel: det är en
+                 sekundär åtgärd och ska inte konkurrera med frågan om blicken. -->
+            <details id="study-ai-assistant" class="study-ai">
+                <summary>Fråga AI om kortet</summary>
+                <div class="study-ai-body">
+                    <div id="study-ai-chat" class="hidden"></div>
+                    <div id="study-ai-loading" class="pulse-text hidden">Funderar...</div>
+                    <form id="form-study-ai">
+                        <label class="sr-only" for="input-study-ai">Din fråga om kortet</label>
+                        <input type="text" id="input-study-ai" required>
+                        <button type="submit" class="btn secondary">Fråga</button>
+                    </form>
                 </div>
-                <div id="study-ai-loading" class="pulse-text hidden" style="margin-bottom: 1rem;">Funderar... </div>
-                <form id="form-study-ai" style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="input-study-ai" required
-                        style="flex: 1; padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-family: inherit; font-size: 0.95rem; outline: none;">
-                    <button type="submit" class="btn secondary" style="padding: 0.75rem 1rem;">Fråga</button>
-                </form>
-            </div>
+            </details>
         </section>
 
         <!-- View: Playground -->
@@ -312,18 +342,21 @@
 
         <!-- View: Study Complete -->
         <section id="view-study-complete" class="view hidden empty-state">
-            <h1>Bra jobbat! </h1>
-            <p style="margin: 1rem 0 2rem; color: var(--text-secondary);">Du har repeterat alla schemalagda kort för den
-                här kortleken.</p>
+            <h1>Bra jobbat!</h1>
+            <p class="modal-lead">Du har repeterat alla schemalagda kort för den här kortleken.</p>
             <button id="btn-complete-back" class="btn primary">Tillbaka till kortleken</button>
         </section>
 
-        <!-- View: Settings -->
-        <section id="view-settings" class="view hidden">
+        <!-- View: Settings
+             Två avsnitt, i den ordning de betyder något: AI är det man kommer
+             hit för att ställa in, Konto är förutsättningen. Inuti AI ligger
+             valet av modell och nyckeln i var sin grupp, eftersom de sparas på
+             helt olika sätt — se kommentaren överst i src/ui/settings.js. -->
+        <section id="view-settings" class="view hidden" aria-labelledby="settings-title">
             <div class="view-header">
                 <div>
-                    <button type="button" id="btn-settings-back" class="btn text">← Tillbaka</button>
-                    <h1>Inställningar</h1>
+                    <button type="button" id="btn-settings-back" class="btn text">&#8592; Tillbaka</button>
+                    <h1 id="settings-title">Inställningar</h1>
                 </div>
             </div>
 
@@ -335,65 +368,77 @@
                 <button type="button" id="btn-settings-signin" class="btn primary">Logga in</button>
             </div>
 
-            <div class="settings-section">
-                <h2 class="settings-section-title">AI</h2>
-
-                <div class="settings-field">
-                    <label for="settings-provider">Leverantör</label>
-                    <select id="settings-provider" class="settings-input"></select>
+            <section class="settings-section" aria-labelledby="settings-ai-title">
+                <div class="settings-section-head">
+                    <h2 id="settings-ai-title" class="settings-section-title">AI</h2>
+                    <p class="settings-section-lead">Vilken modell som svarar, och vilken nyckel anropen går på.</p>
                 </div>
 
-                <div class="settings-field">
-                    <label for="settings-model">Modell</label>
-                    <select id="settings-model" class="settings-input"></select>
-                    <p class="settings-hint">Listan är en genväg, inte en gräns. Välj "Eget modell-id" för en modell som inte hunnit med hit.</p>
+                <div class="settings-group" role="group" aria-labelledby="settings-model-group">
+                    <h3 id="settings-model-group" class="settings-group-title">Modell</h3>
+
+                    <div class="settings-field">
+                        <label for="settings-provider">Leverantör</label>
+                        <select id="settings-provider" class="settings-input"></select>
+                    </div>
+
+                    <div class="settings-field">
+                        <label for="settings-model">Modell</label>
+                        <select id="settings-model" class="settings-input"></select>
+                        <p class="settings-hint">Listan är en genväg, inte en gräns. Välj "Eget modell-id" för en modell som inte hunnit med hit.</p>
+                    </div>
+
+                    <div class="settings-field" id="settings-model-custom-field" hidden>
+                        <label for="settings-model-custom">Eget modell-id</label>
+                        <input type="text" id="settings-model-custom" class="settings-input" autocomplete="off" spellcheck="false">
+                    </div>
+
+                    <div class="settings-actions">
+                        <button type="button" id="btn-settings-save-model" class="btn primary">Spara val</button>
+                    </div>
                 </div>
 
-                <div class="settings-field" id="settings-model-custom-field" hidden>
-                    <label for="settings-model-custom">Eget modell-id</label>
-                    <input type="text" id="settings-model-custom" class="settings-input" autocomplete="off" spellcheck="false">
+                <div class="settings-group" role="group" aria-labelledby="settings-key-group">
+                    <h3 id="settings-key-group" class="settings-group-title">API-nyckel</h3>
+
+                    <div class="settings-field">
+                        <label for="settings-api-key">Nyckel</label>
+                        <input type="password" id="settings-api-key" class="settings-input" autocomplete="off" spellcheck="false" placeholder="Klistra in nyckeln">
+                        <p class="settings-hint">Nyckeln lagras krypterad på servern och används bara för dina egna anrop. Den skickas aldrig till webbläsaren.</p>
+                    </div>
+
+                    <p id="settings-key-status" class="settings-key-status" data-tone="info" role="status">Hämtar status...</p>
+                    <p id="settings-key-others" class="settings-hint settings-key-others" hidden></p>
+
+                    <div class="settings-actions">
+                        <button type="button" id="btn-settings-save-key" class="btn primary">Spara nyckel</button>
+                        <button type="button" id="btn-settings-delete-key" class="btn text settings-danger" hidden>Ta bort nyckel</button>
+                    </div>
+
+                    <p id="settings-message" class="settings-message" data-tone="info" role="status" hidden></p>
                 </div>
+            </section>
 
-                <div class="settings-actions">
-                    <button type="button" id="btn-settings-save-model" class="btn primary">Spara val</button>
+            <section class="settings-section" aria-labelledby="settings-account-title">
+                <div class="settings-section-head">
+                    <h2 id="settings-account-title" class="settings-section-title">Konto</h2>
+                    <p class="settings-section-lead">Kontot avgör var dina kort synkar och vem nyckeln tillhör.</p>
                 </div>
-
-                <hr class="settings-divider">
-
-                <div class="settings-field">
-                    <label for="settings-api-key">API-nyckel</label>
-                    <input type="password" id="settings-api-key" class="settings-input" autocomplete="off" spellcheck="false" placeholder="Klistra in nyckeln">
-                    <p class="settings-hint">Nyckeln lagras krypterad på servern och används bara för dina egna anrop. Den skickas aldrig till webbläsaren.</p>
-                </div>
-
-                <p id="settings-key-status" class="settings-key-status" data-tone="info" role="status">Hämtar status...</p>
-                <p id="settings-key-others" class="settings-hint" hidden></p>
-
-                <div class="settings-actions">
-                    <button type="button" id="btn-settings-save-key" class="btn primary">Spara nyckel</button>
-                    <button type="button" id="btn-settings-delete-key" class="btn text settings-danger" hidden>Ta bort nyckel</button>
-                </div>
-
-                <p id="settings-message" class="settings-message" data-tone="info" role="status" hidden></p>
-            </div>
-
-            <div class="settings-section">
-                <h2 class="settings-section-title">Konto</h2>
                 <p id="settings-account-email" class="settings-account-email"></p>
                 <div class="settings-actions">
                     <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
                 </div>
-            </div>
+            </section>
         </section>
 
     </main>
 
     <!-- Modal for Create Options -->
     <div id="modal-create-options" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-options-modal-title">
-        <div class="modal-content" style="max-width: 500px;">
-            <h2 id="create-options-modal-title" style="margin-bottom: 2rem; text-align: left;">Vad vill du skapa?</h2>
-            
-            <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+        <div class="modal-content">
+            <h2 id="create-options-modal-title">Vad vill du skapa?</h2>
+
+            <div class="create-options">
                 <!-- Deck Option -->
                 <button type="button" id="option-create-deck" class="create-option-card deck">
                     <span class="create-option-icon">
@@ -402,10 +447,10 @@
                             <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
                     </span>
-                    <div style="display: flex; flex-direction: column;">
-                        <strong style="font-size: 1.05rem; color: var(--text-primary); margin-bottom: 0.15rem;">Kortlek</strong>
-                        <span style="font-size: 0.82rem; color: var(--text-secondary); font-weight: normal;">Samla flashcards för repetition</span>
-                    </div>
+                    <span class="create-option-text">
+                        <span class="create-option-title">Kortlek</span>
+                        <span class="create-option-desc">Samla flashcards för repetition</span>
+                    </span>
                 </button>
 
                 <!-- Notebook Option -->
@@ -416,10 +461,10 @@
                             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                         </svg>
                     </span>
-                    <div style="display: flex; flex-direction: column;">
-                        <strong style="font-size: 1.05rem; color: var(--text-primary); margin-bottom: 0.15rem;">Anteckningsblock</strong>
-                        <span style="font-size: 0.82rem; color: var(--text-secondary); font-weight: normal;">Skriv ner dina tankar fritt</span>
-                    </div>
+                    <span class="create-option-text">
+                        <span class="create-option-title">Anteckningsblock</span>
+                        <span class="create-option-desc">Skriv ner dina tankar fritt</span>
+                    </span>
                 </button>
 
                 <!-- Bookshelf Option -->
@@ -429,14 +474,14 @@
                             <path d="M22 17H2a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2zm-4-4V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v8"/>
                         </svg>
                     </span>
-                    <div style="display: flex; flex-direction: column;">
-                        <strong style="font-size: 1.05rem; color: var(--text-primary); margin-bottom: 0.15rem;">Bokhylla</strong>
-                        <span style="font-size: 0.82rem; color: var(--text-secondary); font-weight: normal;">Gruppera och organisera</span>
-                    </div>
+                    <span class="create-option-text">
+                        <span class="create-option-title">Bokhylla</span>
+                        <span class="create-option-desc">Gruppera och organisera</span>
+                    </span>
                 </button>
             </div>
             
-            <div class="modal-actions" style="justify-content: center; margin-top: 2rem;">
+            <div class="modal-actions">
                 <button type="button" id="btn-cancel-create-options" class="btn text">Avbryt</button>
             </div>
         </div>
@@ -514,9 +559,9 @@
 
     <!-- Generic confirm modal -->
     <div id="modal-confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-        <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-content">
             <h2 id="confirm-modal-title">Bekräfta</h2>
-            <p id="confirm-modal-message" style="margin-bottom: 1.5rem; color: var(--text-secondary);"></p>
+            <p id="confirm-modal-message" class="modal-lead"></p>
             <div class="modal-actions">
                 <button type="button" id="btn-confirm-cancel" class="btn text">Avbryt</button>
                 <button type="button" id="btn-confirm-ok" class="btn primary">OK</button>
@@ -526,7 +571,7 @@
 
     <!-- Generic prompt modal -->
     <div id="modal-prompt" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="prompt-modal-title">
-        <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-content">
             <h2 id="prompt-modal-title">Ange värde</h2>
             <form id="form-prompt-modal">
                 <div class="form-group">
@@ -559,20 +604,20 @@
     <!-- Modal for delete bookshelf (keep vs delete items) -->
     <div id="modal-delete-bookshelf" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="delete-bookshelf-modal-title">
         <div class="modal-content">
-            <h2 id="delete-bookshelf-modal-title" style="color: #A62626;">Radera bokhylla</h2>
-            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">Vad vill du ska hända med innehållet (kortlekar och anteckningsblock)?</p>
-            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
-                <button id="btn-delete-bookshelf-keep" class="btn secondary" style="text-align: left; padding: 1rem; display: flex; flex-direction: column; height: auto;">
-                    <span style="font-weight: 600; margin-bottom: 0.25rem;">Behåll innehållet</span>
-                    <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-secondary);">Bokhyllan raderas men innehållet flyttas till huvudvyn.</span>
+            <h2 id="delete-bookshelf-modal-title">Radera bokhylla</h2>
+            <p class="modal-lead">Vad vill du ska hända med innehållet (kortlekar och anteckningsblock)?</p>
+            <div class="modal-choice-group">
+                <button type="button" id="btn-delete-bookshelf-keep" class="modal-choice">
+                    <span class="modal-choice-title">Behåll innehållet</span>
+                    <span class="modal-choice-desc">Bokhyllan raderas men innehållet flyttas till huvudvyn.</span>
                 </button>
-                <button id="btn-delete-bookshelf-delete" class="btn primary" style="background: #A62626; color: white; border: none; text-align: left; padding: 1rem; display: flex; flex-direction: column; height: auto;">
-                    <span style="font-weight: 600; margin-bottom: 0.25rem;">Radera allt</span>
-                    <span style="font-size: 0.85rem; font-weight: normal; opacity: 0.9;">Radera bokhyllan OCH allt innehåll inuti.</span>
+                <button type="button" id="btn-delete-bookshelf-delete" class="modal-choice danger">
+                    <span class="modal-choice-title">Radera allt</span>
+                    <span class="modal-choice-desc">Radera bokhyllan OCH allt innehåll inuti.</span>
                 </button>
             </div>
-            <div class="modal-actions" style="margin-top: 0;">
-                <button type="button" id="btn-cancel-delete-bookshelf" class="btn text" style="width: 100%;">Avbryt</button>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-delete-bookshelf" class="btn text">Avbryt</button>
             </div>
         </div>
     </div>
@@ -581,10 +626,10 @@
     <div id="modal-note-card" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="note-card-modal-title">
         <div class="modal-content">
             <h2 id="note-card-modal-title">Lägg till anteckning</h2>
-            <form id="form-note-card" class="card-form" style="padding: 0; box-shadow: none; background: transparent; max-width: 100%;">
+            <form id="form-note-card" class="card-form">
                 <div class="form-group">
                     <label for="note-card-content">Anteckning</label>
-                    <textarea id="note-card-content" required style="min-height: 150px;" placeholder="Skriv din reflektion eller anteckning här..."></textarea>
+                    <textarea id="note-card-content" required placeholder="Skriv din reflektion eller anteckning här..."></textarea>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btn-cancel-note-card" class="btn text">Avbryt</button>
@@ -598,8 +643,7 @@
     <div id="modal-edit-card" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="edit-card-modal-title">
         <div class="modal-content">
             <h2 id="edit-card-modal-title">Redigera kort</h2>
-            <form id="form-edit-card" class="card-form"
-                style="padding: 0; box-shadow: none; background: transparent; max-width: 100%;">
+            <form id="form-edit-card" class="card-form">
                 <div class="form-group">
                     <label for="edit-card-front">Framsida (Fråga)</label>
                     <textarea id="edit-card-front" required></textarea>
@@ -639,8 +683,8 @@
 
     <!-- Modal for Moving a Card -->
     <div id="modal-move-card" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="move-card-modal-title">
-        <div class="modal-content" style="max-width: 500px;">
-            <h2 id="move-card-modal-title" style="margin-bottom: 1.5rem;">Flytta till...</h2>
+        <div class="modal-content">
+            <h2 id="move-card-modal-title">Flytta till...</h2>
             <div class="move-search-container">
                 <div class="search-icon-fixed">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -651,8 +695,8 @@
                 <!-- Targets will be rendered here dynamically -->
             </div>
             <input type="hidden" id="selected-move-target" value="">
-            <div class="modal-actions" style="margin-top: 1.5rem; justify-content: flex-end;">
-                <button type="button" id="btn-cancel-move-card" class="btn text" style="color: var(--text-secondary);">Avbryt</button>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-move-card" class="btn text">Avbryt</button>
                 <button type="button" id="btn-confirm-move-card" class="btn primary" disabled>Flytta hit</button>
             </div>
         </div>
@@ -662,11 +706,10 @@
     <div id="modal-move-item" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="move-item-modal-title">
         <div class="modal-content">
             <h2 id="move-item-modal-title">Flytta till bokhylla</h2>
-            <form id="form-move-item" class="card-form"
-                style="padding: 0; box-shadow: none; background: transparent; max-width: 100%;">
+            <form id="form-move-item" class="card-form">
                 <div class="form-group">
                     <label for="select-move-bookshelf">Välj plats</label>
-                    <select id="select-move-bookshelf" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; font-family: inherit; background-color: var(--surface-color); color: var(--text-primary);"></select>
+                    <select id="select-move-bookshelf" required></select>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btn-cancel-move-item" class="btn text">Avbryt</button>
@@ -680,11 +723,10 @@
     <div id="modal-move-section" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="move-section-modal-title">
         <div class="modal-content">
             <h2 id="move-section-modal-title">Flytta mapp till kortlek</h2>
-            <form id="form-move-section" class="card-form"
-                style="padding: 0; box-shadow: none; background: transparent; max-width: 100%;">
+            <form id="form-move-section" class="card-form">
                 <div class="form-group">
                     <label for="select-move-section-deck">Välj kortlek</label>
-                    <select id="select-move-section-deck" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 1rem; font-family: inherit; background-color: var(--surface-color); color: var(--text-primary);"></select>
+                    <select id="select-move-section-deck" required></select>
                 </div>
                 <div class="modal-actions">
                     <button type="button" id="btn-cancel-move-section" class="btn text">Avbryt</button>
@@ -696,112 +738,91 @@
 
     <!-- Modal for Card Details & AI -->
     <div id="modal-card-details" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="card-details-modal-title">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="view-header" style="margin-bottom: 1rem;">
-                <h2 id="card-details-modal-title" style="font-size: 1.25rem; margin:0; color: var(--text-primary);">Fråga</h2>
-            </div>
-            <div style="margin-bottom: 1.5rem; font-size: 1rem; color: var(--text-secondary);" id="detail-back-text">
-                Svar
-            </div>
+        <div class="modal-content">
+            <h2 id="card-details-modal-title">Fråga</h2>
+            <div id="detail-back-text" class="detail-back">Svar</div>
 
-            <div id="ai-explanation-container" class="hidden"
-                style="background: rgba(0, 157, 255, 0.05); padding: 1.25rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-size: 0.95rem; border-left: 4px solid var(--primary-color); max-height: 55vh; overflow-y: auto; overflow-x: auto;">
-                <div id="ai-loading" class="pulse-text hidden">Hämtar text... </div>
-                <div id="ai-text" style="line-height: 1.6; overflow-wrap: break-word; word-wrap: break-word;"></div>
+            <div id="ai-explanation-container" class="hidden">
+                <div id="ai-loading" class="pulse-text hidden">Hämtar text...</div>
+                <div id="ai-text"></div>
 
-                <div id="test-question-actions" class="hidden"
-                    style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1); display: flex; gap: 0.5rem; justify-content: flex-end;">
-                    <button type="button" id="btn-test-easier" class="btn text"
-                        style="font-size: 0.85rem; padding: 0.2rem 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-md); background: white;">
-                        Lättare</button>
-                    <button type="button" id="btn-test-similar" class="btn text"
-                        style="font-size: 0.85rem; padding: 0.2rem 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-md); background: white;">
-                        Liknande</button>
-                    <button type="button" id="btn-test-harder" class="btn text"
-                        style="font-size: 0.85rem; padding: 0.2rem 0.5rem; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--radius-md); background: white;">
-                        Svårare</button>
+                <div id="test-question-actions" class="hidden">
+                    <button type="button" id="btn-test-easier" class="btn">Lättare</button>
+                    <button type="button" id="btn-test-similar" class="btn">Liknande</button>
+                    <button type="button" id="btn-test-harder" class="btn">Svårare</button>
                 </div>
             </div>
 
-            <div class="modal-actions"
-                style="margin-top: 1.5rem; justify-content: flex-start; gap: 0.5rem; flex-wrap: wrap;">
-                <button type="button" id="btn-explain-ai" class="btn secondary"
-                    style="display: flex; gap: 0.5rem; align-items: center; border-color: rgba(0, 157, 255, 0.2); color: var(--primary-color); background: rgba(0, 157, 255, 0.05);">
-                     Förklara med AI
-                </button>
-                <button type="button" id="btn-test-ai" class="btn secondary"
-                    style="display: flex; gap: 0.5rem; align-items: center; border-color: rgba(157, 0, 255, 0.2); color: #8A2BE2; background: rgba(157, 0, 255, 0.05);">
-                     Generera provfråga
-                </button>
-                <button type="button" id="btn-close-card-modal" class="btn text"
-                    style="margin-left: auto;">Stäng</button>
+            <div class="modal-foot modal-foot-split">
+                <div class="modal-foot-group">
+                    <button type="button" id="btn-explain-ai" class="btn secondary">Förklara med AI</button>
+                    <button type="button" id="btn-test-ai" class="btn secondary">Generera provfråga</button>
+                </div>
+                <button type="button" id="btn-close-card-modal" class="btn text">Stäng</button>
             </div>
         </div>
     </div>
 
     <!-- Modal for Topic Generator (AI Card Wizard) -->
     <div id="modal-topic-generator" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="topic-generator-modal-title">
-        <div class="modal-content" style="max-width: 650px; max-height: 95vh; display: flex; flex-direction: column; padding: 1.75rem;">
-            <div class="modal-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.25rem;">
-                <h2 id="topic-generator-modal-title" style="margin:0; font-size:1.4rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:0.5rem;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:#A855F7;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                    AI-generera Flashcards
-                </h2>
-                <button type="button" id="btn-close-topic-modal-top" class="modal-close-x" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-secondary); line-height:1; padding:0 4px;">&times;</button>
+        <div class="modal-content modal-tall">
+            <div class="modal-header-row">
+                <h2 id="topic-generator-modal-title">AI-generera flashcards</h2>
+                <button type="button" id="btn-close-topic-modal-top" class="modal-close-x" aria-label="Stäng"></button>
             </div>
             
             <!-- STEP 1: CONFIGURATION WIZARD -->
-            <div id="topic-setup-step" style="display:flex; flex-direction:column; gap:1.25rem; flex:1; overflow-y:auto; padding-right:4px;">
+            <div id="topic-setup-step" class="wizard-step modal-scroll">
                 <!-- Source Toggle -->
                 <div class="form-group">
-                    <label style="font-weight:600; margin-bottom:0.5rem; display:block; font-size:0.9rem;">Välj källa för innehåll</label>
-                    <div class="toggle-button-group" style="display:flex; background:rgba(0,0,0,0.03); padding:4px; border-radius:10px; gap:4px;">
-                        <button type="button" id="toggle-source-topic" class="btn-toggle active" style="flex:1; border:none; padding:0.55rem; font-size:0.85rem; font-weight:600; border-radius:8px; cursor:pointer; transition:all 0.2s;">Ämne / Koncept</button>
-                        <button type="button" id="toggle-source-text" class="btn-toggle" style="flex:1; border:none; padding:0.55rem; font-size:0.85rem; font-weight:600; border-radius:8px; cursor:pointer; transition:all 0.2s;">Klistra in text / Anteckningar</button>
+                    <label>Välj källa för innehåll</label>
+                    <div class="toggle-button-group">
+                        <button type="button" id="toggle-source-topic" class="btn-toggle active">Ämne / Koncept</button>
+                        <button type="button" id="toggle-source-text" class="btn-toggle">Klistra in text / Anteckningar</button>
                     </div>
                 </div>
 
                 <!-- Input area based on toggle -->
                 <div id="topic-input-container" class="form-group">
-                    <label for="input-topic-name" style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.9rem;">Vilket ämne vill du generera kort om?</label>
-                    <input type="text" id="input-topic-name" placeholder="Ex. Programmering i Python, Andra världskriget, Kloroplastens funktion..." style="width:100%; padding:0.75rem 1rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.95rem; outline:none; transition:border-color 0.2s;">
+                    <label for="input-topic-name">Vilket ämne vill du generera kort om?</label>
+                    <input type="text" id="input-topic-name" placeholder="Ex. Programmering i Python, Andra världskriget, Kloroplastens funktion...">
                 </div>
                 
                 <div id="text-input-container" class="form-group hidden">
-                    <label for="input-source-text" style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.9rem;">Klistra in din text eller dina anteckningar</label>
-                    <textarea id="input-source-text" placeholder="Klistra in kapitel, föreläsningsanteckningar, artiklar eller sammanfattningar här..." rows="6" style="width:100%; padding:0.75rem 1rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem; font-family:inherit; resize:vertical; outline:none; transition:border-color 0.2s;"></textarea>
+                    <label for="input-source-text">Klistra in din text eller dina anteckningar</label>
+                    <textarea id="input-source-text" rows="6" placeholder="Klistra in kapitel, föreläsningsanteckningar, artiklar eller sammanfattningar här..."></textarea>
                 </div>
 
                 <!-- Settings Grid -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-grid-2">
                     <!-- Antal kort -->
                     <div class="form-group">
-                        <label style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.9rem;">Antal kort</label>
-                        <div class="option-buttons-group" style="display:flex; background:rgba(0,0,0,0.03); padding:4px; border-radius:10px; gap:4px;">
-                            <button type="button" class="btn-option-qty active" data-qty="auto" style="flex:1.5; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">Auto</button>
-                            <button type="button" class="btn-option-qty" data-qty="5" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">5</button>
-                            <button type="button" class="btn-option-qty" data-qty="10" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">10</button>
-                            <button type="button" class="btn-option-qty" data-qty="15" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">15</button>
-                            <button type="button" class="btn-option-qty" data-qty="20" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">20</button>
+                        <label>Antal kort</label>
+                        <div class="option-buttons-group">
+                            <button type="button" class="btn-option-qty active" data-qty="auto">Auto</button>
+                            <button type="button" class="btn-option-qty" data-qty="5">5</button>
+                            <button type="button" class="btn-option-qty" data-qty="10">10</button>
+                            <button type="button" class="btn-option-qty" data-qty="15">15</button>
+                            <button type="button" class="btn-option-qty" data-qty="20">20</button>
                         </div>
                     </div>
 
                     <!-- Svårighetsgrad -->
                     <div class="form-group">
-                        <label style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.9rem;">Svårighetsgrad</label>
-                        <div class="option-buttons-group" style="display:flex; background:rgba(0,0,0,0.03); padding:4px; border-radius:10px; gap:4px;">
-                            <button type="button" class="btn-option-diff" data-diff="beginner" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">Enkel</button>
-                            <button type="button" class="btn-option-diff active" data-diff="intermediate" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">Medel</button>
-                            <button type="button" class="btn-option-diff" data-diff="advanced" style="flex:1; border:none; padding:0.45rem; font-size:0.8rem; font-weight:600; border-radius:8px; cursor:pointer;">Avancerad</button>
+                        <label>Svårighetsgrad</label>
+                        <div class="option-buttons-group">
+                            <button type="button" class="btn-option-diff" data-diff="beginner">Enkel</button>
+                            <button type="button" class="btn-option-diff active" data-diff="intermediate">Medel</button>
+                            <button type="button" class="btn-option-diff" data-diff="advanced">Avancerad</button>
                         </div>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-grid-2">
                     <!-- Inlärningsfokus -->
                     <div class="form-group">
-                        <label for="select-topic-focus" style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.9rem;">Inlärningsfokus</label>
-                        <select id="select-topic-focus" style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; font-family:inherit; outline:none; background:white;">
+                        <label for="select-topic-focus">Inlärningsfokus</label>
+                        <select id="select-topic-focus">
                             <option value="mixed">Blandat (Standard)</option>
                             <option value="definitions">Begrepp & Definitioner</option>
                             <option value="practical">Praktisk tillämpning & Kod</option>
@@ -811,59 +832,57 @@
 
                     <!-- Destination Folder / Sektion -->
                     <div class="form-group">
-                        <label for="select-topic-section" style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.9rem;">Spara i mapp</label>
-                        <select id="select-topic-section" style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; font-family:inherit; outline:none; background:white;">
+                        <label for="select-topic-section">Spara i mapp</label>
+                        <select id="select-topic-section">
                             <!-- Populated dynamically -->
                         </select>
                     </div>
                 </div>
 
                 <!-- Custom Section Name input (conditionally visible) -->
-                <div id="new-section-name-container" class="form-group hidden" style="margin-top:-0.5rem;">
-                    <label for="input-new-section-name" style="font-weight:600; margin-bottom:0.4rem; display:block; font-size:0.8rem; color:var(--text-secondary);">Namn på ny mapp</label>
-                    <input type="text" id="input-new-section-name" placeholder="Ex. Föreläsning 1, Avancerade termer..." style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.85rem; outline:none;">
+                <div id="new-section-name-container" class="form-group hidden">
+                    <label for="input-new-section-name">Namn på ny mapp</label>
+                    <input type="text" id="input-new-section-name" placeholder="Ex. Föreläsning 1, Avancerade termer...">
                 </div>
 
                 <!-- Action row -->
-                <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                    <button type="button" id="btn-close-topic-modal" class="btn secondary">Avbryt</button>
-                    <button type="button" id="btn-submit-topic-wizard" class="btn primary" style="background:linear-gradient(135deg, #A855F7 0%, #7C3AED 100%); color:white; border:none; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);">Generera kort </button>
+                <div class="modal-foot">
+                    <button type="button" id="btn-close-topic-modal" class="btn text">Avbryt</button>
+                    <button type="button" id="btn-submit-topic-wizard" class="btn primary">Generera kort</button>
                 </div>
             </div>
 
             <!-- STEP 2: LOADING SCREEN -->
-            <div id="topic-loading-step" class="hidden" style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:1.5rem; padding:3rem 1rem;">
+            <div id="topic-loading-step" class="wizard-wait hidden">
                 <div class="wizard-spinner-container">
                     <div class="wizard-spinner"></div>
                     <div class="wizard-spinner-sparkles"></div>
                 </div>
-                <div style="text-align:center;">
-                    <h3 id="topic-loading-title" style="margin-bottom:0.5rem; font-weight:700; font-size:1.15rem;">AI skapar dina kort...</h3>
-                    <p id="topic-loading-text" style="color:var(--text-secondary); font-size:0.85rem; max-width:280px; margin:0 auto; line-height:1.4;">Detta tar vanligtvis 10-20 sekunder beroende på komplexitet.</p>
-                </div>
+                <h3 id="topic-loading-title">AI skapar dina kort...</h3>
+                <p id="topic-loading-text">Detta tar vanligtvis 10-20 sekunder beroende på komplexitet.</p>
             </div>
 
             <!-- STEP 3: PREVIEW & EDIT LIST -->
-            <div id="topic-preview-step" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
-                <div style="background:rgba(124, 58, 237, 0.05); border:1px solid rgba(124, 58, 237, 0.1); border-radius:10px; padding:0.75rem 1rem; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:0.85rem; color:#7C3AED; font-weight:600;" id="topic-summary-count">0 kort skapade. Anpassa eller välj vilka du vill behålla.</span>
-                    <button type="button" id="btn-toggle-select-all" class="btn text" style="font-size:0.8rem; color:#7C3AED; font-weight:700; padding:0; background:none; border:none; cursor:pointer;">Avmarkera alla</button>
+            <div id="topic-preview-step" class="wizard-step hidden">
+                <div class="wizard-summary">
+                    <span id="topic-summary-count">0 kort skapade. Anpassa eller välj vilka du vill behålla.</span>
+                    <button type="button" id="btn-toggle-select-all" class="label-action">Avmarkera alla</button>
                 </div>
 
-                <div id="topic-cards-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; padding-right:4px;">
+                <div id="topic-cards-list" class="wizard-cards">
                     <!-- Editable proposed cards go here -->
                 </div>
 
                 <!-- Modifiers & Save Actions Footer -->
-                <div style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1rem; flex-shrink:0;">
-                    <div style="display: flex; gap: 0.4rem;">
-                        <button type="button" id="btn-topic-modifier-easier" class="btn secondary" style="padding: 0.45rem 0.65rem; font-size:0.8rem; height:auto; line-height:1.2;" title="Skapa nya lättare kort">Lättare</button>
-                        <button type="button" id="btn-topic-modifier-harder" class="btn secondary" style="padding: 0.45rem 0.65rem; font-size:0.8rem; height:auto; line-height:1.2;" title="Skapa nya svårare kort">Svårare</button>
-                        <button type="button" id="btn-topic-modifier-practical" class="btn secondary" style="padding: 0.45rem 0.65rem; font-size:0.8rem; height:auto; line-height:1.2;" title="Inrikta mer på praktiska exempel/kod">Mer praktiskt</button>
+                <div class="modal-foot modal-foot-split">
+                    <div class="modal-foot-group">
+                        <button type="button" id="btn-topic-modifier-easier" class="btn" title="Skapa nya lättare kort">Lättare</button>
+                        <button type="button" id="btn-topic-modifier-harder" class="btn" title="Skapa nya svårare kort">Svårare</button>
+                        <button type="button" id="btn-topic-modifier-practical" class="btn" title="Inrikta mer på praktiska exempel/kod">Mer praktiskt</button>
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" id="btn-topic-preview-back" class="btn secondary">Tillbaka</button>
-                        <button type="button" id="btn-save-topic-cards-new" class="btn primary" style="background:linear-gradient(135deg, #10B981 0%, #059669 100%); color:white; border:none; box-shadow:0 4px 12px rgba(16, 185, 129, 0.25);">Spara (<span id="btn-save-count">0</span>)</button>
+                    <div class="modal-foot-group">
+                        <button type="button" id="btn-topic-preview-back" class="btn text">Tillbaka</button>
+                        <button type="button" id="btn-save-topic-cards-new" class="btn primary">Spara (<span id="btn-save-count">0</span>)</button>
                     </div>
                 </div>
             </div>
@@ -872,78 +891,74 @@
 
     <!-- Modal for Diary -->
     <div id="modal-diary" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="diary-modal-title">
-        <div class="modal-content" style="max-width: 650px; max-height: 95vh; display: flex; flex-direction: column;">
-            <h2 id="diary-modal-title"> Dagens lärdomar</h2>
-            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Skriv fritt vad du lärt dig
-                idag. AI:n analyserar texten och föreslår flashcards med rätt kortlek.</p>
+        <div class="modal-content modal-tall">
+            <div class="modal-header-row">
+                <h2 id="diary-modal-title">Dagens lärdomar</h2>
+                <button type="button" id="btn-close-diary-top" class="modal-close-x" aria-label="Stäng"></button>
+            </div>
+            <p class="modal-lead">Skriv fritt vad du lärt dig idag. AI:n analyserar texten och föreslår flashcards med
+                rätt kortlek.</p>
             <form id="form-diary">
-                <textarea id="input-diary-text" rows="6" required
-                    style="width: 100%; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none;"></textarea>
-                <button type="submit" class="btn primary" style="margin-top: 0.75rem; width: 100%;">Analysera och
-                    generera kort</button>
+                <textarea id="input-diary-text" rows="6" required></textarea>
+                <button type="submit" class="btn primary block">Analysera och generera kort</button>
             </form>
 
-            <div id="diary-loading" class="pulse-text hidden" style="margin: 1rem 0;">AI analyserar dina lärdomar... 
-            </div>
+            <div id="diary-loading" class="pulse-text hidden">AI analyserar dina lärdomar...</div>
 
-            <div id="diary-cards-container" class="hidden"
-                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; margin-bottom: 1rem;">
-            </div>
+            <div id="diary-cards-container" class="wizard-cards hidden"></div>
 
-            <div id="diary-actions-container" class="hidden"
-                style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <div id="diary-actions-container" class="modal-foot hidden">
                 <button type="button" id="btn-close-diary" class="btn text">Avbryt</button>
                 <button type="button" id="btn-save-diary-cards" class="btn primary">Spara valda kort</button>
             </div>
-            <button type="button" id="btn-close-diary-top" class="btn text"
-                style="align-self: flex-end; margin-top: 1rem;">Stäng</button>
         </div>
     </div>
 
     <!-- AI Sort Modal -->
-    <div id="modal-ai-sort" class="modal hidden" role="dialog" aria-modal="true">
-        <div class="modal-content" style="max-width: 650px; max-height: 95vh; display: flex; flex-direction: column;">
-            <h2>AI-sortering</h2>
-            <p id="ai-sort-status" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Analyserar kort...</p>
-            <div id="ai-sort-loading" class="pulse-text" style="margin: 1rem 0;">AI analyserar och sorterar dina kort...</div>
-            <div id="ai-sort-preview" class="hidden" style="flex: 1; overflow-y: auto; margin-bottom: 1rem;"></div>
-            <div id="ai-sort-actions" class="hidden" style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+    <div id="modal-ai-sort" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ai-sort-modal-title">
+        <div class="modal-content modal-tall">
+            <h2 id="ai-sort-modal-title">AI-sortering</h2>
+            <p id="ai-sort-status" class="modal-lead">Analyserar kort...</p>
+            <div id="ai-sort-loading" class="pulse-text">AI analyserar och sorterar dina kort...</div>
+            <div id="ai-sort-preview" class="modal-scroll hidden"></div>
+            <div id="ai-sort-actions" class="modal-foot hidden">
                 <button type="button" id="btn-cancel-ai-sort" class="btn text">Avbryt</button>
                 <button type="button" id="btn-apply-ai-sort" class="btn primary">Tillämpa sortering</button>
             </div>
         </div>
     </div>
 
-    <!-- Global Search Modal -->
-    <div id="modal-global-search" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="global-search-title" style="z-index: 1000; align-items: flex-start; padding-top: 10vh;">
-        <div class="modal-content" style="width: 100%; max-width: 650px; padding: 0; overflow: hidden; background: var(--surface-color); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); border-radius: var(--radius-md);">
-            <div style="display: flex; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); gap: 0.75rem; background: rgba(0,0,0,0.01);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="opacity: 0.6;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <h2 id="global-search-title" class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Sök i biblioteket</h2>
-                <input type="text" id="global-search-input" placeholder="Sök efter bokhyllor, kortlekar, mappar, kort, anteckningar..." style="flex: 1; border: none; outline: none; background: transparent; font-size: 1.05rem; font-weight: 500; color: var(--text-primary); padding: 0;">
-                <span style="font-size: 0.75rem; background: var(--border-color); padding: 0.2rem 0.45rem; border-radius: 4px; font-weight: 600; color: var(--text-secondary); opacity: 0.8; letter-spacing: 0.05em; pointer-events: none;">ESC</span>
+    <!-- Global sök: kommandopaletten (Cmd+K eller /).
+         Fältet är en combobox och träfflistan en listbox: fokus stannar i
+         fältet medan pilarna flyttar markeringen, och aria-activedescendant
+         talar om vilken rad som är markerad. -->
+    <div id="modal-global-search" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="global-search-title">
+        <div class="modal-content search-palette">
+            <h2 id="global-search-title" class="sr-only">Sök i biblioteket</h2>
+            <div class="search-palette-head">
+                <svg class="search-palette-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="global-search-input" class="search-palette-input"
+                    placeholder="Sök i biblioteket"
+                    aria-label="Sök i biblioteket"
+                    role="combobox" aria-expanded="false" aria-controls="global-search-results"
+                    aria-autocomplete="list" autocomplete="off" spellcheck="false">
+                <span class="kbd" aria-hidden="true">Esc</span>
             </div>
-            <div id="global-search-results" style="max-height: 400px; overflow-y: auto; padding: 0.5rem 0;">
-                <div style="padding: 2.5rem; text-align: center; color: var(--text-secondary); font-size: 0.95rem;">
-                    Skriv för att söka i hela ditt bibliotek...
-                </div>
+            <div id="global-search-results" class="search-results" role="listbox" aria-label="Sökresultat">
+                <p class="search-empty">Skriv för att söka i hela ditt bibliotek.</p>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.015); font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <span><kbd style="border: 1px solid var(--border-color); padding: 1px 4px; border-radius: 3px; background: var(--surface-color);">↑↓</kbd> Navigera</span>
-                    <span><kbd style="border: 1px solid var(--border-color); padding: 1px 4px; border-radius: 3px; background: var(--surface-color);">Enter</kbd> Öppna</span>
-                </div>
-                <div>
-                    <span id="global-search-count">0 resultat</span>
-                </div>
+            <div class="search-palette-foot">
+                <span class="search-hint"><kbd class="kbd">&#8593;&#8595;</kbd> Navigera</span>
+                <span class="search-hint"><kbd class="kbd">Enter</kbd> Öppna</span>
+                <span id="global-search-count" class="search-count" role="status" aria-live="polite">0 resultat</span>
             </div>
         </div>
     </div>
 
 
     <!-- Inloggning. Visas som overlagg nar ingen ar inloggad och molnlagring
-         ar konfigurerad. Skarmen ar avsiktligt spartansk; den far sin riktiga
-         design i etapp 4. -->
+         ar konfigurerad. Overlagget ar inte avfardbart med Escape: vagen forbi
+         heter "Fortsatt utan konto" och ska valjas medvetet. -->
     <div id="auth-overlay" class="auth-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="auth-title">
         <div class="auth-panel">
             <h1 id="auth-title" class="auth-title">Repetix</h1>
@@ -969,9 +984,12 @@
                 <button type="submit" class="btn primary auth-submit" id="auth-submit">Logga in</button>
             </form>
 
+            <p class="auth-sep" id="auth-sep" hidden><span>eller</span></p>
+
             <!-- Googles officiella G-mark. Den fyrfargade logotypen ar den enda
                  tillatna for en inloggningsknapp; en egen tolkning eller en
-                 enfargad variant bryter mot Googles varumarkesregler. -->
+                 enfargad variant bryter mot Googles varumarkesregler. Ytan ska
+                 dessutom vara vit och kanten gra — se src/styles/views/auth.css. -->
             <button type="button" class="btn auth-google" id="auth-google" hidden>
                 <svg class="auth-google-mark" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
                     <path fill="#4285F4" d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9087c1.7018-1.5668 2.6836-3.874 2.6836-6.615z"/>
@@ -994,8 +1012,10 @@
         </div>
     </div>
 
-    <!-- Notification system -->
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Notiser. aria-live="polite" gör att texten läses upp när den dyker upp,
+         utan att avbryta det skärmläsaren redan höll på med. Utan detta var
+         varje bekräftelse i appen osynlig för den som inte ser skärmen. -->
+    <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
     <script type="module" src="/src/main.js"></script>
 </body>

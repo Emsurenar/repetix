@@ -1,13 +1,37 @@
 import { openMoveItemModal } from '../ai/client.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
+import { getReviewLog } from '../core/sync.js';
 import { escapeHtml } from '../core/utils.js';
+import { currentStreak, dailyCounts, mergeLegacyCounts } from '../domain/history.js';
+import { loadRecords } from '../domain/stats.js';
 import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook } from './deck.js';
 import { deckList } from './dom.js';
 import { openColorModal, renderSidebar } from './modals-wiring.js';
 import { showConfirmModal, showPromptModal } from './modals.js';
+import { startBookshelfStudy } from './study.js';
 import { showToast } from './toast.js';
+
+
+/* Menyknappens ikon. Tre punkter i stället för tecknet "⋮": ett glyf som
+ * saknas i vald font faller tillbaka på systemets, och storleken hoppar då
+ * mellan rader. En svg ritar likadant överallt. */
+const MENU_ICON = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="3" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="8" cy="13" r="1.4"/></svg>`;
+
+/* Attributvärde. escapeHtml() går via innerHTML och lämnar citattecken orörda,
+ * vilket duger i textinnehåll men inte i ett attribut: en kortlek som heter
+ * 5" diskett skulle annars bryta sig ur aria-label. */
+const attr = (value) => escapeHtml(value).replace(/"/g, '&quot;');
+
+/* Radmeny som <details>. Knappen är därmed alltid synlig och öppnas av ett
+ * tryck — den gamla lösningen låg bakom :hover och gick inte att nå med ett
+ * finger. */
+const rowMenu = (label, items) => `
+    <details class="row-menu">
+        <summary class="row-menu-toggle" aria-label="${attr(label)}">${MENU_ICON}</summary>
+        <div class="row-menu-items">${items}</div>
+    </details>`;
 
 
 const itemMatchesFilter = (item, type, flt) => {
@@ -27,7 +51,38 @@ const itemMatchesFilter = (item, type, flt) => {
     return false;
 };
 
+/* Nyckeltalen överst i biblioteket.
+ *
+ * Streak och totalsumma räknas ur repetitionsloggen och inte ur
+ * card.lastReviewed: det fältet skrivs över vid varje ny repetition och tappar
+ * därmed all historik bakåt. Dagsräkningarna från tiden före loggen vävs in,
+ * annars skulle en befintlig användares streak nollställas vid uppgraderingen.
+ */
+const renderLibrarySummary = () => {
+    const dueEl = document.getElementById('library-stat-due');
+    const streakEl = document.getElementById('library-stat-streak');
+    const reviewsEl = document.getElementById('library-stat-reviews');
+    if (!dueEl || !streakEl || !reviewsEl) return;
+
+    const now = Date.now();
+    const cards = S.appData.decks.flatMap(d => d.cards.filter(c => c.type !== 'note'));
+    const due = cards.filter(c => c.nextReviewDate <= now).length;
+
+    const counts = mergeLegacyCounts(dailyCounts(getReviewLog()), loadRecords().dailyCounts);
+    const total = [...counts.values()].reduce((sum, n) => sum + n, 0);
+
+    // Svenskt tusentalsavstånd: 1 340 läses snabbare än 1340 i en kolumn.
+    const fmt = (n) => n.toLocaleString('sv-SE');
+
+    dueEl.textContent = fmt(due);
+    // Accent bara när det finns något kvar att göra. En nolla ska inte ropa.
+    dueEl.classList.toggle('is-accent', due > 0);
+    streakEl.textContent = fmt(currentStreak(counts));
+    reviewsEl.textContent = fmt(total);
+};
+
 export const renderLibrary = () => {
+    renderLibrarySummary();
     renderDagensMapp();
     deckList.innerHTML = '';
     const filter = S.librarySearchFilter.toLowerCase();
@@ -93,24 +148,29 @@ export const renderLibrary = () => {
             itemEl.style.setProperty('--deck-color', itemColor);
 
             itemEl.innerHTML = `
-                <div class="deck-header">
-                    <div class="card-menu-container">
-                        <button class="btn-card-menu-toggle">⋮</button>
-                        <div class="card-menu-dropdown">
-                            <button class="btn-item-rename">Byt namn</button>
-                            <button class="btn-item-move">Flytta till bokhylla</button>
-                            <button class="btn-item-delete">Ta bort</button>
-                        </div>
-                    </div>
+                <div class="deck-card-top">
+                    <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
+                    ${rowMenu(`Åtgärder för ${item.title}`, `
+                            <button type="button" class="btn-item-rename">Byt namn</button>
+                            <button type="button" class="btn-item-move">Flytta till bokhylla</button>
+                            <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
                 </div>
-                <div class="deck-title">${escapeHtml(item.title)}</div>
-                <div class="deck-progress">
-                    <div class="deck-progress-track">
-                        <div class="deck-progress-fill" style="width: ${reviewedPct}%"></div>
+                <div class="deck-card-foot">
+                    <div class="progress" aria-hidden="true">
+                        <div class="progress-fill" style="width: ${reviewedPct}%"></div>
+                    </div>
+                    <div class="deck-card-nums">
+                        <span class="deck-card-count num">${total} kort</span>
+                        <span class="deck-card-due num${dueCards === 0 ? ' is-clear' : ''}">${dueCards} förfallna</span>
                     </div>
                 </div>
             `;
-            itemEl.onclick = () => openDeck(item.id);
+            itemEl.onclick = (e) => {
+                // Menyn ligger inuti kortet; utan detta öppnar varje menyval
+                // också kortleken bakom.
+                if (e.target.closest('.row-menu')) return;
+                openDeck(item.id);
+            };
         } else if (type === 'notebook') {
             const total = item.notes.length;
             
@@ -124,22 +184,23 @@ export const renderLibrary = () => {
             itemEl.style.setProperty('--deck-color', itemColor);
 
             itemEl.innerHTML = `
-                <div class="deck-header">
-                    <div class="card-menu-container">
-                        <button class="btn-card-menu-toggle">⋮</button>
-                        <div class="card-menu-dropdown">
-                            <button class="btn-item-rename">Byt namn</button>
-                            <button class="btn-item-move">Flytta till bokhylla</button>
-                            <button class="btn-item-delete">Ta bort</button>
-                        </div>
+                <div class="deck-card-top">
+                    <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
+                    ${rowMenu(`Åtgärder för ${item.title}`, `
+                            <button type="button" class="btn-item-rename">Byt namn</button>
+                            <button type="button" class="btn-item-move">Flytta till bokhylla</button>
+                            <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
+                </div>
+                <div class="deck-card-foot">
+                    <div class="deck-card-nums">
+                        <span class="deck-card-count num">${total} anteckningar</span>
                     </div>
                 </div>
-                <div class="deck-title">${escapeHtml(item.title)}</div>
-                <div class="deck-meta">
-                    <span>${total} anteckningar totalt</span>
-                </div>
             `;
-            itemEl.onclick = () => openNotebook(item.id);
+            itemEl.onclick = (e) => {
+                if (e.target.closest('.row-menu')) return;
+                openNotebook(item.id);
+            };
         }
 
 
@@ -238,7 +299,8 @@ export const renderLibrary = () => {
         
         // Render a back to all button
         const backBtn = document.createElement('div');
-        backBtn.innerHTML = `<button class="btn-action-chip" style="margin-bottom: 1.5rem;" onclick="filterBookshelf(null)">← Visa alla</button>`;
+        backBtn.className = 'library-filter-row';
+        backBtn.innerHTML = `<button type="button" class="chip" onclick="filterBookshelf(null)">← Visa alla</button>`;
         deckList.appendChild(backBtn);
     }
 
@@ -254,37 +316,34 @@ export const renderLibrary = () => {
         return 0;
     });
 
-    shelvesToRender.forEach((shelf, shelfIndex) => {
+    shelvesToRender.forEach((shelf) => {
         const shelfDone = isBookshelfFullyReviewed(shelf);
         const shelfEl = document.createElement('div');
         shelfEl.className = `bookshelf-container ${shelfDone ? 'bookshelf-done' : ''}`;
-        shelfEl.style.gridColumn = "1 / -1";
-        shelfEl.style.marginBottom = "1rem";
-        
+
         if (shelf.color) {
             shelfEl.style.setProperty('--bookshelf-color', shelf.color);
         }
 
         shelfEl.innerHTML = `
-            <div class="bookshelf-header" style="${shelf.color ? `border-bottom: 2px solid ${shelf.color};` : ''}">
-                <div style="flex: 1; display: flex; align-items: center; gap: 1rem; cursor: pointer;" onclick="startBookshelfStudy('${shelf.id}')" title="Klicka för att repetera alla kortlekar i bokhyllan">
-                    <h3>${escapeHtml(shelf.title)}</h3>
-                    <button class="btn-action-chip btn-bookshelf-study">Repetera alla</button>
-                </div>
-                <div class="card-menu-container">
-                    <button class="btn-bookshelf-menu-toggle btn-card-menu-toggle">⋮</button>
-                    <div class="card-menu-dropdown">
-                        <button class="btn-bookshelf-rename">Byt namn</button>
-                        <button class="btn-bookshelf-color">Ändra färg</button>
-                        <button class="btn-bookshelf-delete">Ta bort</button>
-                    </div>
-                </div>
+            <div class="bookshelf-header">
+                <h3 class="bookshelf-title">${escapeHtml(shelf.title)}</h3>
+                <button type="button" class="chip btn-bookshelf-study" title="Repetera alla kortlekar i bokhyllan">Repetera alla</button>
+                ${rowMenu(`Åtgärder för ${shelf.title}`, `
+                        <button type="button" class="btn-bookshelf-rename">Byt namn</button>
+                        <button type="button" class="btn-bookshelf-color">Ändra färg</button>
+                        <button type="button" class="btn-bookshelf-delete danger">Ta bort</button>`)}
             </div>
-            <div class="bookshelf-items bookshelf-grid"></div>
+            <div class="bookshelf-items grid-container"></div>
         `;
 
         const itemsContainer = shelfEl.querySelector('.bookshelf-items');
-        
+
+        shelfEl.querySelector('.btn-bookshelf-study').addEventListener('click', (e) => {
+            e.stopPropagation();
+            startBookshelfStudy(shelf.id);
+        });
+
         shelfEl.querySelector('.btn-bookshelf-color')?.addEventListener('click', (e) => {
             e.stopPropagation();
             openColorModal(shelf);
@@ -344,7 +403,7 @@ export const renderLibrary = () => {
         shelfItems.forEach(item => itemsContainer.appendChild(item.element));
 
         if(itemsContainer.children.length === 0) {
-            itemsContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">Dra och släpp kortlekar eller anteckningsblock här</div>';
+            itemsContainer.innerHTML = '<p class="bookshelf-empty">Dra och släpp kortlekar eller anteckningsblock här</p>';
         }
 
         shelfEl.querySelector('.btn-bookshelf-rename').addEventListener('click', async (e) => {
@@ -404,6 +463,16 @@ export const renderLibrary = () => {
             if (a.done !== b.done) return a.done ? 1 : -1;
             return b.updated - a.updated;
         });
+
+        // Rubrik bara när det finns bokhyllor ovanför. Utan den ser de lösa
+        // kortlekarna ut som om de hörde till den sista bokhyllan.
+        if (rootItems.length > 0 && deckList.querySelector('.bookshelf-container')) {
+            const label = document.createElement('div');
+            label.className = 'library-group-label label';
+            label.textContent = 'Utan bokhylla';
+            deckList.appendChild(label);
+        }
+
         rootItems.forEach(item => deckList.appendChild(item.element));
     }
 
@@ -422,6 +491,28 @@ export const renderLibrary = () => {
 };
 
 export function initUiLibrary() {
+
+  /* Radmenyerna är <details> och stängs inte av sig själva. Utan detta blir
+   * varje öppnad meny liggande kvar, och på en lista med trettio kort står
+   * snart lika många menyer öppna samtidigt. Escape stänger också, eftersom
+   * en meny som bara går att stänga med musen inte går att stänga alls med
+   * tangentbordet. */
+  const closeRowMenus = (except) => {
+      document.querySelectorAll('.row-menu[open]').forEach((menu) => {
+          if (menu !== except) menu.removeAttribute('open');
+      });
+  };
+
+  document.addEventListener('click', (e) => {
+      // Bara menyn vars egen knapp trycktes får stå kvar. Ett tryck på ett
+      // menyval stänger menyn, eftersom valet är utfört.
+      const toggle = e.target.closest('.row-menu-toggle');
+      closeRowMenus(toggle ? toggle.parentElement : null);
+  });
+
+  document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeRowMenus(null);
+  });
 
   // --- RENDERING ---
   S.draggedItemId = null;

@@ -12,23 +12,31 @@ import { switchView } from './router.js';
 import { startBookshelfStudy, startSectionStudy } from './study.js';
 
 
+/** Id:t på en träffrad. Behövs för aria-activedescendant. */
+const resultId = (index) => `global-search-result-${index}`;
+
 export const openGlobalSearch = () => {
     const modal = document.getElementById('modal-global-search');
     const input = document.getElementById('global-search-input');
     if (!modal || !input) return;
-    
+
     modal.classList.remove('hidden');
     input.value = '';
     S.activeSearchResultIndex = -1;
     S.currentSearchResults = [];
     performGlobalSearch();
-    
+
     setTimeout(() => input.focus(), 50);
 };
 
 export const closeGlobalSearch = () => {
     const modal = document.getElementById('modal-global-search');
     if (modal) modal.classList.add('hidden');
+    // Listan finns inte längre, så fältet får inte fortsätta hävda att den är
+    // öppen eller peka ut en rad som inte visas.
+    const input = document.getElementById('global-search-input');
+    input?.setAttribute('aria-expanded', 'false');
+    input?.removeAttribute('aria-activedescendant');
 };
 
 
@@ -51,13 +59,12 @@ export const performGlobalSearch = () => {
     resultsContainer.innerHTML = '';
     S.activeSearchResultIndex = -1;
     S.currentSearchResults = [];
+    // Ingen markerad rad kvar att peka på när listan ritas om.
+    input.removeAttribute('aria-activedescendant');
 
     if (!query) {
-        resultsContainer.innerHTML = `
-            <div style="padding: 2.5rem; text-align: center; color: var(--text-secondary); font-size: 0.95rem;">
-                Skriv för att söka i hela ditt bibliotek...
-            </div>
-        `;
+        input.setAttribute('aria-expanded', 'false');
+        resultsContainer.innerHTML = `<p class="search-empty">Skriv för att söka i hela ditt bibliotek.</p>`;
         countSpan.textContent = '0 resultat';
         return;
     }
@@ -76,7 +83,6 @@ export const performGlobalSearch = () => {
                 type: 'bookshelf',
                 id: shelf.id,
                 title: shelf.title,
-                color: shelf.color || '#4F46E5',
                 subtitle: 'Bokhylla',
                 action: () => {
                     filterBookshelf(shelf.id);
@@ -98,7 +104,6 @@ export const performGlobalSearch = () => {
                 id: deck.id,
                 title: deck.title,
                 subtitle: `Kortlek • I ${deckPath} • ${deck.cards.filter(c => c.type !== 'note').length} kort`,
-                color: deck.color || (bookshelf ? bookshelf.color : '#4F46E5'),
                 action: () => {
                     openDeck(deck.id);
                     closeGlobalSearch();
@@ -226,13 +231,18 @@ export const performGlobalSearch = () => {
     let totalCount = 0;
     let html = '';
 
+    // Paletten är en listbox: fältet behåller fokus, raderna är options och
+    // markeringen pekas ut med aria-activedescendant. Det är därför raderna
+    // inte är knappar — en knapp inuti en listbox går inte att nå med samma
+    // pilnavigering, och två fokusmodeller i samma lista blir obegriplig.
     groups.forEach(group => {
         if (group.items.length === 0) return;
         totalCount += group.items.length;
 
+        const groupId = `search-group-${group.title.toLowerCase()}`;
         html += `
-            <div class="search-result-group">
-                <div class="search-result-group-title">
+            <div class="search-result-group" role="group" aria-labelledby="${groupId}">
+                <div class="search-result-group-title" id="${groupId}">
                     ${group.icon}
                     <span>${group.title}</span>
                 </div>
@@ -242,21 +252,16 @@ export const performGlobalSearch = () => {
             S.currentSearchResults.push(item);
             const idx = globalIndex++;
 
-            let iconStyle = '';
-            if (item.type === 'bookshelf' || item.type === 'deck') {
-                iconStyle = `style="background: ${item.color}15; color: ${item.color}; border: 1px solid ${item.color}25;"`;
-            }
-
             html += `
-                <div class="search-result-item" data-index="${idx}" onclick="window._triggerSearchResult(${idx})">
-                    <div class="search-result-icon" ${iconStyle}>
+                <div class="search-result-item" role="option" aria-selected="false" id="${resultId(idx)}" data-index="${idx}">
+                    <span class="search-result-icon" aria-hidden="true">
                         ${group.icon}
-                    </div>
-                    <div class="search-result-details">
-                        <div class="search-result-title">${highlightMatch(item.title, query)}</div>
-                        <div class="search-result-subtitle">${highlightMatch(item.subtitle, query)}</div>
-                        ${item.snippet ? `<div class="search-result-snippet">${highlightMatch(item.snippet, query)}</div>` : ''}
-                    </div>
+                    </span>
+                    <span class="search-result-details">
+                        <span class="search-result-title">${highlightMatch(item.title, query)}</span>
+                        <span class="search-result-subtitle">${highlightMatch(item.subtitle, query)}</span>
+                        ${item.snippet ? `<span class="search-result-snippet">${highlightMatch(item.snippet, query)}</span>` : ''}
+                    </span>
                 </div>
             `;
         });
@@ -265,25 +270,34 @@ export const performGlobalSearch = () => {
     });
 
     if (totalCount === 0) {
-        resultsContainer.innerHTML = `
-            <div style="padding: 2.5rem; text-align: center; color: var(--text-secondary); font-size: 0.95rem;">
-                Inga resultat hittades för "${escapeHtml(query)}"
-            </div>
-        `;
+        input.setAttribute('aria-expanded', 'false');
+        resultsContainer.innerHTML = `<p class="search-empty">Inga träffar för "${escapeHtml(query)}".</p>`;
         countSpan.textContent = '0 resultat';
     } else {
+        input.setAttribute('aria-expanded', 'true');
         resultsContainer.innerHTML = html;
         countSpan.textContent = `${totalCount} resultat`;
         navigateSearchResults(1);
     }
 };
 
+/**
+ * Flyttar markeringen i träfflistan.
+ *
+ * Markeringen bärs av aria-selected i stället för av en klass, så att den syns
+ * och hörs av samma attribut. Fältet får aria-activedescendant, vilket är hur
+ * en skärmläsare läser upp den markerade raden utan att fokus lämnar fältet.
+ *
+ * @param {1|-1} direction
+ */
 export const navigateSearchResults = (direction) => {
     if (S.currentSearchResults.length === 0) return;
-    
+
+    const input = document.getElementById('global-search-input');
+
     if (S.activeSearchResultIndex >= 0) {
-        const prevEl = document.querySelector(`.search-result-item[data-index="${S.activeSearchResultIndex}"]`);
-        if (prevEl) prevEl.classList.remove('active');
+        const prevEl = document.getElementById(resultId(S.activeSearchResultIndex));
+        if (prevEl) prevEl.setAttribute('aria-selected', 'false');
     }
 
     if (S.activeSearchResultIndex === -1 && direction === 1) {
@@ -297,10 +311,11 @@ export const navigateSearchResults = (direction) => {
         }
     }
 
-    const activeEl = document.querySelector(`.search-result-item[data-index="${S.activeSearchResultIndex}"]`);
+    const activeEl = document.getElementById(resultId(S.activeSearchResultIndex));
     if (activeEl) {
-        activeEl.classList.add('active');
+        activeEl.setAttribute('aria-selected', 'true');
         activeEl.scrollIntoView({ block: 'nearest' });
+        input?.setAttribute('aria-activedescendant', activeEl.id);
     }
 };
 
@@ -381,6 +396,16 @@ export function initUiSearch() {
   S.activeSearchResultIndex = -1;
   S.currentSearchResults = [];
 
+  // Klicket ligger på behållaren i stället för på varje rad. Raderna ritas om
+  // vid varje tangenttryckning, och en inline-onclick per rad hade betytt en
+  // global funktion till bara för att komma åt listan.
+  document.getElementById('global-search-results')?.addEventListener('click', (event) => {
+      const row = event.target.closest('.search-result-item');
+      if (!row) return;
+      const idx = Number(row.dataset.index);
+      S.currentSearchResults[idx]?.action();
+  });
+
   window.renameDeck = renameDeck;
   window.startBookshelfStudy = startBookshelfStudy;
   window.startSectionStudy = startSectionStudy;
@@ -400,8 +425,5 @@ export function initUiSearch() {
   window.highlightCard = highlightCard;
   window.highlightSection = highlightSection;
   window.openNote = openNote;
-  window._triggerSearchResult = (idx) => {
-      if (S.currentSearchResults[idx]) S.currentSearchResults[idx].action();
-  };
 
 }

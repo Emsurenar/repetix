@@ -7,7 +7,7 @@ import { renderDagensMapp } from '../ui/dagens-mapp.js';
 import { openDeck, openNotebook, renderDecks, studyDagensMapp } from '../ui/deck.js';
 import { renderLibrary } from '../ui/library.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
-import { showPromptModal } from '../ui/modals.js';
+import { closeTopModal, setExpanded, showPromptModal } from '../ui/modals.js';
 import { switchView } from '../ui/router.js';
 import { closeGlobalSearch, navigateSearchResults, openGlobalSearch, performGlobalSearch, triggerActiveSearchResult } from '../ui/search.js';
 import { startBookshelfStudy, startSectionStudy } from '../ui/study.js';
@@ -58,11 +58,11 @@ const initApp = () => {
         // Escape key closes the topmost open modal
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                const openModals = document.querySelectorAll('.modal:not(.hidden)');
-                if (openModals.length > 0) {
-                    openModals[openModals.length - 1].classList.add('hidden');
-                    return;
-                }
+                // Fokusfällan i modals.js tar hand om öppna överlägg och
+                // stoppar händelsen där. Kommer vi hit finns inget öppet, men
+                // anropet står kvar som spärr: att dölja modalen härifrån
+                // skulle hoppa över avbryt-knappens uppstädning.
+                if (closeTopModal()) return;
                 if (S.currentViewName === 'complete') {
                     document.getElementById('btn-complete-back').click();
                 } else if (S.currentViewName === 'study' && !document.getElementById('cinema-overlay')) {
@@ -150,22 +150,37 @@ const initApp = () => {
             });
         }
 
+        // Sidopanelen är en utfällbar yta med två knappar: en som fäller in och
+        // en som fäller ut. Båda måste bära samma aria-expanded, annars säger
+        // skärmläsaren fel sak om panelens läge.
+        const sidebarCollapse = document.getElementById('sidebar-collapse');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const syncSidebarExpanded = (open) => {
+            setExpanded(sidebarCollapse, open);
+            setExpanded(sidebarToggle, open);
+        };
+        syncSidebarExpanded(true);
+
         // Sidebar collapse (desktop)
-        document.getElementById('sidebar-collapse')?.addEventListener('click', () => {
+        sidebarCollapse?.addEventListener('click', () => {
             document.getElementById('sidebar').classList.add('collapsed');
             document.getElementById('app-container').classList.add('expanded');
-            document.getElementById('sidebar-toggle').classList.add('visible');
+            sidebarToggle.classList.add('visible');
             document.getElementById('sidebar').classList.remove('open');
+            syncSidebarExpanded(false);
         });
 
         // Sidebar expand (desktop/mobile)
-        document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+        sidebarToggle?.addEventListener('click', () => {
             document.getElementById('sidebar').classList.remove('collapsed');
             document.getElementById('app-container').classList.remove('expanded');
-            document.getElementById('sidebar-toggle').classList.remove('visible');
+            sidebarToggle.classList.remove('visible');
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.toggle('open');
             }
+            syncSidebarExpanded(
+                !document.getElementById('sidebar').classList.contains('collapsed')
+            );
         });
 
         document.getElementById('note-content')?.addEventListener('keydown', (e) => {

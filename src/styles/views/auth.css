@@ -1,1 +1,461 @@
-/* Fylls i av etapp 4. */
+/* Inloggning, konto och inställningar.
+ *
+ * De tre skärmarna hör ihop: alla handlar om kontot och om vad appen får göra
+ * å användarens vägnar. Inställningarna ligger därför här i stället för i en
+ * egen fil — importordningen i main.js delas med två pågående etapper och ska
+ * inte röras i onödan.
+ *
+ * "Lugn precision": varm neutral gråskala, en enda accent i verdigris, hårfina
+ * 1px-linjer i stället för skuggor, generös luft. Varje värde kommer ur
+ * tokens.css. Inga skuggor, inget blått, inga !important.
+ */
+
+/* ======================================================================
+ * INLOGGNING
+ *
+ * Ett helt eget rum, inte en dialog över biblioteket: den som inte är
+ * inloggad har inget bibliotek att skymta. Därför appens botten som yta,
+ * en centrerad panel, och ingenting annat på skärmen.
+ * ====================================================================== */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  overflow-y: auto;
+  padding: var(--s5) var(--s4);
+  background: var(--surface-0);
+}
+
+.auth-panel {
+  /* auto-marginal i stället för align-items: center — en panel som blir högre
+   * än fönstret ska gå att scrolla från sin överkant, inte klippas i toppen. */
+  width: 100%;
+  max-width: 24rem;
+  margin: auto;
+  padding: var(--s6);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.auth-title {
+  margin: 0 0 var(--s2);
+  font-size: var(--t-xl);
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
+}
+
+/* Appens enda signatur på den här skärmen: en kort accentlinje över namnet.
+ * Billigare än en logotyp och håller sig inom den enda accenten. */
+.auth-title::before {
+  content: '';
+  display: block;
+  width: var(--s6);
+  height: 1px;
+  margin-bottom: var(--s5);
+  background: var(--accent);
+}
+
+.auth-lead {
+  margin: 0 0 var(--s5);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+/* Fälten ärver höjd och kant från komponentlagret, så här står bara etiketten.
+ * Det är hela poängen med att ha ett komponentlager. */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.auth-field > span {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: var(--s2);
+  min-height: var(--control-h-lg);
+}
+
+.auth-error,
+.auth-notice {
+  margin: 0;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  border: 1px solid;
+  border-radius: var(--r-md);
+}
+
+.auth-error {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+.auth-notice {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+/* Avdelare mellan e-post och Google. Linjerna är samma hårfina 1px som
+ * används överallt annars, så att "eller" inte blir ett grafiskt element. */
+.auth-sep {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: var(--s5) 0 var(--s3);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.auth-sep::before,
+.auth-sep::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Googles inloggningsknapp.
+ *
+ * Vit yta, grå kant och märket i original är Googles varumärkeskrav, inte en
+ * designåsikt. --surface-1 är exakt vitt och --line-strong är den neutrala
+ * kanten, så kravet hålls utan ett enda hårdkodat värde. Hovringen ändrar
+ * därför bara kanten: ytan måste förbli vit.
+ */
+.auth-google {
+  display: flex;
+  width: 100%;
+  min-height: var(--control-h-lg);
+  gap: var(--s3);
+  font-weight: 500;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border-color: var(--line-strong);
+}
+
+.auth-google:hover,
+.auth-google:active {
+  background: var(--surface-1);
+  border-color: var(--text-3);
+}
+
+.auth-google-mark {
+  flex: 0 0 auto;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin-top: var(--s4);
+}
+
+/* Textknappar bär sin egen sidopadding för att bli träffbara. Den skjuter ut
+ * texten ur panelens vänsterkant, så den dras tillbaka med en lika stor
+ * negativ marginal: tryckytan behålls, men texten linjerar med fälten. */
+.auth-links .btn.text:first-child,
+.auth-offline .btn.text {
+  margin-left: calc(var(--s2) * -1);
+}
+
+.auth-links .btn.text:last-child {
+  margin-right: calc(var(--s2) * -1);
+}
+
+/* Vägen förbi inloggningen. Under en linje och i tyst text: den ska gå att
+ * hitta, men inte konkurrera med att skapa ett konto. */
+.auth-offline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s1);
+  margin: var(--s5) 0 0;
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+.auth-offline-hint {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+@media (max-width: 480px) {
+  .auth-overlay {
+    padding: var(--s4) var(--s3);
+  }
+
+  .auth-panel {
+    padding: var(--s5) var(--s4);
+  }
+
+  /* På 360 pixlar får de två länkarna inte plats bredvid varandra utan att
+   * tryckytorna växer ihop. Staplade linjerar båda mot vänsterkanten. */
+  .auth-links {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .auth-links .btn.text {
+    margin-left: calc(var(--s2) * -1);
+    margin-right: 0;
+  }
+}
+
+/* ======================================================================
+ * KONTORADEN I SIDOPANELEN
+ * ====================================================================== */
+
+.sidebar-account {
+  flex-wrap: wrap;
+  row-gap: var(--s1);
+}
+
+/* Statusen får en egen rad, så att knapparna kan hålla full träffyta utan att
+ * texten kläms ihop till ett streck. */
+.sidebar-account .sync-status {
+  flex: 1 1 100%;
+}
+
+.sidebar-account-btn {
+  min-height: var(--control-h);
+  padding: 0 var(--s2);
+}
+
+/* ======================================================================
+ * INSTÄLLNINGAR
+ *
+ * Två avsnitt med tydlig rangordning: AI är det man kommer hit för, Konto är
+ * förutsättningen. Inuti AI skiljs modellvalet från nyckeln, eftersom de två
+ * sparas på helt olika sätt och användaren behöver se att de är olika saker.
+ * ====================================================================== */
+
+.settings-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s4);
+  max-width: 44rem;
+  margin: 0 0 var(--s5);
+  padding: var(--s4) var(--s5);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-lg);
+}
+
+.settings-notice-text {
+  flex: 1 1 16rem;
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-1);
+}
+
+.settings-section {
+  max-width: 44rem;
+  margin: 0 0 var(--s5);
+  padding: var(--s5) var(--s6) var(--s6);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.settings-section-head {
+  margin-bottom: var(--s5);
+}
+
+.settings-section-title {
+  margin: 0;
+  font-size: var(--t-lg);
+}
+
+.settings-section-lead {
+  max-width: 44ch;
+  margin: var(--s1) 0 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.settings-group + .settings-group {
+  margin-top: var(--s6);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--line);
+}
+
+.settings-group-title {
+  margin: 0 0 var(--s2);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Etikett till vänster, kontroll till höger. Etikettkolumnen är två steg ur
+ * rumsskalan i stället för ett påhittat mått, så att den följer med om skalan
+ * någonsin ändras. */
+.settings-field {
+  display: grid;
+  grid-template-columns: calc(var(--s8) * 2) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s2) var(--s5);
+  padding: var(--s4) 0;
+}
+
+/* Hårfin linje mellan raderna, aldrig runt dem. */
+.settings-field + .settings-field {
+  border-top: 1px solid var(--line);
+}
+
+.settings-field > label {
+  grid-column: 1;
+  grid-row: 1;
+  padding-top: var(--s2);
+  font-size: var(--t-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+/* Allt utom etiketten hamnar i högerkolumnen; radordningen sköter rutnätet
+ * själv utifrån källordningen kontroll, ledtext. */
+.settings-field > :not(label) {
+  grid-column: 2;
+}
+
+.settings-input {
+  max-width: 22rem;
+}
+
+.settings-hint {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-3);
+}
+
+/* Modell-id och nyckel är maskinsträngar, inte text. Monospace gör att de
+ * läses tecken för tecken — vilket är precis vad man gör när man jämför en
+ * nyckel med den man kopierade. */
+#settings-model,
+#settings-model-custom,
+#settings-api-key {
+  font-family: var(--font-data);
+  font-size: var(--t-sm);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  padding-top: var(--s5);
+}
+
+.settings-key-others {
+  margin-top: var(--s2);
+}
+
+/* Status och resultat. Neutralt läge som utgångspunkt; tonen bärs av
+ * data-tone, som settings.js sätter. */
+.settings-key-status,
+.settings-message {
+  margin: var(--s4) 0 0;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.settings-key-status[data-tone='ok'],
+.settings-message[data-tone='ok'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.settings-key-status[data-tone='fel'],
+.settings-message[data-tone='fel'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+.settings-account-email {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--text-1);
+  /* En e-postadress kan vara längre än kolumnen och får inte skjuta ut vyn. */
+  overflow-wrap: anywhere;
+}
+
+/* Behöver slå .btn.text, som annars sätter en dämpad textfärg. */
+.btn.text.settings-danger {
+  color: var(--danger);
+}
+
+.btn.text.settings-danger:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+@media (max-width: 700px) {
+  .settings-section {
+    padding: var(--s4);
+  }
+
+  .settings-section-head {
+    margin-bottom: var(--s4);
+  }
+
+  /* En kolumn: 128 pixlar etikett plus ett fält får inte plats på 360 utan
+   * att fältet blir oanvändbart smalt. */
+  .settings-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s1);
+    padding: var(--s3) 0;
+  }
+
+  .settings-field > label {
+    grid-column: 1;
+    grid-row: auto;
+    padding-top: 0;
+  }
+
+  .settings-field > :not(label) {
+    grid-column: 1;
+  }
+
+  .settings-input {
+    max-width: none;
+  }
+
+  .settings-actions .btn {
+    flex: 1 1 auto;
+    min-height: var(--control-h-lg);
+  }
+}

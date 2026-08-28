@@ -38,6 +38,8 @@ export default [
         crypto: 'readonly',
         structuredClone: 'readonly',
         HTMLElement: 'readonly',
+        Element: 'readonly',
+        MutationObserver: 'readonly',
         Node: 'readonly',
         CustomEvent: 'readonly',
         Event: 'readonly',

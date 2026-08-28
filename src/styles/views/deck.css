@@ -1,1 +1,546 @@
-/* Fylls i av etapp 4. */
+/* Kortleksvyn: rubrik, statusband, verktygsrad, AI-insikter, kortlista.
+ *
+ * Samma grund som biblioteket: linjer i stället för skuggor, en accent,
+ * strikt typskala. Innehållet i en kortlek är text som ska läsas, så kortens
+ * fram- och baksida sätts i serif medan gränssnittet runtomkring stannar i
+ * grotesk.
+ */
+
+/* ======================================================================
+ * RUBRIK
+ * ====================================================================== */
+
+.deck-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.deck-heading h1 {
+  font-size: var(--t-xl);
+  overflow-wrap: break-word;
+}
+
+.deck-heading-meta {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.deck-heading-due {
+  margin-left: var(--s2);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * STATUSBAND
+ *
+ * Ett tal och en mening. Det gamla blocket var en färgad hjältepanel med
+ * egen bakgrund per kortlek; här räcker accentlinjen till vänster för att
+ * säga att raden är dagens ingång till leken.
+ * ====================================================================== */
+
+.deck-hero-status {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  margin-bottom: var(--s5);
+  padding: var(--s4) var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.deck-hero-status:hover {
+  border-color: var(--line-strong);
+  border-left-color: var(--accent);
+}
+
+/* Klar eller tom lek: ingenting brådskar, alltså ingen accentkant. */
+.deck-hero-status.done,
+.deck-hero-status.asleep {
+  border-left-color: var(--line-strong);
+}
+
+.deck-hero-status.asleep {
+  cursor: default;
+}
+
+.deck-hero-status.asleep:hover {
+  border-color: var(--line);
+}
+
+.hero-status-number {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+}
+
+.deck-hero-status.asleep .hero-status-number {
+  color: var(--text-3);
+}
+
+.hero-status-text {
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.hero-done-check {
+  font-size: var(--t-lg);
+  line-height: var(--lh-tight);
+  color: var(--accent);
+}
+
+.hero-done-link {
+  margin-left: auto;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * VERKTYGSRAD
+ * ====================================================================== */
+
+.deck-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-bottom: var(--s6);
+}
+
+/* ======================================================================
+ * AI-INSIKTER
+ *
+ * Två paneler med samma vikt. Rubrikerna är etiketter och inte rubriker:
+ * det är innehållet som ska läsas, inte att det kommer från en modell.
+ * ====================================================================== */
+
+.deck-ai-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s4);
+  margin-bottom: var(--s6);
+}
+
+.deck-ai-summary,
+.deck-ai-suggestion {
+  padding: var(--s4);
+}
+
+.deck-ai-clickable {
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.deck-ai-clickable:hover {
+  border-color: var(--line-strong);
+}
+
+/* Färdig text är inte längre en knapp. */
+.deck-ai-loaded {
+  cursor: default;
+}
+
+.deck-ai-summary-header,
+.deck-ai-suggestion-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.deck-ai-summary-header svg,
+.deck-ai-suggestion-header svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.deck-ai-summary-text,
+.deck-ai-suggestion-content {
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.deck-ai-placeholder {
+  color: var(--text-3);
+}
+
+.deck-ai-suggestion-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.deck-ai-suggestion-front {
+  font-family: var(--font-content);
+  font-size: var(--t-md);
+  color: var(--text-1);
+}
+
+.deck-ai-suggestion-back {
+  font-family: var(--font-content);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.deck-ai-suggestion-actions {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+
+/* Väntan medan modellen svarar. En puls i ytfärgerna, ingen skimrande
+ * gradient — vi antyder inte mer aktivitet än det faktiskt är. */
+.ai-shimmer {
+  height: var(--s4);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  animation: ai-shimmer-pulse 1.2s var(--ease) infinite alternate;
+}
+
+@keyframes ai-shimmer-pulse {
+  from {
+    background: var(--surface-2);
+  }
+  to {
+    background: var(--surface-3);
+  }
+}
+
+/* ======================================================================
+ * KORTLISTAN
+ * ====================================================================== */
+
+#card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+/* --- Mapp som hopfällbar sektion ------------------------------------- */
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  border-bottom: 1px solid var(--line);
+}
+
+.section-header.drag-over,
+.section-container.dragging-over {
+  background: var(--accent-soft);
+}
+
+/* Utfällningsknappen bär hela radens vänstra del, så att träffytan är hela
+ * bredden och inte bara pilen. */
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-h);
+  padding: 0;
+  font: inherit;
+  color: var(--text-1);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.section-title {
+  overflow: hidden;
+  font-size: var(--t-md);
+  font-weight: 500;
+  letter-spacing: var(--track-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-chevron {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+.section-container.collapsed .section-chevron {
+  transform: rotate(-90deg);
+}
+
+.section-container.collapsed .section-items {
+  display: none;
+}
+
+.section-count {
+  flex: 0 0 auto;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* Antalet förfallna är också vägen in i repetitionen. Ett tal man kan trycka
+ * på är tydligare än den färgade pricken det ersätter, som varken sa hur
+ * många eller att den gick att klicka på. */
+.section-due {
+  flex: 0 0 auto;
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.section-due:hover {
+  background: var(--surface-1);
+}
+
+/* Alltid synliga. Att gömma mappens verktyg bakom :hover gjorde dem
+ * omöjliga att nå med ett finger. */
+.section-tools {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--s1);
+}
+
+.section-empty {
+  margin: 0;
+  padding: var(--s4) var(--s2);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+/* --- Kort i listan ---------------------------------------------------- */
+
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s2);
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.list-item:last-child {
+  border-bottom: 0;
+}
+
+.list-item:hover {
+  background: var(--surface-2);
+}
+
+.list-item.dragging {
+  opacity: 0.5;
+}
+
+.list-item-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#card-list .question {
+  padding-top: var(--s1);
+  font-family: var(--font-content);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-1);
+}
+
+/* Baksidan finns i listan men visas först när raden fällts ut. Utan detta
+ * blir listan en vägg av svar, och man ser aldrig frågorna i följd. */
+#card-list .answer {
+  display: none;
+}
+
+#card-list .list-item.expanded .answer {
+  display: block;
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  font-family: var(--font-content);
+  font-size: var(--t-sm);
+  line-height: var(--lh-loose);
+  color: var(--text-2);
+  border-top: 1px solid var(--line);
+}
+
+.list-item-right {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--s2);
+}
+
+/* Förfallen eller inte. En prick räcker: talet står redan i mappens rubrik. */
+.card-state {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin: 0 var(--s1);
+  background: var(--surface-3);
+  border-radius: var(--r-pill);
+}
+
+.card-state.is-due {
+  background: var(--accent);
+}
+
+/* --- Anteckningskort inne i en kortlek -------------------------------- */
+
+.note-card-item .list-item-content {
+  display: flex;
+  gap: var(--s3);
+}
+
+/* Ett streck i kanten skiljer anteckningen från ett kort med fråga och svar,
+ * utan att lägga till ännu en ikon. */
+.note-card-icon {
+  flex: 0 0 auto;
+  width: 2px;
+  align-self: stretch;
+  background: var(--accent-line);
+  border-radius: var(--r-pill);
+}
+
+.note-card-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-content);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+/* ======================================================================
+ * ANTECKNINGSBLOCKETS LISTA
+ *
+ * Renderas av samma modul som kortlistan och delar därför dess form.
+ * ====================================================================== */
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s3) var(--s2);
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.note-item:hover {
+  background: var(--surface-2);
+}
+
+.note-content-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-content);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-1);
+}
+
+.deck-actions {
+  display: flex;
+  gap: var(--s2);
+  margin-bottom: var(--s5);
+}
+
+/* ======================================================================
+ * RADMENY
+ *
+ * Definieras i components.css. Här nollställs bara <summary>-elementets
+ * inbyggda pil. Samma två rader finns i library.css, så att ingen av vyerna
+ * är beroende av att den andra laddats.
+ * ====================================================================== */
+
+.row-menu > summary {
+  list-style: none;
+}
+
+.row-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ======================================================================
+ * RADERA KORTLEK
+ *
+ * Sist på sidan, avskilt av en linje. Handlingen ska gå att hitta men aldrig
+ * ligga i vägen för det man kom hit för att göra.
+ * ====================================================================== */
+
+.deck-danger-zone {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s7);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--line);
+}
+
+/* ======================================================================
+ * MOBIL
+ * ====================================================================== */
+
+@media (max-width: 768px) {
+  .deck-ai-insights {
+    grid-template-columns: 1fr;
+    gap: var(--s3);
+    margin-bottom: var(--s5);
+  }
+}
+
+@media (max-width: 600px) {
+  .deck-hero-status {
+    margin-bottom: var(--s4);
+    padding: var(--s3) var(--s4);
+  }
+
+  .deck-toolbar {
+    margin-bottom: var(--s5);
+  }
+
+  /* Verktygsraden scrollar i sidled i sin egen behållare i stället för att
+   * bryta till fyra rader knappar ovanför innehållet. */
+  .deck-toolbar .btn {
+    flex: 1 1 auto;
+  }
+
+  #card-list {
+    gap: var(--s4);
+  }
+
+  /* På 360 pixlar är mappnamnet det som ska synas. Antalet kort stryks helt
+   * och de förfallna kokas ned till sitt tal, så att namnet slipper kapas
+   * efter tre stavelser. */
+  .section-count,
+  .section-due-word {
+    display: none;
+  }
+
+  .list-item {
+    padding: var(--s2) var(--s1);
+  }
+}

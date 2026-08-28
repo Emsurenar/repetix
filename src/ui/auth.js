@@ -175,8 +175,11 @@ export function initAuthUi({ onSignedIn: signedInCallback } = {}) {
   setMode('signin');
 
   // Visa Google-knappen bara om leverantoren faktiskt ar paslagen i projektet.
+  // Avdelaren foljer med: ett "eller" utan nagot att valja mellan ar brus.
   void enabledProviders().then((providers) => {
-    show(el('auth-google'), Boolean(providers.google));
+    const pa = Boolean(providers.google);
+    show(el('auth-google'), pa);
+    show(el('auth-sep'), pa);
   });
 
   onAuthChange((user) => {

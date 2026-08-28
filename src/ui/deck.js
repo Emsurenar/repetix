@@ -13,6 +13,23 @@ import { switchView } from './router.js';
 import { renderStudyCard, startSectionStudy, startStudy } from './study.js';
 
 
+/* Samma menyikon och samma radmeny som i biblioteket. En <details> är alltid
+ * synlig och öppnas av ett tryck; det gamla :hover-beroendet gjorde Redigera,
+ * Flytta och Radera oåtkomliga på telefon. */
+const MENU_ICON = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="3" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="8" cy="13" r="1.4"/></svg>`;
+
+/* Attributvärde. escapeHtml() går via innerHTML och lämnar citattecken orörda,
+ * vilket duger i textinnehåll men inte i ett attribut: en mapp som heter
+ * 5" diskett skulle annars bryta sig ur aria-label. */
+const attr = (value) => escapeHtml(value).replace(/"/g, '&quot;');
+
+const rowMenu = (label, items) => `
+    <details class="row-menu">
+        <summary class="row-menu-toggle" aria-label="${attr(label)}">${MENU_ICON}</summary>
+        <div class="row-menu-items">${items}</div>
+    </details>`;
+
+
 export const studyDagensMapp = (deckId, sectionId) => {
     S.currentDeckId = deckId;
     startSectionStudy(sectionId, false);
@@ -34,6 +51,17 @@ export const openDeck = (id, sectionId = null) => {
     }
 
     const dueCount = displayCards.filter(c => c.nextReviewDate <= Date.now()).length;
+
+    // Underrubrik med kortlekens två tal, så att omfattningen syns direkt under
+    // titeln i stället för att behöva räknas ihop ur listan.
+    const metaEl = document.getElementById('current-deck-meta');
+    if (metaEl) {
+        const studyable = displayCards.filter(c => c.type !== 'note').length;
+        metaEl.innerHTML = dueCount > 0
+            ? `${studyable} kort <span class="deck-heading-due">${dueCount} förfallna</span>`
+            : `${studyable} kort`;
+    }
+
     const heroStatus = document.getElementById('deck-hero-status');
     
     let itemColor = '#4F46E5';
@@ -69,6 +97,15 @@ export const openDeck = (id, sectionId = null) => {
         `;
         heroStatus.dataset.action = 'study';
     }
+
+    // Statusbandet är en div med role="button" och måste därför själv svara på
+    // Enter och mellanslag. Tilldelning i stället för addEventListener, så att
+    // lyssnaren inte staplas på sig varje gång en kortlek öppnas.
+    heroStatus.onkeydown = (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        heroStatus.click();
+    };
 
     document.getElementById('btn-study').onclick = (e) => {
         e.preventDefault();
@@ -117,30 +154,25 @@ const renderCardItem = (card, deck) => {
     const listItem = document.createElement('div');
     listItem.id = 'card-' + card.id;
     listItem.className = 'list-item';
-    listItem.style.cursor = 'pointer';
     listItem.setAttribute('draggable', 'true');
 
     listItem.innerHTML = `
         <div class="list-item-content">
-            <div class="question" style="font-size: 1.05rem; padding: 0.35rem 0;">${safeParse(card.front)}</div>
+            <div class="question">${safeParse(card.front)}</div>
             <div class="answer">${safeParse(card.back)}</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;" class="list-item-right">
-            ${isDue ? '<div title="Ska repeteras" style="width:10px; height:10px; border-radius:50%; background:var(--rate-1); border:none; flex-shrink:0;"></div>' : '<div title="Väntar" style="width:10px; height:10px; border-radius:50%; background:var(--border-color); border:none; flex-shrink:0;"></div>'}
-            <div class="card-menu-container">
-                <button class="btn-card-menu-toggle">⋮</button>
-                <div class="card-menu-dropdown">
-                    <button class="btn-study-card">Repetera direkt</button>
-                    <button class="btn-edit-card">Redigera</button>
-                    <button class="btn-move-card">Flytta</button>
-                    <button class="btn-delete-card">Ta bort</button>
-                </div>
-            </div>
+        <div class="list-item-right">
+            <span class="card-state${isDue ? ' is-due' : ''}" title="${isDue ? 'Ska repeteras' : 'Väntar'}"></span>
+            ${rowMenu('Åtgärder för kortet', `
+                    <button type="button" class="btn-study-card">Repetera direkt</button>
+                    <button type="button" class="btn-edit-card">Redigera</button>
+                    <button type="button" class="btn-move-card">Flytta</button>
+                    <button type="button" class="btn-delete-card danger">Ta bort</button>`)}
         </div>
     `;
 
     listItem.addEventListener('click', (e) => {
-        if (e.target.closest('.card-menu-container')) return;
+        if (e.target.closest('.row-menu')) return;
         if (listItem.classList.contains('expanded')) {
             listItem.classList.remove('expanded');
         } else {
@@ -163,8 +195,6 @@ const renderCardItem = (card, deck) => {
         listItem.classList.remove('dragging');
         S.draggedCardId = null;
     });
-
-    const dropdown = listItem.querySelector('.card-menu-dropdown');
 
     listItem.querySelector('.btn-study-card').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -207,14 +237,10 @@ const renderNoteCardItem = (card, deck) => {
             <div class="note-card-icon"></div>
             <div class="note-card-text">${safeParse(card.content)}</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;" class="list-item-right">
-            <div class="card-menu-container">
-                <button class="btn-card-menu-toggle">⋮</button>
-                <div class="card-menu-dropdown">
-                    <button class="btn-edit-note-card">Redigera</button>
-                    <button class="btn-delete-card">Ta bort</button>
-                </div>
-            </div>
+        <div class="list-item-right">
+            ${rowMenu('Åtgärder för anteckningen', `
+                    <button type="button" class="btn-edit-note-card">Redigera</button>
+                    <button type="button" class="btn-delete-card danger">Ta bort</button>`)}
         </div>
     `;
 
@@ -309,38 +335,29 @@ export const renderCards = (cards) => {
     deck.sections.forEach(section => {
         const cardsInSection = deck.cards.filter(c => c.sectionId === section.id);
         const dueInSection = cardsInSection.filter(c => c.nextReviewDate <= Date.now() && c.type !== 'note').length;
-        
-        let dotColor = 'transparent';
-        let dotTitle = 'Inga kort väntar';
-        if (dueInSection > 0) {
-            if (dueInSection < 5) dotColor = 'var(--rate-2)'; // yellow
-            else if (dueInSection < 15) dotColor = '#f29900'; // orange
-            else dotColor = 'var(--rate-1)'; // red
-            dotTitle = `${dueInSection} kort väntar. Klicka för att repetera.`;
-        }
 
         const sectionEl = document.createElement('div');
         sectionEl.id = 'section-' + section.id;
         sectionEl.className = 'section-container collapsed';
+        // Utfällningsknappen är ett <button> och inte en <div>: mappar måste gå
+        // att fälla ut med tangentbordet, inte bara med musen. Räknetalen ligger
+        // utanför knappen eftersom en knapp inte får innehålla en annan knapp.
         sectionEl.innerHTML = `
             <div class="section-header">
-                <div class="section-header-left" title="Klicka för att fälla ut/in">
-                    <svg class="section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    <span>${escapeHtml(section.title)}</span>
-                    ${dueInSection > 0 ? `<button onclick="event.stopPropagation(); startSectionStudy('${section.id}', false);" title="${dotTitle}" style="width:10px; height:10px; border-radius:50%; background:${dotColor}; border:none; padding:0; margin-left:0.5rem; cursor:pointer; flex-shrink:0;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></button>` : ''}
-                </div>
+                <button type="button" class="section-header-left" aria-expanded="false" title="Fäll ut eller in mappen">
+                    <svg class="section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="section-title">${escapeHtml(section.title)}</span>
+                </button>
+                <span class="section-count num">${cardsInSection.length} kort</span>
+                ${dueInSection > 0 ? `<button type="button" class="section-due num btn-section-study" title="Repetera mappen nu" aria-label="${dueInSection} förfallna kort, repetera mappen">${dueInSection}<span class="section-due-word"> förfallna</span></button>` : ''}
                 <div class="section-tools">
-                    <button class="btn-section-add btn-section-add-card" title="Lägg till kort i ${escapeHtml(section.title)}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <button type="button" class="btn-icon btn-section-add-card" title="Lägg till kort i ${attr(section.title)}" aria-label="Lägg till kort i ${attr(section.title)}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
-                    <div class="card-menu-container">
-                        <button class="btn-card-menu-toggle">⋮</button>
-                        <div class="card-menu-dropdown">
-                            <button class="btn-section-rename">Byt namn</button>
-                            <button class="btn-section-move">Flytta</button>
-                            <button class="btn-section-delete">Ta bort</button>
-                        </div>
-                    </div>
+                    ${rowMenu(`Åtgärder för ${section.title}`, `
+                            <button type="button" class="btn-section-rename">Byt namn</button>
+                            <button type="button" class="btn-section-move">Flytta</button>
+                            <button type="button" class="btn-section-delete danger">Ta bort</button>`)}
                 </div>
             </div>
             <div class="section-items list-container"></div>
@@ -348,6 +365,11 @@ export const renderCards = (cards) => {
 
         const sectionHeader = sectionEl.querySelector('.section-header');
         const sectionItems = sectionEl.querySelector('.section-items');
+
+        sectionEl.querySelector('.btn-section-study')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startSectionStudy(section.id, false);
+        });
 
         const addCardBtn = sectionEl.querySelector('.btn-section-add-card');
         addCardBtn.addEventListener('click', (e) => {
@@ -357,7 +379,7 @@ export const renderCards = (cards) => {
         });
         
         if (cardsInSection.length === 0) {
-            sectionItems.innerHTML = '<div style="padding: 1rem 1.5rem; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">Inga kort ännu</div>';
+            sectionItems.innerHTML = '<p class="section-empty">Inga kort ännu</p>';
         } else {
             cardsInSection.forEach(card => {
                 sectionItems.appendChild(card.type === 'note' ? renderNoteCardItem(card, deck) : renderCardItem(card, deck));
@@ -399,11 +421,12 @@ export const renderCards = (cards) => {
 
         // Collapse toggle
         sectionEl.querySelector('.section-header-left').addEventListener('click', (e) => {
-            sectionEl.classList.toggle('collapsed');
+            const collapsed = sectionEl.classList.toggle('collapsed');
+            e.currentTarget.setAttribute('aria-expanded', String(!collapsed));
         });
 
         // Double-click header to study section
-        sectionEl.querySelector('.section-header-left').addEventListener('dblclick', (e) => {
+        sectionEl.querySelector('.section-header-left').addEventListener('dblclick', () => {
             startSectionStudy(section.id);
         });
 
@@ -460,18 +483,15 @@ const renderNotes = (notes) => {
         noteEl.className = 'note-item';
         noteEl.innerHTML = `
             <div class="note-content-summary">${safeParse(note.content)}</div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <div class="card-menu-container">
-                    <button class="btn-card-menu-toggle">⋮</button>
-                    <div class="card-menu-dropdown">
-                        <button class="btn-edit-note">Redigera</button>
-                        <button class="btn-delete-note">Ta bort</button>
-                    </div>
-                </div>
+            <div class="list-item-right">
+                ${rowMenu('Åtgärder för anteckningen', `
+                        <button type="button" class="btn-edit-note">Redigera</button>
+                        <button type="button" class="btn-delete-note danger">Ta bort</button>`)}
             </div>
         `;
 
-        noteEl.onclick = () => {
+        noteEl.onclick = (e) => {
+            if (e.target.closest('.row-menu')) return;
             S.currentNoteId = note.id;
             document.getElementById('note-content').value = note.content;
             document.getElementById('note-form-title').innerText = 'Visa anteckning';

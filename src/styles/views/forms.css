@@ -1,1 +1,1045 @@
-/* Fylls i av etapp 4. */
+/* Formulär och modaler — "Lugn precision".
+ *
+ * Appen har arton dialoger. Tidigare bar de sina egna mått i style-attribut:
+ * fem olika radier, tre blå toner, två lila gradienter och skuggor under
+ * varenda ruta. Här finns bara ett formulär, och modalerna ärver skalet från
+ * .modal/.modal-content i components.css — den här filen beskriver bara vad
+ * som står inuti dem.
+ *
+ * Reglerna för AI-guiden är scopade till #modal-topic-generator. Anledningen
+ * är att games-legacy.css laddas efter den här filen och fortfarande färgar
+ * .btn-toggle och .btn-option-qty lila; id-scopet vinner på specificitet i
+ * stället för på !important, och lämnar spelens egna kontroller i fred.
+ */
+
+/* ======================================================================
+ * FORMULÄR
+ *
+ * En kolumn, ett fält i taget, etiketten ovanför. Fälten själva kommer från
+ * components.css — här bestäms bara rytmen mellan dem.
+ * ====================================================================== */
+
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+  /* Ett formulär som är bredare än en läsbar rad blir svårt att överblicka;
+   * ögat tappar bort vilken etikett som hör till vilket fält. */
+  max-width: 46rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.form-group > label {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* Etiketter som bär en åtgärd till höger (Generera svar, Auto) blir en rad. */
+.form-group > label.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.form-group textarea {
+  min-height: 7rem;
+}
+
+#note-content {
+  min-height: 18rem;
+}
+
+/* Åtgärden i en etikett ska väga mindre än etiketten. */
+.label-action {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  /* Ärver annars versalerna och spärren från etiketten den står i. */
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  padding: 0 var(--s1);
+  cursor: pointer;
+}
+
+.label-action:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Den destruktiva utgången i en vy står ensam längst ned, bakom en linje och
+ * med luft omkring sig. Den ska inte gå att träffa på väg någon annanstans. */
+.view-danger-zone {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s7);
+  padding-top: var(--s5);
+  border-top: 1px solid var(--line);
+}
+
+/* ----------------------------------------------------------------------
+ * FÄLTRUTNÄT
+ *
+ * Bild, stil och mapp är småval som hör ihop och står bredvid varandra i
+ * stället för under. Rutnätet fyller på med kolumner när det finns plats i
+ * stället för att låsas till ett antal.
+ * -------------------------------------------------------------------- */
+
+.form-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--s4);
+  padding: var(--s4);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+.grid-item > label:not(.checkbox-grid-option) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.btn-grid-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.btn-grid-action:hover {
+  background: var(--surface-2);
+}
+
+.btn-grid-action svg {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+/* Kryssrutan ritas om: webbläsarens egen är blå och går inte att färga utan
+ * accent-color, som i sin tur inte kan följa en token på Safari. */
+.checkbox-grid-option {
+  display: block;
+  cursor: pointer;
+}
+
+.checkbox-grid-option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.grid-option-box {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+.grid-checkmark {
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+.checkbox-grid-option input:checked + .grid-option-box {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.checkbox-grid-option input:checked + .grid-option-box .grid-checkmark {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Bocken är två kanter roterade 45 grader — ingen ikonfil för fyra pixlar. */
+.checkbox-grid-option input:checked + .grid-option-box .grid-checkmark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border-right: 2px solid var(--text-inverse);
+  border-bottom: 2px solid var(--text-inverse);
+  transform: rotate(45deg);
+}
+
+.checkbox-grid-option input:focus-visible + .grid-option-box {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Select med egen pil: webbläsarens standardpil är olika stor i varje
+ * webbläsare och drar med sig en ram vi inte kan färga. */
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper select {
+  appearance: none;
+  padding-right: var(--s6);
+}
+
+.select-arrow {
+  position: absolute;
+  right: var(--s3);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+/* ======================================================================
+ * BILDER
+ * ====================================================================== */
+
+.image-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+
+.image-preview-container:empty {
+  display: none;
+}
+
+.image-preview-thumb {
+  position: relative;
+  width: 6rem;
+  height: 6rem;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.image-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Knappen är tom i markupen — krysset ritas här, så att inget teckensnitt
+ * eller emoji behöver bära det. */
+.thumb-delete {
+  position: absolute;
+  top: var(--s1);
+  right: var(--s1);
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.thumb-delete:hover {
+  border-color: var(--danger);
+}
+
+.thumb-delete::before,
+.thumb-delete::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 1px;
+  background: var(--text-2);
+}
+
+.thumb-delete::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.thumb-delete::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.thumb-delete:hover::before,
+.thumb-delete:hover::after {
+  background: var(--danger);
+}
+
+/* En bild som inte gick att hämta ska synas som saknad, inte som ett tomt
+ * hål man tror är ett fel i layouten. */
+.image-missing {
+  min-width: 6rem;
+  min-height: 4rem;
+  padding: var(--s3);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+/* Ljusbordet. Ligger över modallagret eftersom en bild kan öppnas inifrån en
+ * dialog. */
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 3500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s5);
+  background: rgb(23 24 26 / 82%);
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: 100%;
+  max-height: 92dvh;
+  width: auto;
+  border-radius: var(--r-md);
+}
+
+/* ======================================================================
+ * MODALER — GEMENSAMT
+ *
+ * Skalet finns i components.css. Här bestäms bara innehållets rytm, och de
+ * få dialoger som behöver ett eget huvud eller en egen rullyta.
+ * ====================================================================== */
+
+.modal-content > h2 {
+  margin-bottom: var(--s4);
+}
+
+/* Inledningen under rubriken. Bär förklaringen, inte handlingen. */
+.modal-lead {
+  margin-bottom: var(--s5);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+/* Formulär som ligger i en dialog ska inte bära dialogens luft en gång till. */
+.modal-content .card-form {
+  max-width: none;
+  gap: var(--s4);
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.modal-header-row h2 {
+  margin-bottom: 0;
+}
+
+.modal-close-x {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--control-h);
+  height: var(--control-h);
+  font-size: 0;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.modal-close-x:hover {
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.modal-close-x::before,
+.modal-close-x::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 1px;
+  background: currentcolor;
+}
+
+.modal-close-x::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.modal-close-x::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* Höga dialoger: huvudet och fotens knappar står stilla, mitten rullar. Utan
+ * det hamnar Spara utanför skärmen så fort listan blir lång. */
+.modal-tall {
+  display: flex;
+  flex-direction: column;
+  max-width: 42rem;
+}
+
+.modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s2);
+  flex: 0 0 auto;
+  margin-top: var(--s4);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+.modal-foot-split {
+  justify-content: space-between;
+}
+
+.modal-foot-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+/* Väntetext. Ersätter den gamla .pulse-text som blinkade i blått. Rörelsen är
+ * en långsam tonändring — tillräckligt för att visa att något pågår, inte
+ * tillräckligt för att dra blicken. */
+.pulse-text {
+  font-size: var(--t-sm);
+  color: var(--text-3);
+  animation: form-wait 1.6s var(--ease) infinite;
+}
+
+@keyframes form-wait {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ======================================================================
+ * FÄRGVÄLJARE
+ * ====================================================================== */
+
+.color-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+/* Kortlekens färg är data och sätts i markupen, inte här — den är användarens
+ * märkning av sin egen kortlek och inte en del av gränssnittets palett. Men
+ * åtta mättade fält bredvid varandra tar över hela dialogen. Färgen klipps
+ * därför till innehållsrutan: träffytan förblir en hel kontrollhöjd, medan
+ * färgen syns som en prick i en hårfin ring. */
+.color-dot {
+  position: relative;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: calc((var(--control-h) - 20px) / 2);
+  background-clip: content-box;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.color-dot:hover {
+  border-color: var(--line-strong);
+}
+
+/* Markeringen är en ring, inte en bock: vi vet inte vilken färg bocken skulle
+ * behöva för att synas mot en färg som kommer utifrån. */
+.color-dot.selected {
+  outline: 2px solid var(--text-1);
+  outline-offset: -1px;
+}
+
+/* ======================================================================
+ * VAD VILL DU SKAPA
+ * ====================================================================== */
+
+.create-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.create-option-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  width: 100%;
+  min-height: calc(var(--control-h) + var(--s6));
+  padding: var(--s4);
+  text-align: left;
+  font-family: inherit;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.create-option-card:hover {
+  background: var(--surface-2);
+  border-color: var(--text-3);
+}
+
+.create-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: calc(var(--control-h) + var(--s2));
+  height: calc(var(--control-h) + var(--s2));
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+}
+
+.create-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.create-option-title {
+  font-size: var(--t-md);
+  font-weight: 500;
+}
+
+.create-option-desc {
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * VAL MED FÖLJD
+ *
+ * Radera bokhylla ställer två utgångar mot varandra. Båda ritas som val och
+ * inte som knappar, så att man läser skillnaden innan man klickar; den som
+ * raderar allt får bära färgen.
+ * ====================================================================== */
+
+.modal-choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.modal-choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  width: 100%;
+  padding: var(--s4);
+  text-align: left;
+  font-family: inherit;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.modal-choice:hover {
+  background: var(--surface-2);
+}
+
+.modal-choice-title {
+  font-size: var(--t-md);
+  font-weight: 500;
+}
+
+.modal-choice-desc {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.modal-choice.danger {
+  border-color: var(--line-strong);
+}
+
+.modal-choice.danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.modal-choice.danger .modal-choice-title {
+  color: var(--danger);
+}
+
+/* ======================================================================
+ * FLYTTA TILL
+ * ====================================================================== */
+
+.move-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--s4);
+}
+
+.search-icon-fixed {
+  position: absolute;
+  left: var(--s3);
+  display: flex;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.move-search-input {
+  padding-left: var(--s7);
+}
+
+.move-target-list {
+  max-height: 22rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.move-target-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: calc(var(--control-h) + var(--s3));
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.move-target-item:last-child {
+  border-bottom: 0;
+}
+
+.move-target-item:hover {
+  background: var(--surface-2);
+}
+
+.move-target-item.selected {
+  background: var(--accent-soft);
+}
+
+.move-target-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Mappen står ett steg in under sin kortlek — indraget är det som visar
+ * hierarkin, inte en linje till. */
+.move-target-item.section {
+  padding-left: var(--s6);
+}
+
+.move-target-icon {
+  display: flex;
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+.move-target-item.selected .move-target-icon {
+  color: var(--accent);
+}
+
+.move-target-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.move-target-name {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.move-target-type {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * AI-GUIDEN
+ *
+ * Tre steg i samma dialog: ställ in, vänta, granska. Guiden var tidigare
+ * lila med gradienter och skuggor; den följer nu samma palett som resten och
+ * skiljer sig bara genom att vara bredare.
+ * ====================================================================== */
+
+#modal-topic-generator .modal-content,
+#modal-diary .modal-content,
+#modal-ai-sort .modal-content {
+  max-width: 42rem;
+  max-height: calc(100dvh - var(--s7));
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.wizard-step.hidden {
+  display: none;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--s4);
+}
+
+/* Segmenterad kontroll: ett val i taget, hela gruppen i en nedsänkt ränna. */
+#modal-topic-generator .toggle-button-group,
+#modal-topic-generator .option-buttons-group {
+  display: flex;
+  gap: var(--s1);
+  padding: var(--s1);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+#modal-topic-generator .btn-toggle,
+#modal-topic-generator .btn-option-qty,
+#modal-topic-generator .btn-option-diff {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--control-h);
+  padding: 0 var(--s2);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+#modal-topic-generator .btn-toggle:hover,
+#modal-topic-generator .btn-option-qty:hover,
+#modal-topic-generator .btn-option-diff:hover {
+  color: var(--text-1);
+}
+
+#modal-topic-generator .btn-toggle.active,
+#modal-topic-generator .btn-option-qty.active,
+#modal-topic-generator .btn-option-diff.active {
+  color: var(--accent);
+  background: var(--surface-1);
+  border-color: var(--accent-line);
+  /* Den gamla stilmallen lägger en lila skugga under det valda segmentet.
+   * Designsystemet har inga skuggor, så den nollas här. */
+  box-shadow: none;
+}
+
+#modal-topic-generator .btn-toggle {
+  flex: 1 1 50%;
+}
+
+/* Väntesteget. Ringen snurrar i accent i stället för lila, och sparklarna
+ * bakom den är borttagna — de var en emoji. */
+#modal-topic-generator .wizard-spinner-container {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+#modal-topic-generator .wizard-spinner {
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--surface-3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+}
+
+#modal-topic-generator .wizard-spinner-sparkles {
+  display: none;
+}
+
+.wizard-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s4);
+  flex: 1 1 auto;
+  padding: var(--s7) var(--s4);
+  text-align: center;
+}
+
+.wizard-wait p {
+  max-width: 24rem;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+/* Sammanfattningsraden ovanför förslagen. */
+.wizard-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.wizard-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#modal-topic-generator .ai-generated-card-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: none;
+}
+
+#modal-topic-generator .ai-generated-card-item:hover {
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+
+.ai-card-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+/* ======================================================================
+ * DAGBOKEN
+ * ====================================================================== */
+
+.preview-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.preview-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.preview-card-front {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.preview-card-back {
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.preview-card-remove {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--control-h);
+  height: var(--control-h);
+  font-size: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.preview-card-remove:hover {
+  background: var(--danger-soft);
+}
+
+.preview-card-remove::before,
+.preview-card-remove::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 1px;
+  background: var(--text-3);
+}
+
+.preview-card-remove::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.preview-card-remove::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.preview-card-remove:hover::before,
+.preview-card-remove:hover::after {
+  background: var(--danger);
+}
+
+/* ======================================================================
+ * KORTETS DETALJER
+ * ====================================================================== */
+
+#modal-card-details .detail-back {
+  margin-bottom: var(--s5);
+  font-size: var(--t-md);
+  color: var(--text-2);
+}
+
+/* AI-texten står i en nedsänkt ruta med en accentlinje i kanten, inte i en
+ * blå tonplatta. Linjen räcker för att visa var svaret börjar. */
+#ai-explanation-container {
+  max-height: 50dvh;
+  overflow: auto;
+  margin-bottom: var(--s5);
+  padding: var(--s4);
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  background: var(--surface-2);
+  border-left: 2px solid var(--accent-line);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
+#ai-text {
+  overflow-wrap: break-word;
+}
+
+#test-question-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+
+/* ======================================================================
+ * MOBIL
+ *
+ * Dialogerna blir bottenark redan i components.css. Här får bara innehållet
+ * följa efter: rutnät blir kolumner, och listor slutar konkurrera om bredden.
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .card-form {
+    gap: var(--s4);
+  }
+
+  #view-add-card .form-options-grid,
+  #modal-edit-card .form-options-grid {
+    grid-template-columns: 1fr;
+    gap: var(--s3);
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .move-target-list {
+    max-height: 40dvh;
+  }
+
+  .modal-foot {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modal-foot .btn {
+    width: 100%;
+    min-height: var(--control-h-lg);
+  }
+
+  .modal-foot-split {
+    align-items: stretch;
+  }
+
+  .modal-foot-group .btn {
+    flex: 1 1 auto;
+  }
+
+  #modal-topic-generator .toggle-button-group {
+    flex-direction: column;
+  }
+}

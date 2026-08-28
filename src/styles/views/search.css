@@ -1,1 +1,322 @@
-/* Fylls i av etapp 4. */
+/* Global sök — kommandopaletten bakom Cmd+K och /.
+ *
+ * Den ska kännas snabb, och snabbhet är här inte animation utan att inget
+ * rör sig i onödan: fast placering nära överkanten, en markering som byter
+ * yta utan att listan hoppar, och tal i monospace så att antalet resultat
+ * inte flyttar sig när det växer från 9 till 10.
+ *
+ * "Lugn precision": en accent, hårfina linjer, inga skuggor. Alla värden
+ * kommer ur tokens.css.
+ */
+
+/* ======================================================================
+ * SÖKTRIGGERN I SIDOPANELEN
+ * ====================================================================== */
+
+/* Var tidigare ett <svg> med onclick — alltså varken nåbar med tangentbord
+ * eller namngiven för skärmläsaren. Nu en riktig knapp som ser likadan ut. */
+.sidebar-search-trigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  color: var(--text-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.sidebar-search-trigger:hover {
+  color: var(--text-1);
+}
+
+/* ======================================================================
+ * PALETTEN
+ * ====================================================================== */
+
+#modal-global-search {
+  /* Nära överkanten i stället för mitt på skärmen: blicken är redan där när
+   * genvägen slagits, och listan kan växa nedåt utan att paletten flyttar
+   * sig för varje tecken man skriver. */
+  align-items: flex-start;
+  padding-top: 12vh;
+}
+
+.search-palette {
+  display: flex;
+  flex-direction: column;
+  max-width: 40rem;
+  max-height: min(70dvh, 34rem);
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--line-strong);
+}
+
+.search-palette-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 0 var(--s4);
+  border-bottom: 1px solid var(--line);
+  transition: border-color var(--dur) var(--ease);
+}
+
+/* Fältet har ingen egen ram, så fokus visas på paletten i stället: linjen
+ * under sökraden byter till accent. Utan det hade fokus varit osynligt. */
+.search-palette:focus-within .search-palette-head {
+  border-bottom-color: var(--accent-line);
+}
+
+.search-palette-icon {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+/* Behöver slå komponentlagrets input[type='text'], som annars ger fältet en
+ * egen ram mitt inne i paletten. Sökraden är hela huvudet, inte en ruta i det. */
+.search-palette-head .search-palette-input {
+  flex: 1 1 auto;
+  min-height: calc(var(--control-h) + var(--s4));
+  padding: 0;
+  font-size: var(--t-lg);
+  color: var(--text-1);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.search-palette-head .search-palette-input:focus-visible {
+  outline: none;
+}
+
+/* Tangentmarkering. Enda stället i appen som ritar en tangent i dag. */
+.kbd {
+  flex: 0 0 auto;
+  padding: 0 var(--s1);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  line-height: 1.7;
+  color: var(--text-3);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+/* ======================================================================
+ * TRÄFFAR
+ * ====================================================================== */
+
+.search-results {
+  flex: 1 1 auto;
+  padding: var(--s2) 0;
+  overflow-y: auto;
+}
+
+.search-result-group {
+  padding: var(--s2) 0;
+}
+
+.search-result-group + .search-result-group {
+  border-top: 1px solid var(--line);
+}
+
+.search-result-group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s4);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--control-h-lg);
+  padding: var(--s2) var(--s4);
+  color: var(--text-1);
+  /* Kanten är alltid där, bara genomskinlig: annars flyttar sig raden två
+   * pixlar i sidled när den blir markerad. */
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+
+.search-result-item:hover {
+  background: var(--surface-2);
+}
+
+/* Markeringen bärs av aria-selected, inte av en klass. Ett tillstånd, ett
+ * attribut — det som syns är samma sak som skärmläsaren läser upp. */
+.search-result-item[aria-selected='true'] {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.search-result-icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.search-result-item[aria-selected='true'] .search-result-icon {
+  color: var(--accent);
+  background: var(--surface-1);
+  border-color: var(--accent-line);
+}
+
+/* Underrubriken går ett steg mörkare på den markerade raden. Mot accentens
+ * ljusa yta klarar --text-3 bara 4,2:1, och 12 pixlar räknas som brödtext. */
+.search-result-item[aria-selected='true'] .search-result-subtitle {
+  color: var(--text-2);
+}
+
+.search-result-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-result-title {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-subtitle {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-snippet {
+  display: -webkit-box;
+  margin-top: var(--s1);
+  padding-left: var(--s2);
+  font-size: var(--t-xs);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  border-left: 1px solid var(--line);
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Den matchande delen av texten. Accent i stället för gul överstrykning:
+ * paletten ska läsas, inte lysa. */
+.search-highlight-match {
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+}
+
+.search-empty {
+  margin: 0;
+  padding: var(--s7) var(--s5);
+  font-size: var(--t-sm);
+  text-align: center;
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * FOTEN
+ * ====================================================================== */
+
+.search-palette-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s4);
+  padding: var(--s2) var(--s4);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+}
+
+.search-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.search-count {
+  margin-left: auto;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ======================================================================
+ * TRÄFFEN SOM SÖKEN HOPPADE TILL
+ *
+ * En animation vinner över vanliga deklarationer i kaskaden, så den behöver
+ * varken hög specificitet eller !important för att synas ovanpå radens egen
+ * bakgrund. Under prefers-reduced-motion stängs den av i base.css.
+ * ====================================================================== */
+
+@keyframes search-flash {
+  from {
+    background-color: var(--accent-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.search-highlight,
+.search-highlight-section {
+  animation: search-flash 2s var(--ease);
+}
+
+/* ======================================================================
+ * MOBIL
+ *
+ * Paletten tar hela skärmen. En centrerad ruta på 360 pixlar är ändå nästan
+ * fullbred, och då är kanterna bara bortkastad plats.
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  #modal-global-search {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .search-palette {
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* Tangentgenvägarna hör hemma där det finns ett tangentbord. */
+  .search-palette-foot .search-hint {
+    display: none;
+  }
+
+  .search-count {
+    margin-left: 0;
+  }
+}
