@@ -11,6 +11,8 @@
 export const TABLES = ['bookshelves', 'decks', 'sections', 'notebooks', 'cards', 'notes'];
 
 const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : null);
+/** Talet om det ar andligt, annars reservvardet. Skyddar mot NaN och Infinity. */
+const finite = (value, fallback) => (Number.isFinite(value) ? value : fallback);
 const ms = (isoString) => (isoString ? Date.parse(isoString) : null);
 
 // ---------------------------------------------------------------------------
@@ -79,6 +81,9 @@ export function flatten(appData, userId) {
         notebook_id: nb.id,
         content: note.content ?? '',
         position: j,
+        // build() laser tillbaka detta. Utan kolumnen blev createdAt 0 efter
+        // en rundtur genom molnet.
+        created_at: iso(note.createdAt) ?? undefined,
       });
     });
   });
@@ -108,11 +113,15 @@ export function cardToRow(card, deckId, userId, position = 0) {
     content: card.content ?? null,
     is_long_form: Boolean(card.isLongForm),
     position,
-    repetition: card.repetition ?? 0,
-    interval_days: card.interval ?? 0,
-    ease_factor: Math.max(1.3, card.easeFactor ?? 2.5),
+    // Number.isFinite, inte ??, eftersom NaN passerar ?? oskadd och sedan
+    // serialiseras till null i JSON. Raden bryter da mot bade not null och
+    // check (ease_factor >= 1.3), upserten misslyckas, och mutationen ligger
+    // kvar i utkorgen och gors om vid varje synk — kon fastnar permanent.
+    repetition: finite(card.repetition, 0),
+    interval_days: finite(card.interval, 0),
+    ease_factor: Math.max(1.3, finite(card.easeFactor, 2.5)),
     next_review_date: iso(card.nextReviewDate) ?? new Date(0).toISOString(),
-    lapses: card.lapses ?? 0,
+    lapses: finite(card.lapses, 0),
     last_reviewed: iso(card.lastReviewed),
   };
 }
@@ -163,6 +172,21 @@ export function build(rows) {
   const sectionsByDeck = groupBy(sectionRows, 'deck_id');
   const cardsByDeck = groupBy(cardRows, 'deck_id');
   const notesByNotebook = groupBy(noteRows, 'notebook_id');
+
+  // Mjuk radering utloser aldrig databasens "on delete set null", sa
+  // referenser till raderade rader maste nollstallas har. Annars far ett kort
+  // ett sectionId till en mapp som inte langre finns, och renderingen visar
+  // det varken som rotkort eller under nagon mapp — kortet forsvinner ur
+  // granssnittet trots att det ligger kvar och studeras. Samma sak en niva
+  // upp: en kortlek som pekar pa en raderad bokhylla forsvinner helt.
+  const levandeMappar = new Set(sectionRows.map((r) => r.id));
+  const levandeHyllor = new Set(bookshelves.map((r) => r.id));
+  for (const row of cardRows) {
+    if (row.section_id && !levandeMappar.has(row.section_id)) row.section_id = null;
+  }
+  for (const row of [...deckRows, ...notebookRows]) {
+    if (row.bookshelf_id && !levandeHyllor.has(row.bookshelf_id)) row.bookshelf_id = null;
+  }
 
   return {
     bookshelves: bookshelves.map((r) => ({

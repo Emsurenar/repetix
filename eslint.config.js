@@ -42,6 +42,10 @@ export default [
         Event: 'readonly',
         DOMParser: 'readonly',
         indexedDB: 'readonly',
+        IDBKeyRange: 'readonly',
+        FormData: 'readonly',
+        atob: 'readonly',
+        btoa: 'readonly',
       },
     },
     rules: {

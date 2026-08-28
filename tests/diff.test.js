@@ -105,14 +105,12 @@ describe('diffSnapshots', () => {
     expect(diffSnapshots(bild({ cards: [medVarde] }), bild({ cards: [utan] }))).toHaveLength(1);
   });
 
-  it('raknar ett saknat falt som skilt fran ett falt satt till null', () => {
-    // undefined !== null, sa en rad utan nyckeln ses som andrad mot en rad
-    // med null. Ofarligt i dag: flatten() skriver alltid ut varje kolumn, aven
-    // de tomma. Men den som bygger rader for hand maste gora likadant, annars
-    // synkas samma rad om och om igen.
+  it('behandlar ett saknat falt och ett falt satt till null som samma sak', () => {
+    // Utan normaliseringen sags en handbyggd rad utan kolumnen som evigt
+    // andrad mot en rad dar kolumnen ar null, och synkades om vid varje varv.
     const utan = kort('k1');
     delete utan.last_reviewed;
-    expect(diffSnapshots(bild({ cards: [utan] }), bild({ cards: [kort('k1')] }))).toHaveLength(1);
+    expect(diffSnapshots(bild({ cards: [utan] }), bild({ cards: [kort('k1')] }))).toEqual([]);
   });
 
   it('ger en delete for en borttagen rad, utan row-objekt', () => {
@@ -155,14 +153,15 @@ describe('diffSnapshots', () => {
     expect(diffSnapshots(forra, nasta)).toHaveLength(1);
   });
 
-  it('BUGG-RISK: deleted_at raknas inte heller som en andring', () => {
-    // Kommentaren i rowsEqual namner bara servergda falt, men deleted_at
-    // hoppas ocksa over. Det ar ofarligt i dag enbart darfor att flatten()
-    // aldrig satter faltet. Skulle diffen nagon gang koras mot rader ur den
-    // lokala spegeln blir en aterskapad rad osynlig for synken.
+  it('raknar deleted_at som en andring, sa en aterskapad rad syns for synken', () => {
+    // Bara de falt servern ager (updated_at, created_at) far hoppas over.
+    // Hoppades aven deleted_at over blev en rad som aterskapats lokalt osynlig
+    // for synken och forblev raderad pa andra enheter.
     const forra = bild({ cards: [kort('k1', { deleted_at: '2025-01-01T00:00:00.000Z' })] });
     const nasta = bild({ cards: [kort('k1', { deleted_at: null })] });
-    expect(diffSnapshots(forra, nasta)).toEqual([]);
+    expect(diffSnapshots(forra, nasta)).toEqual([
+      { table: 'cards', op: 'upsert', id: 'k1', row: nasta.cards[0] },
+    ]);
   });
 
   it('behandlar en saknad forra bild som att allt ar nytt', () => {
@@ -382,15 +381,13 @@ describe('resolve', () => {
     expect(resolve(lokal, fjarran)).toBe(fjarran);
   });
 
-  it('BUGG: en rad utan updated_at behandlas som andrad ar 2000, inte 1970', () => {
-    // Date.parse(local.updated_at ?? 0) far talet 0, som strangas till "0" och
-    // tolkas som aret 2000 - inte som epoken. Fallbacken || 0 nas aldrig.
-    // En lokal rad utan updated_at, vilket ar precis vad flatten() ger,
-    // slar darfor en fjarran rad som andrades pa 1900-talet.
+  it('behandlar en rad utan updated_at som epoken, inte som ar 2000', () => {
+    // Date.parse(0) far talet strangat till "0" och tolkas som aret 2000, inte
+    // som epoken. En lokal rad utan tidsstampel — precis vad flatten() ger —
+    // hade darfor slagit en fjarran rad andrad pa 1900-talet.
     const lokal = { id: 'k1', back: 'Lokalt utan tidsstampel' };
     const fjarran = rad('1999-01-01T00:00:00.000Z', { back: 'Fjarran fran 1999' });
-    expect(resolve(lokal, fjarran)).toBe(lokal);
-    expect(Date.parse(0)).toBeGreaterThan(Date.parse('1999-12-01T00:00:00.000Z'));
+    expect(resolve(lokal, fjarran)).toBe(fjarran);
   });
 
   it('later anda en fjarran rad med nutida tidsstampel vinna over en utan', () => {

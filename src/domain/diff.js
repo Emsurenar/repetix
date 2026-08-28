@@ -20,9 +20,13 @@ function rowsEqual(a, b) {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const k of keys) {
     // Fält som servern äger jämförs inte: de sätts av databasen och skulle
-    // annars få varje rad att se ändrad ut vid varje synk.
-    if (k === 'updated_at' || k === 'created_at' || k === 'deleted_at') continue;
-    if (a[k] !== b[k]) return false;
+    // annars få varje rad att se ändrad ut vid varje synk. deleted_at jämförs
+    // däremot, så att en återskapad rad syns som en ändring.
+    if (k === 'updated_at' || k === 'created_at') continue;
+    // Saknat fält och null betyder samma sak här. Utan normaliseringen skulle
+    // en handbyggd rad utan kolumnen se evigt ändrad ut mot en rad där
+    // kolumnen är null, och synkas om vid varje varv.
+    if ((a[k] ?? null) !== (b[k] ?? null)) return false;
   }
   return true;
 }
@@ -117,7 +121,14 @@ export function groupForSend(mutations) {
 export function resolve(local, remote) {
   if (!local) return remote;
   if (!remote) return local;
-  const l = Date.parse(local.updated_at ?? 0) || 0;
-  const r = Date.parse(remote.updated_at ?? 0) || 0;
+  // Date.parse(0) blir ar 2000, inte epoken, eftersom talet strangas till "0".
+  // En rad utan updated_at — precis vad flatten() producerar — hade darfor
+  // vunnit over en fjarran rad andrad fore ar 2000.
+  const tid = (row) => {
+    const parsed = row.updated_at ? Date.parse(row.updated_at) : NaN;
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const l = tid(local);
+  const r = tid(remote);
   return l > r ? local : remote;
 }

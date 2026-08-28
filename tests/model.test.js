@@ -29,7 +29,7 @@ const KOLUMNER = {
     'last_reviewed',
   ],
   notebooks: ['id', 'user_id', 'bookshelf_id', 'title', 'position'],
-  notes: ['id', 'user_id', 'notebook_id', 'content', 'position'],
+  notes: ['id', 'user_id', 'notebook_id', 'content', 'position', 'created_at'],
 };
 
 // Kolumner med not null i schemat. Saknas nagon av dem i raden gar insert fel.
@@ -301,21 +301,26 @@ describe('cardToRow', () => {
     expect(rad.position).toBe(3);
   });
 
-  it('BUGG: ease_factor blir NaN nar kortet har ett NaN-varde', () => {
-    // Math.max(1.3, NaN) ar NaN, och ?? fangar bara null och undefined.
-    // srs.js loser samma problem med Number.isFinite (withScheduleDefaults).
-    // En NaN-rad serialiseras till null av JSON och avvisas av not null-
-    // villkoret; da kastar pushOutbox och utkorgen fastnar for alltid.
+  it('later aldrig NaN passera till ease_factor', () => {
+    // Math.max(1.3, NaN) ar NaN, och ?? fangar bara null och undefined. En
+    // NaN-rad serialiseras till null av JSON och avvisas av bade not null och
+    // check (ease_factor >= 1.3). Da kastar pushOutbox, mutationen ligger kvar
+    // i utkorgen och gors om vid varje synk — kon fastnar for alltid.
     const rad = cardToRow(vanligtKort({ easeFactor: NaN }), 'd1', ANVANDARE);
-    expect(Number.isNaN(rad.ease_factor)).toBe(true);
-    expect(rad.ease_factor >= 1.3).toBe(false);
-    expect(JSON.parse(JSON.stringify(rad)).ease_factor).toBeNull();
+    expect(rad.ease_factor).toBe(2.5);
+    expect(JSON.parse(JSON.stringify(rad)).ease_factor).toBe(2.5);
   });
 
-  it('BUGG: interval_days och repetition slapper ocksa igenom NaN', () => {
+  it('later aldrig NaN passera till interval_days eller repetition', () => {
     const rad = cardToRow(vanligtKort({ interval: NaN, repetition: NaN }), 'd1', ANVANDARE);
-    expect(Number.isNaN(rad.interval_days)).toBe(true);
-    expect(Number.isNaN(rad.repetition)).toBe(true);
+    expect(rad.interval_days).toBe(0);
+    expect(rad.repetition).toBe(0);
+  });
+
+  it('later aldrig Infinity passera heller', () => {
+    const rad = cardToRow(vanligtKort({ interval: Infinity, lapses: -Infinity }), 'd1', ANVANDARE);
+    expect(Number.isFinite(rad.interval_days)).toBe(true);
+    expect(Number.isFinite(rad.lapses)).toBe(true);
   });
 });
 
@@ -449,13 +454,11 @@ describe('rundturen flatten -> build', () => {
     expect(kort).not.toHaveProperty('originalDeckId');
   });
 
-  it('BUGG: anteckningens createdAt gar forlorad i rundturen', () => {
-    // flatten() skickar inte med created_at for anteckningar, men build()
-    // laser n.created_at. En anteckning skapad med createNote() (som satter
-    // createdAt: Date.now()) far darfor 0 tillbaka.
+  it('bevarar anteckningens createdAt genom rundturen', () => {
+    // build() laser n.created_at, sa flatten() maste skriva ut kolumnen.
+    // Annars far varje anteckning tidpunkten 0 efter en vanda genom molnet.
     const efter = rundtur(bibliotek());
-    expect(efter.notebooks[0].notes[0].createdAt).toBe(0);
-    expect(efter.notebooks[0].notes[0].createdAt).not.toBe(1_700_000_000_000);
+    expect(efter.notebooks[0].notes[0].createdAt).toBe(1_700_000_000_000);
   });
 });
 
@@ -498,41 +501,42 @@ describe('build', () => {
     expect(build(rader).decks[0].color).toBe('#4F46E5');
   });
 
-  it('BUGG: kort behaller sectionId till en mjukraderad mapp och blir osynliga', () => {
+  it('nollstaller sectionId nar mappen ar mjukraderad, sa kortet forblir synligt', () => {
     // deck.js renderar kort antingen som rotkort (!c.sectionId) eller under en
     // mapp (c.sectionId === section.id). Ett kort vars mapp ar mjukraderad
-    // matchar ingendera och forsvinner ur kortleksvyn, trots att det finns
-    // kvar och studeras. Schemat sager on delete set null for section_id, men
-    // mjuk radering utloser aldrig den regeln, sa build() maste gora det sjalv.
+    // matchar ingendera och skulle forsvinna ur kortleksvyn, trots att det
+    // finns kvar och studeras. Schemat sager on delete set null for
+    // section_id, men mjuk radering utloser aldrig den regeln — build() maste
+    // gora det sjalv.
     const rader = flatten(bibliotek(), ANVANDARE);
     rader.sections[0].deleted_at = new Date().toISOString(); // s1 = Derivator
 
     const kortlek = build(rader).decks[0];
     const kort = kortlek.cards.find((k) => k.id === 'k1');
     expect(kortlek.sections.map((s) => s.id)).toEqual(['s2']);
-    expect(kort.sectionId).toBe('s1');
+    expect(kort.sectionId).toBeNull();
 
     const synligtSomRotkort = !kort.sectionId;
     const synligtIMapp = kortlek.sections.some((s) => s.id === kort.sectionId);
-    expect(synligtSomRotkort || synligtIMapp).toBe(false);
+    expect(synligtSomRotkort || synligtIMapp).toBe(true);
   });
 
-  it('BUGG: kortlekar och block behaller bookshelfId till en mjukraderad bokhylla', () => {
+  it('nollstaller bookshelfId nar bokhyllan ar mjukraderad, sa kortleken forblir synlig', () => {
     // library.js renderar en kortlek antingen under sin bokhylla eller i roten
-    // (!deck.bookshelfId). Pekar bookshelfId pa en bokhylla som inte langre
-    // finns forsvinner hela kortleken ur biblioteket.
+    // (!deck.bookshelfId). Pekade bookshelfId pa en bokhylla som inte langre
+    // finns forsvann hela kortleken ur biblioteket.
     const rader = flatten(bibliotek(), ANVANDARE);
     rader.bookshelves[0].deleted_at = new Date().toISOString(); // h1 = Matematik
 
     const efter = build(rader);
     const kortlek = efter.decks.find((d) => d.id === 'd1');
     expect(efter.bookshelves.map((h) => h.id)).toEqual(['h2']);
-    expect(kortlek.bookshelfId).toBe('h1');
+    expect(kortlek.bookshelfId).toBeNull();
 
     const synlig =
       !kortlek.bookshelfId || efter.bookshelves.some((h) => h.id === kortlek.bookshelfId);
-    expect(synlig).toBe(false);
-    expect(efter.notebooks[0].bookshelfId).toBe('h1');
+    expect(synlig).toBe(true);
+    expect(efter.notebooks[0].bookshelfId).toBeNull();
   });
 });
 
