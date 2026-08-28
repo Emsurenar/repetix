@@ -63,7 +63,6 @@ export const transportbandetReveal = () => {
     const overlay = document.createElement('div');
     overlay.id = 'cinema-overlay';
     overlay.className = 'cinema-overlay';
-    overlay.style.background = 'rgba(0, 5, 20, 0.97)';
 
     // Render Intro Screen initially
     overlay.innerHTML = `
@@ -71,19 +70,17 @@ export const transportbandetReveal = () => {
         <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1.5rem;position:relative;">
             <div class="tb-intro-card">
                 <h2 class="tb-intro-title">TRANSPORTBANDET</h2>
-                <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 0.95rem; line-height: 1.4;">
+                <p style="color: var(--text-2); margin: 0; font-size: 0.95rem; line-height: 1.4;">
                     Sortera de fallande korten i rätt korgar i botten. Se upp för felaktiga placeringar!
                 </p>
                 
                 <div style="width: 100%; text-align: left;">
-                    <span style="font-size: 0.8rem; font-weight: 700; color: #60A5FA; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.5rem;">Kategorier i spel:</span>
+                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.5rem;">Kategorier i spel:</span>
                     <div class="tb-intro-categories">
                         ${sectionTitles.map((t, i) => {
-                            const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
-                            const color = colors[i] || '#A78BFA';
                             return `
                                 <div class="tb-intro-item">
-                                    <span class="tb-category-dot" style="color: ${color}; background-color: ${color};"></span>
+                                    <span class="tb-category-dot"></span>
                                     <span class="tb-category-name">${t}</span>
                                     <span class="tb-category-key">${i + 1}</span>
                                 </div>
@@ -126,7 +123,6 @@ export const transportbandetReveal = () => {
                 heart.style.opacity = '0.25';
                 heart.style.transform = 'scale(0.8)';
             } else {
-                heart.style.filter = 'drop-shadow(0 0 4px rgba(234,67,53,0.5))';
             }
             container.appendChild(heart);
         }
@@ -141,7 +137,7 @@ export const transportbandetReveal = () => {
     };
 
     const triggerConfetti = () => {
-        const colors = ['#FFD700', '#FF4500', '#FF0080', '#00FF00', '#00FFFF', '#8A2BE2'];
+        const colors = ['var(--accent)', 'var(--danger)', 'var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
         for (let i = 0; i < 60; i++) {
             const confetti = document.createElement('div');
             confetti.className = 'sd-confetti';
@@ -181,7 +177,7 @@ export const transportbandetReveal = () => {
             <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1.5rem;position:relative;">
                 <div class="tb-end-screen ${screenClass}">
                     <h2 class="tb-end-title ${titleClass}">${titleText}</h2>
-                    <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 0.95rem;">
+                    <p style="color: var(--text-2); margin: 0; font-size: 0.95rem;">
                         ${isVictory ? 'Du lyckades sortera alla korten!' : 'Alla liv tog slut.'}
                     </p>
                     
@@ -203,7 +199,7 @@ export const transportbandetReveal = () => {
                             <span class="sd-stat-value">${score}</span>
                         </div>
                         ${isNewPB ? `
-                            <div style="background: rgba(255,215,0,0.15); border: 1px dashed #FFD700; border-radius: 6px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #FFD700; text-shadow: 0 0 4px rgba(255,215,0,0.2);">
+                            <div style="background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 6px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--accent);">
                                  NYTT REKORD! 
                             </div>
                         ` : `
@@ -290,7 +286,7 @@ export const transportbandetReveal = () => {
                 <div class="tb-header">
                     <div id="tb-lives" style="display:flex;gap:0.3rem;font-size:1.6rem; z-index: 5;"></div>
                     <div style="display:flex; gap:1.2rem; align-items:center; font-weight:700; z-index: 5;">
-                        <span id="tb-pb" style="color:#FFD700; font-size:0.9rem;"> Rekord: ${personalBest}</span>
+                        <span id="tb-pb" style="color:var(--accent); font-size:0.9rem;"> Rekord: ${personalBest}</span>
                         <span id="tb-score" class="tb-score" style="font-size:1.1rem;">Poäng: 0</span>
                         <span id="tb-progress" class="tb-progress">1 / ${cards.length}</span>
                     </div>
@@ -306,18 +302,16 @@ export const transportbandetReveal = () => {
                 
                 <div id="tb-bins" class="tb-bins">
                     ${sectionTitles.map((t, i) => {
-                        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
-                        const color = colors[i] || '#A78BFA';
                         return `
-                        <div class="tb-bin${i === 0 ? ' tb-bin-active' : ''}" data-idx="${i}" style="--bin-color: ${color};" title="${t}">
+                        <button type="button" class="tb-bin${i === 0 ? ' tb-bin-active' : ''}" data-idx="${i}" title="${t}" aria-label="Sortera i ${t}">
                             <div style="display:flex; flex-direction:column; align-items:center; gap:0.4rem; width:100%;">
-                                <span class="tb-bin-num" style="background:${color}20; color:${color}; border:1.5px solid ${color}; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; flex-shrink:0;">${i + 1}</span>
-                                <span class="tb-bin-label" style="color:${color};">${t}</span>
+                                <span class="tb-bin-num">${i + 1}</span>
+                                <span class="tb-bin-label">${t}</span>
                             </div>
-                        </div>
+                        </button>
                     `}).join('')}
                 </div>
-                <div class="tb-controls-hint">← → Flytta &nbsp; ↓ Släpp &nbsp;|&nbsp; 1 - 4 Sortera direkt</div>
+                <div class="tb-controls-hint">Tryck på en korg för att sortera &nbsp;|&nbsp; ← → flytta, ↓ släpp, 1 – 4 direkt</div>
             </div>
             <div class="cinema-bar cinema-bar-bottom"></div>
         `;
@@ -325,7 +319,18 @@ export const transportbandetReveal = () => {
         arena = overlay.querySelector('#tb-arena');
         fallingCard = overlay.querySelector('#tb-falling-card');
         bins = overlay.querySelectorAll('.tb-bin');
-        
+
+        /* Ett tryck pa en korg gor samma sak som siffertangenten: siktar dit
+         * och slapper kortet. Utan detta fanns ingen styrning alls pa telefon,
+         * eftersom piltangenter var enda vagen in i spelet. */
+        bins.forEach((bin) => {
+            bin.addEventListener('click', () => {
+                if (dropped || lives <= 0 || cardIdx >= cards.length) return;
+                siktaMot(parseInt(bin.dataset.idx, 10));
+                if (overlay._handleLanding) overlay._handleLanding(cards[cardIdx]);
+            });
+        });
+
         document.addEventListener('keydown', onKeyDown);
         
         renderLives();
@@ -334,6 +339,16 @@ export const transportbandetReveal = () => {
 
     const updateBinHighlight = () => {
         bins.forEach((b, i) => b.classList.toggle('tb-bin-active', i === activeBinIdx));
+    };
+
+    /* Siktar kortet mot en korg. Raknesattet lag i fyra kopior i
+     * tangentbordshanteraren; nu finns det en gang, och fingret kan anvanda
+     * samma vag in. */
+    const siktaMot = (index) => {
+        activeBinIdx = Math.max(0, Math.min(sectionTitles.length - 1, index));
+        updateBinHighlight();
+        const binWidth = 100 / sectionTitles.length;
+        fallingCard.style.left = `${activeBinIdx * binWidth + binWidth / 2}%`;
     };
 
     const dropCard = () => {
@@ -436,7 +451,7 @@ export const transportbandetReveal = () => {
                 const flashOverlay = document.createElement('div');
                 flashOverlay.style.position = 'absolute';
                 flashOverlay.style.inset = '0';
-                flashOverlay.style.background = 'rgba(234, 67, 53, 0.18)';
+                flashOverlay.style.background = 'var(--danger-soft)';
                 flashOverlay.style.pointerEvents = 'none';
                 flashOverlay.style.zIndex = '99';
                 overlay.appendChild(flashOverlay);
@@ -450,7 +465,7 @@ export const transportbandetReveal = () => {
             // Show correct category and wait for click/space to advance
             const correctLabel = sectionTitles[correctIdx] || '?';
             const hint = document.createElement('div');
-            hint.style.cssText = 'position:absolute;bottom:8%;left:50%;transform:translateX(-50%);font-size:0.8rem;color:rgba(255,255,255,0.35);font-style:italic;z-index:10;white-space:nowrap;';
+            hint.style.cssText = 'position:absolute;bottom:8%;left:50%;transform:translateX(-50%);font-size:0.8rem;color:var(--text-3);font-style:italic;z-index:10;white-space:nowrap;';
             hint.textContent = `${isCorrect ? '✓' : '✗'} Rätt mapp: ${correctLabel} — [Space] fortsätt`;
             arena.appendChild(hint);
 
@@ -503,16 +518,10 @@ export const transportbandetReveal = () => {
 
         if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            activeBinIdx = Math.max(0, activeBinIdx - 1);
-            updateBinHighlight();
-            const binWidth = 100 / sectionTitles.length;
-            fallingCard.style.left = `${activeBinIdx * binWidth + binWidth / 2}%`;
+            siktaMot(activeBinIdx - 1);
         } else if (e.key === 'ArrowRight') {
             e.preventDefault();
-            activeBinIdx = Math.min(sectionTitles.length - 1, activeBinIdx + 1);
-            updateBinHighlight();
-            const binWidth = 100 / sectionTitles.length;
-            fallingCard.style.left = `${activeBinIdx * binWidth + binWidth / 2}%`;
+            siktaMot(activeBinIdx + 1);
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             if (overlay._handleLanding) overlay._handleLanding(card);
@@ -520,10 +529,7 @@ export const transportbandetReveal = () => {
             e.preventDefault();
             const binIndex = parseInt(e.key, 10) - 1;
             if (binIndex >= 0 && binIndex < sectionTitles.length) {
-                activeBinIdx = binIndex;
-                updateBinHighlight();
-                const binWidth = 100 / sectionTitles.length;
-                fallingCard.style.left = `${activeBinIdx * binWidth + binWidth / 2}%`;
+                siktaMot(binIndex);
                 if (overlay._handleLanding) overlay._handleLanding(card);
             }
         }

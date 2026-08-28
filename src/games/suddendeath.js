@@ -60,8 +60,7 @@ export const suddenDeathReveal = (allCards) => {
     // Create container overlay
     const overlay = document.createElement('div');
     overlay.id = 'cinema-overlay';
-    overlay.className = 'cinema-overlay pg-mode-suddendeath';
-    overlay.style.background = 'radial-gradient(circle at center, #160214 0%, #06000d 80%, #000000 100%)';
+    overlay.className = 'cinema-overlay';
     overlay.style.position = 'fixed';
     overlay.style.top = '0';
     overlay.style.left = '0';
@@ -97,7 +96,7 @@ export const suddenDeathReveal = (allCards) => {
     };
 
     const triggerConfetti = () => {
-        const colors = ['#FFD700', '#FF4500', '#FF0080', '#00FF00', '#00FFFF', '#8A2BE2'];
+        const colors = ['var(--accent)', 'var(--danger)', 'var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
         for (let i = 0; i < 60; i++) {
             const confetti = document.createElement('div');
             confetti.className = 'sd-confetti';
@@ -239,45 +238,41 @@ export const suddenDeathReveal = (allCards) => {
     };
 
     const renderGameLayout = () => {
+        /* Arenan i klasser i stallet for inline-stilar. Layouten var kvar fran
+         * den morka versionen: fyra rader som alla lag i mitten av en smal
+         * spalt, med egna radier och egna grader. Nu bar toppslisten laget,
+         * tidslinjen ar samma primitiv som resten av appen, och fragan ar en
+         * yta pa arenans botten. */
         overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1.2rem;position:relative;">
-                <!-- Top HUD -->
-                <div style="display:flex; justify-content:space-between; width:100%; align-items:center; flex-wrap:wrap; gap:0.5rem; z-index: 5;">
-                    <div id="sd-lives" style="display:flex;gap:0.4rem;font-size:1.8rem;transition:transform 0.2s ease;"></div>
-                    <div style="display:flex; gap:1rem; font-size:0.95rem; font-weight:700; color:#fff; align-items:center;">
-                        <span id="sd-pb" style="color:#FFD700; text-shadow:0 0 8px rgba(255,215,0,0.4); display:flex; align-items:center; gap:4px;">
-                            Rekord: ${personalBest}
-                        </span>
-                        <span id="sd-card-progress" style="color:var(--text-secondary);">Kort ${cardIdx + 1} / ${cards.length}</span>
+            <div class="arena">
+                <div class="arena-top">
+                    <div id="sd-lives" class="arena-lives"></div>
+                    <div class="arena-meta num">
+                        <span id="sd-pb">Rekord ${personalBest}</span>
+                        <span class="arena-sep" aria-hidden="true"></span>
+                        <span id="sd-card-progress">${cardIdx + 1} av ${cards.length}</span>
                     </div>
                 </div>
-                
-                <!-- Timer Bar -->
-                <div style="width:100%; display:flex; align-items:center; gap:0.75rem; z-index: 5;">
-                    <div id="sd-timer-bar" style="flex:1;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;position:relative;">
-                        <div id="sd-timer-fill" style="width:100%;height:100%;background:#00ffff;transform-origin:left;transform:scaleX(1);"></div>
+
+                <div class="arena-timer">
+                    <div id="sd-timer-bar" class="progress">
+                        <i id="sd-timer-fill" class="progress-fill"></i>
                     </div>
-                    <span id="sd-timer-text" style="font-family:monospace; font-size:1rem; font-weight:700; color:#00ffff; min-width:45px; text-align:right;">7.0s</span>
+                    <span id="sd-timer-text" class="num">7.0s</span>
                 </div>
-                
-                <!-- Score & Streak display -->
-                <div style="display:flex; justify-content:space-between; width:100%; align-items:center; min-height:30px; z-index: 5;">
-                    <span id="sd-score-hud" style="font-size:1.3rem; font-weight:900; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.15);">Poäng: 0</span>
-                    <span id="sd-streak-hud" style="opacity:0; transition:all 0.2s ease;">
-                        <div class="sd-combo-badge">
-                            <span>Combo x<span id="sd-streak-count">0</span></span>
-                        </div>
+
+                <div class="arena-body">
+                    <div id="sd-question" class="arena-question"></div>
+                    <div id="sd-options" class="arena-options"></div>
+                </div>
+
+                <div class="arena-foot">
+                    <span id="sd-score-hud" class="arena-score num">Poäng 0</span>
+                    <span id="sd-streak-hud" class="arena-combo">
+                        <span class="sd-combo-badge">Combo x<span id="sd-streak-count">0</span></span>
                     </span>
                 </div>
-                
-                <!-- Question Area -->
-                <div id="sd-question" style="font-size:1.4rem;font-weight:700;color:#fff;text-align:center;line-height:1.4;width:100%;margin:0.5rem 0;z-index: 5; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 1rem;"></div>
-                
-                <!-- Options Grid -->
-                <div id="sd-options" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;width:100%;z-index: 5;"></div>
             </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
         `;
     };
 
@@ -317,18 +312,18 @@ export const suddenDeathReveal = (allCards) => {
                         <path d="M2 22h20v-2H2v2zm1-3l2.5-9 4.5 4 2.5-10 2.5 10 4.5-4 2.5 9H3z"/>
                     </svg>
                 </div>
-                <h1 style="font-family:'Russo One', 'Impact', sans-serif; font-size:3rem; margin:0; color:#DC143C; text-shadow: 0 0 15px rgba(220,20,60,0.6), 2px 3px 0 #3a0008; letter-spacing:0.05em;">SUDDEN DEATH</h1>
-                <div style="background: rgba(255, 215, 0, 0.08); border: 1px dashed #FFD700; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; color: #FFD700; text-shadow: 0 0 6px rgba(255,215,0,0.3); font-size: 1.1rem;">
+                <h1 style="font-family:var(--font-ui); font-size:var(--t-2xl); margin:0; color:var(--danger); letter-spacing:0.05em;">SUDDEN DEATH</h1>
+                <div style="background: var(--accent-soft); border: 1px dashed var(--accent); padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; color: var(--accent); font-size: 1.1rem;">
                     Rekord (${pbTitle}): ${personalBest} poäng
                 </div>
-                <p style="color: rgba(255,255,255,0.7); line-height: 1.6; font-size: 0.95rem; margin: 0;">
-                    Välj rätt svar med <strong style="color:#fff;">[1] - [4]</strong>. Du har <strong style="color:#EA4335;">3 liv</strong>.<br>
+                <p style="color: var(--text-2); line-height: 1.6; font-size: 0.95rem; margin: 0;">
+                    Välj rätt svar med <strong style="color:var(--text-1);">[1] - [4]</strong>. Du har <strong style="color:var(--danger);">3 liv</strong>.<br>
                     Tiden tickar snabbare ju fler rätt du har!<br>
                     Vid fel visas rätt svar — studera det innan du fortsätter.
                 </p>
                 <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%; align-items:center;">
                     <button id="sd-btn-start" class="btn primary" style="width: 100%; max-width: 250px; font-weight: 700; font-size: 1.1rem; padding: 0.9rem; border-radius: 10px;">STARTA UTMANINGEN</button>
-                    <span style="font-size: 0.8rem; color: rgba(255,255,255,0.4); font-style: italic;">[Tryck på Space för att starta]</span>
+                    <span style="font-size: 0.8rem; color: var(--text-3); font-style: italic;">[Tryck på Space för att starta]</span>
                 </div>
             </div>
             <div class="cinema-bar cinema-bar-bottom"></div>
@@ -359,40 +354,40 @@ export const suddenDeathReveal = (allCards) => {
         if (speedBonusCount >= 5) {
             badges.push({
                 text: 'Blixtsnabb',
-                color: '#60A5FA',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#60A5FA"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34 1.2-2.11 3.03-5.34L13 3h1l-1 7h3.5c.49 0 .56.33.38.66l-4.5 8.34c-.18.33-.38.34-.38.34z"/></svg>`,
+                color: 'var(--accent)',
+                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent)"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34 1.2-2.11 3.03-5.34L13 3h1l-1 7h3.5c.49 0 .56.33.38.66l-4.5 8.34c-.18.33-.38.34-.38.34z"/></svg>`,
                 desc: 'Svarade blixtsnabbt på 5+ kort'
             });
         }
         if (maxStreak >= 10) {
             badges.push({
                 text: 'Streak-mästare',
-                color: '#F59E0B',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#F59E0B"><path d="M12 23c4.97 0 9-4.03 9-9 0-2.12-.74-4.07-1.97-5.61L12.35 1c-.39-.4-.97-.3-1.09.26C10.74 3.76 8.44 6 5.86 8.62 3.42 11.08 2 13.9 2 17c0 3.31 2.69 6 6 6h4zm-3-9c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>`,
+                color: 'var(--rate-2)',
+                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--rate-2)"><path d="M12 23c4.97 0 9-4.03 9-9 0-2.12-.74-4.07-1.97-5.61L12.35 1c-.39-.4-.97-.3-1.09.26C10.74 3.76 8.44 6 5.86 8.62 3.42 11.08 2 13.9 2 17c0 3.31 2.69 6 6 6h4zm-3-9c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>`,
                 desc: 'Nådde en streak på 10+'
             });
         }
         if (lives === 3 && cardIdx > 0) {
             badges.push({
                 text: 'Oslagbar',
-                color: '#34A853',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#34A853"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>`,
+                color: 'var(--accent)',
+                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>`,
                 desc: 'Förlorade inte ett enda liv'
             });
         }
         if (lateSaveCount >= 1) {
             badges.push({
                 text: 'Sista sekunden',
-                color: '#F87171',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#F87171"><path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6v6h12v-6h-.01L18 16l-4-4 4-4-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zM8 7.5V4h8v3.5l-4 4-4-4z"/></svg>`,
+                color: 'var(--danger)',
+                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--danger)"><path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6v6h12v-6h-.01L18 16l-4-4 4-4-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zM8 7.5V4h8v3.5l-4 4-4-4z"/></svg>`,
                 desc: 'Svarade med under 0.5s kvar'
             });
         }
         if (badges.length === 0) {
             badges.push({
                 text: 'Kämpe',
-                color: '#A855F7',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#A855F7"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
+                color: 'var(--accent)',
+                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent)"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
                 desc: 'Kämpade väl under spelrundan'
             });
         }
@@ -428,9 +423,9 @@ export const suddenDeathReveal = (allCards) => {
             </div>
         ` : `
             <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem; opacity:0.8; height: 100%;">
-                <svg viewBox="0 0 24 24" width="40" height="40" fill="#FFD700"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                <span style="font-weight:700; color:#fff;">Perfekt spelrunda!</span>
-                <span style="font-size:0.85rem; color:rgba(255,255,255,0.5); text-align:center;">Du gjorde inga misstag alls. Imponerande!</span>
+                <svg viewBox="0 0 24 24" width="40" height="40" fill="var(--accent)"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                <span style="font-weight:700; color:var(--text-1);">Perfekt spelrunda!</span>
+                <span style="font-size:0.85rem; color:var(--text-3); text-align:center;">Du gjorde inga misstag alls. Imponerande!</span>
             </div>
         `;
 
@@ -440,7 +435,7 @@ export const suddenDeathReveal = (allCards) => {
                 <!-- Left Screen: Stats & Badges -->
                 <div class="sd-end-screen-left ${screenClass}">
                     <h2 class="sd-end-title ${titleClass}">${titleText}</h2>
-                    <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 0.95rem;">
+                    <p style="color: var(--text-2); margin: 0; font-size: 0.95rem;">
                         ${isVictory ? 'Du överlevde alla korten!' : 'Du fick slut på liv.'}
                     </p>
                     
@@ -462,7 +457,7 @@ export const suddenDeathReveal = (allCards) => {
                             <span class="sd-stat-value">${score}</span>
                         </div>
                         ${isNewPB ? `
-                            <div style="background: rgba(255,215,0,0.12); border: 1px dashed #FFD700; border-radius: 8px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #FFD700; text-shadow: 0 0 4px rgba(255,215,0,0.2);">
+                            <div style="background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 8px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--accent);">
                                  NYTT REKORD! 👑
                             </div>
                         ` : `
@@ -474,8 +469,8 @@ export const suddenDeathReveal = (allCards) => {
                     </div>
 
                     <!-- Badges Row -->
-                    <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:1rem; text-align:left;">
-                        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:rgba(255,255,255,0.4); margin-bottom:0.5rem; text-align:center;">Intjänade utmärkelser</div>
+                    <div style="border-top:1px solid var(--line); padding-top:1rem; text-align:left;">
+                        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3); margin-bottom:0.5rem; text-align:center;">Intjänade utmärkelser</div>
                         <div class="sd-badges-list">
                             ${badges.map(b => `<div class="sd-badge-item" title="${b.desc}">${b.svg} <span>${b.text}</span></div>`).join('')}
                         </div>
@@ -489,9 +484,9 @@ export const suddenDeathReveal = (allCards) => {
 
                 <!-- Right Screen: Mistakes Review -->
                 <div class="sd-end-screen-right">
-                    <div style="font-size: 1.15rem; font-weight: 700; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-1); border-bottom: 1px solid var(--line); padding-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
                         <span>Granska dina misstag</span>
-                        <span style="font-size: 0.8rem; color: #EA4335; background: rgba(234, 67, 53, 0.15); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+                        <span style="font-size: 0.8rem; color: var(--danger); background: var(--danger-soft); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
                             ${mistakes.length} fel
                         </span>
                     </div>
@@ -558,17 +553,13 @@ export const suddenDeathReveal = (allCards) => {
         // Update HUD
         const cardProgressEl = overlay.querySelector('#sd-card-progress');
         const scoreHudEl = overlay.querySelector('#sd-score-hud');
-        if (cardProgressEl) cardProgressEl.textContent = `Kort ${cardIdx + 1} / ${cards.length}`;
-        if (scoreHudEl) scoreHudEl.textContent = `Poäng: ${score}`;
+        if (cardProgressEl) cardProgressEl.textContent = `${cardIdx + 1} av ${cards.length}`;
+        if (scoreHudEl) scoreHudEl.textContent = `Poäng ${score}`;
         
         const streakHud = overlay.querySelector('#sd-streak-hud');
         if (streakHud) {
-            if (streak >= 2) {
-                overlay.querySelector('#sd-streak-count').textContent = streak;
-                streakHud.style.opacity = '1';
-            } else {
-                streakHud.style.opacity = '0';
-            }
+            if (streak >= 2) overlay.querySelector('#sd-streak-count').textContent = streak;
+            streakHud.classList.toggle('is-on', streak >= 2);
         }
 
         const qEl = overlay.querySelector('#sd-question');
@@ -583,11 +574,11 @@ export const suddenDeathReveal = (allCards) => {
             qEl.innerHTML = `
                 <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: left;">Fråga:</div>
                 <div style="font-size: 1.05rem; margin-bottom: 0.75rem; text-align: left; font-weight:600;">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
-                <div style="font-size: 0.9rem; color: #34A853; margin-bottom: 0.25rem; font-weight: 700; text-align: left;">Rätt svar:</div>
-                <div id="sd-full-answer-text" style="font-size: 1.1rem; color: #fff; background: rgba(52, 168, 83, 0.08); border: 1px solid rgba(52, 168, 83, 0.2); padding: 0.75rem; border-radius: 8px; text-align: left;">
+                <div style="font-size: 0.9rem; color: var(--accent); margin-bottom: 0.25rem; font-weight: 700; text-align: left;">Rätt svar:</div>
+                <div id="sd-full-answer-text" style="font-size: 1.1rem; color: var(--text-1); background: var(--accent-soft); border: 1px solid var(--accent-soft); padding: 0.75rem; border-radius: 8px; text-align: left;">
                     ${typeof safeParse === 'function' ? safeParse(card.back) : card.back}
                 </div>
-                <div style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.35); margin-top: 0.75rem; text-align: center; font-style: italic;">
+                <div style="font-size: 0.8rem; color:var(--text-3); margin-top: 0.75rem; text-align: center; font-style: italic;">
                     [Space] fortsätt
                 </div>
             `;
@@ -712,7 +703,7 @@ export const suddenDeathReveal = (allCards) => {
                         showFloatingFeedback(isSpeedBonus ? `BLIXTSNABB! +${gainedPoints}` : `+${gainedPoints}`, 'correct');
                     }
                     
-                    if (scoreHudEl) scoreHudEl.textContent = `Poäng: ${score}`;
+                    if (scoreHudEl) scoreHudEl.textContent = `Poäng ${score}`;
                     showFullAnswer();
                     if (optContainer) optContainer.style.display = 'none';
                     advanceTimeout = setTimeout(() => advanceNext(), 2000);
@@ -741,7 +732,7 @@ export const suddenDeathReveal = (allCards) => {
                     const flashOverlay = document.createElement('div');
                     flashOverlay.style.position = 'absolute';
                     flashOverlay.style.inset = '0';
-                    flashOverlay.style.background = 'rgba(234, 67, 53, 0.2)';
+                    flashOverlay.style.background = 'var(--danger-soft)';
                     flashOverlay.style.pointerEvents = 'none';
                     flashOverlay.style.zIndex = '99';
                     overlay.appendChild(flashOverlay);
@@ -760,11 +751,10 @@ export const suddenDeathReveal = (allCards) => {
         // Setup dynamic countdown timer
         const fill = overlay.querySelector('#sd-timer-fill');
         const timerText = overlay.querySelector('#sd-timer-text');
+        const timerRow = overlay.querySelector('.arena-timer');
         if (fill) {
             fill.style.transition = 'none';
             fill.style.transform = 'scaleX(1)';
-            fill.style.backgroundColor = '#00ffff';
-            fill.style.setProperty('--timer-glow', '#00ffff');
         }
 
         // Timer duration scales down as correct count increases (down to 3.5s from 7.0s)
@@ -782,27 +772,12 @@ export const suddenDeathReveal = (allCards) => {
                 timerText.textContent = `${remainingSecs}s`;
             }
 
-            if (pct <= 0.33) {
-                if (fill) {
-                    fill.style.backgroundColor = '#ff2200';
-                    fill.style.setProperty('--timer-glow', '#ff2200');
-                }
-                if (timerText) timerText.style.color = '#ff2200';
-                overlay.classList.add('sd-urgent-pulse');
-            } else if (pct <= 0.66) {
-                if (fill) {
-                    fill.style.backgroundColor = '#ffaa00';
-                    fill.style.setProperty('--timer-glow', '#ffaa00');
-                }
-                if (timerText) timerText.style.color = '#ffaa00';
-            } else {
-                if (fill) {
-                    fill.style.backgroundColor = '#00ffff';
-                    fill.style.setProperty('--timer-glow', '#00ffff');
-                }
-                if (timerText) timerText.style.color = '#00ffff';
-                overlay.classList.remove('sd-urgent-pulse');
-            }
+            /* Ett enda skifte, inte tre. Tidslinjen gick tidigare accent →
+             * barnsten → rott och slog dessutom pa en pulsering over hela
+             * arenan; tre lagen ar tre besked om samma sak. Nu byter den farg
+             * pa sista tredjedelen, och klassen sitter pa raden i stallet for
+             * som inline-stil pa tva element. */
+            timerRow?.classList.toggle('is-urgent', pct <= 0.33);
 
             if (pct > 0) {
                 timerRAF = requestAnimationFrame(animateTimer);
@@ -841,7 +816,7 @@ export const suddenDeathReveal = (allCards) => {
             const flashOverlay = document.createElement('div');
             flashOverlay.style.position = 'absolute';
             flashOverlay.style.inset = '0';
-            flashOverlay.style.background = 'rgba(234, 67, 53, 0.2)';
+            flashOverlay.style.background = 'var(--danger-soft)';
             flashOverlay.style.pointerEvents = 'none';
             flashOverlay.style.zIndex = '99';
             overlay.appendChild(flashOverlay);

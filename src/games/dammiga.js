@@ -14,7 +14,6 @@ export const dammigaReveal = () => {
     const overlay = document.createElement('div');
     overlay.id = 'cinema-overlay';
     overlay.className = 'cinema-overlay';
-    overlay.style.background = 'radial-gradient(ellipse at center, #1a1200 0%, #100c00 60%, #0a0800 100%)';
 
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.classList.add('active'));
@@ -37,20 +36,26 @@ export const dammigaReveal = () => {
         const card = cards[cardIdx];
 
         overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1rem;">
-                <div style="display:flex;justify-content:space-between;width:100%;font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.5);">
-                    <span>Uppfriskat ${cardIdx} / ${cards.length}</span>
-                    <span style="color:#C5A059;">Senast: ${timeSince(card.lastReviewed)}</span>
+            <div class="arena">
+                <div class="arena-top">
+                    <span class="micro">Dammiga kort</span>
+                    <span class="arena-meta num">
+                        <span>Senast ${timeSince(card.lastReviewed)}</span>
+                        <span class="arena-sep" aria-hidden="true"></span>
+                        <span>${cardIdx} av ${cards.length}</span>
+                    </span>
                 </div>
-                <div style="width:100%;height:4px;background:rgba(197,160,89,0.15);border-radius:2px;overflow:hidden;">
-                    <div style="width:${(cardIdx / cards.length) * 100}%;height:100%;background:#C5A059;border-radius:2px;transition:width 0.3s ease;"></div>
+                <div class="progress" aria-hidden="true">
+                    <i class="progress-fill" style="width:${(cardIdx / cards.length) * 100}%"></i>
                 </div>
-                <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(197,160,89,0.6);font-weight:700;">Fråga</div>
-                <div id="dm-question" style="font-size:1.3rem;font-weight:700;color:#fff;text-align:center;line-height:1.5;width:100%;padding:1rem;background:rgba(197,160,89,0.05);border:1px solid rgba(197,160,89,0.15);border-radius:12px;">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
-                <button id="dm-flip-btn" class="btn primary" style="width:100%;max-width:300px;padding:0.75rem;border-radius:10px;font-weight:700;background:#C5A059;border-color:#C5A059;">Visa svar [Space]</button>
+                <div class="arena-body">
+                    <p class="micro">Fråga</p>
+                    <div id="dm-question" class="arena-question">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
+                </div>
+                <div class="arena-foot arena-foot--center">
+                    <button id="dm-flip-btn" class="btn primary lg">Visa svar <span class="kbd">Space</span></button>
+                </div>
             </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
         `;
         renderLatex(overlay.querySelector('#dm-question'));
 
@@ -59,12 +64,13 @@ export const dammigaReveal = () => {
             if (!btn) return;
             btn.remove();
 
-            const content = overlay.querySelector('.cinema-content');
+            const content = overlay.querySelector('.arena');
+            overlay.querySelector('.arena-foot')?.remove();
             const ansDiv = document.createElement('div');
-            ansDiv.style.cssText = 'width:100%;text-align:center;';
+            ansDiv.className = 'arena-reveal';
             ansDiv.innerHTML = `
-                <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(52,168,83,0.7);font-weight:700;margin-bottom:0.5rem;">Svar</div>
-                <div id="dm-answer" style="font-size:1.1rem;color:#fff;line-height:1.5;padding:1rem;background:rgba(52,168,83,0.06);border:1px solid rgba(52,168,83,0.15);border-radius:12px;text-align:left;">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
+                <p class="micro">Svar</p>
+                <div id="dm-answer" class="arena-answer">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
             `;
             content.appendChild(ansDiv);
             const ansEl = ansDiv.querySelector('#dm-answer');
@@ -119,10 +125,13 @@ export const dammigaReveal = () => {
 
     const showEnd = () => {
         cleanup();
-        overlay.querySelector('.cinema-content').innerHTML = `
-            <h2 style="font-family:'Special Elite',Georgia,serif;font-size:2.2rem;color:#C5A059;margin:0;">Alla kort uppfriskas!</h2>
-            <p style="color:rgba(255,255,255,0.6);margin:0;">${cards.length} bortglömda kort repeterade.</p>
-            <div class="sd-end-actions"><button id="dm-exit" class="btn secondary" style="border-radius:10px;">Avsluta</button></div>
+        overlay.innerHTML = `
+            <div class="arena arena--end">
+                <p class="micro">Dammiga kort</p>
+                <h2 class="arena-end-title">Alla uppfriskade</h2>
+                <p class="arena-end-lead">${cards.length} bortglömda kort repeterade.</p>
+                <div class="arena-end-actions"><button id="dm-exit" class="btn">Avsluta</button></div>
+            </div>
         `;
         overlay.querySelector('#dm-exit').onclick = closeGame;
         const endKH = (e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); document.removeEventListener('keydown', endKH); closeGame(); } };

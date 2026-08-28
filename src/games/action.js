@@ -55,7 +55,7 @@ import { processRating } from '../ui/study.js';
             <div class="cinema-flash"></div>
             <div class="cinema-content" id="action-game-container" style="width:95%; max-width:800px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; padding: 12vh 0 10vh; position:relative; z-index:5;">
                 <!-- HUD -->
-                <div class="action-hud" style="border-radius: var(--radius-md); box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
+                <div class="action-hud" style="border-radius: var(--radius-md);">
                     <div class="action-hud-left">
                         <span id="action-score" class="action-hud-val">Poäng: 0</span>
                         <span id="action-combo" class="action-hud-combo" style="opacity:0;"> 0</span>
@@ -98,7 +98,7 @@ import { processRating } from '../ui/study.js';
 
         // Helper to trigger confetti
         const triggerConfetti = () => {
-            const colors = ['#FF7300', '#FF3C00', '#FFB700', '#FFA200', '#FF4500'];
+            const colors = ['var(--rate-2)', 'var(--danger)', 'var(--rate-2)', 'var(--rate-2)', 'var(--danger)'];
             for (let j = 0; j < 60; j++) {
                 const confetti = document.createElement('div');
                 confetti.className = 'sd-confetti';
@@ -119,7 +119,7 @@ import { processRating } from '../ui/study.js';
                 spark.className = 'action-spark';
                 spark.style.left = x + 'px';
                 spark.style.top = y + 'px';
-                spark.style.background = 'radial-gradient(circle, #ffaa00, #ff5500)';
+                spark.style.background = 'radial-gradient(circle, var(--rate-2), var(--danger))';
                 const tx = (Math.random() - 0.5) * 160;
                 const ty = (Math.random() - 0.5) * 160;
                 spark.style.setProperty('--tx', tx + 'px');
@@ -299,7 +299,7 @@ import { processRating } from '../ui/study.js';
                 <div class="action-card">
                     <h1 class="action-title">ACTIONREPETITION</h1>
                     <p class="action-subtitle">Slammande ord under tidspress. Genuin action.</p>
-                    <p class="action-subtitle" style="font-size:0.95rem; color:rgba(255,255,255,0.6);">
+                    <p class="action-subtitle" style="font-size:0.95rem; color:var(--text-2);">
                         Klicka på <strong>Mellanslag</strong> eller tryck på skärmen i perfekt timing när ringen möter orden för att bygga en combo och tjäna bonuspoäng!
                     </p>
                     <div class="action-controls-info">
@@ -333,20 +333,20 @@ import { processRating } from '../ui/study.js';
             
             const card = cards[cardIdx];
             arena.innerHTML = `
-                <div class="action-card" style="border-color: rgba(249, 115, 22, 0.45);">
+                <div class="action-card" style="border-color:var(--line-strong);">
                     <div class="action-card-header">FRÅGA</div>
                     <div id="action-question" class="action-text-question"></div>
                     <div class="action-think-timer-container">
                         <div id="action-think-timer-fill" class="action-think-timer-fill"></div>
                     </div>
-                    <div style="font-size:0.85rem; color:rgba(255,255,255,0.45); font-weight:700;">Tänk ut svaret...</div>
+                    <div style="font-size:0.85rem; color:var(--text-3); font-weight:700;">Tänk ut svaret...</div>
                     <button id="action-btn-reveal" class="btn primary" style="padding:0.8rem; font-weight:700; width:100%;">VISA SVAR [Space]</button>
                 </div>
             `;
             
             const qBox = arena.querySelector('#action-question');
             if (card._jeopardy) {
-                qBox.innerHTML = `<div style="font-size: 0.85rem; font-weight: 700; color: #F97316; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(249,115,22,0.2); padding-bottom: 0.3rem; opacity: 0.8;">SVAR (Fråga eftersöks)</div>` + (typeof safeParse === 'function' ? safeParse(card.front) : card.front);
+                qBox.innerHTML = `<div style="font-size: 0.85rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.5rem; border-bottom: 1px solid var(--surface-3); padding-bottom: 0.3rem; opacity: 0.8;">SVAR (Fråga eftersöks)</div>` + (typeof safeParse === 'function' ? safeParse(card.front) : card.front);
             } else {
                 qBox.innerHTML = typeof safeParse === 'function' ? safeParse(card.front) : card.front;
             }
@@ -538,7 +538,7 @@ import { processRating } from '../ui/study.js';
             
             arena.innerHTML = `
                 <div class="action-card" style="max-width: 650px;">
-                    <div class="action-card-header" style="color: #34A853;">FULLSTÄNDIGT SVAR</div>
+                    <div class="action-card-header" style="color: var(--accent);">FULLSTÄNDIGT SVAR</div>
                     <div id="action-full-answer" class="action-full-answer-scroll">
                         ${typeof safeParse === 'function' ? safeParse(card.back) : card.back}
                     </div>
@@ -549,7 +549,7 @@ import { processRating } from '../ui/study.js';
                         <span> Poäng: +${score}</span>
                     </div>
                     
-                    <div style="font-size:0.85rem; color:rgba(255,255,255,0.45); font-weight:700;">Betygsätt din egen hågkomst av kortet:</div>
+                    <div style="font-size:0.85rem; color:var(--text-3); font-weight:700;">Betygsätt din egen hågkomst av kortet:</div>
                     
                     <div id="action-rating-container" class="action-rating-container"></div>
                 </div>
@@ -620,37 +620,37 @@ import { processRating } from '../ui/study.js';
             const perfectPct = totalWordsProcessed > 0 ? Math.round((totalPerfects / totalWordsProcessed) * 100) : 0;
             
             arena.innerHTML = `
-                <div class="action-card" style="border-color: #FF7300; background: rgba(20,5,0,0.85);">
-                    <h2 class="action-title" style="font-size:3.4rem;">SPEL KLART!</h2>
-                    <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 0.95rem;">
+                <div class="action-card" style="border-color: var(--accent-line); background: var(--surface-1);">
+                    <h2 class="action-title" style="font-size:var(--t-2xl);">SPEL KLART!</h2>
+                    <p style="color: var(--text-2); margin: 0; font-size: 0.95rem;">
                         Du tog dig igenom alla korten i tempo!
                     </p>
                     
                     <div class="sd-stats-grid" style="width:100%; display:grid; gap:0.6rem; margin:1rem 0;">
-                        <div class="sd-stat-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span class="sd-stat-label" style="color:rgba(255,255,255,0.6);">Timing Hits (Perfect)</span>
-                            <span class="sd-stat-value" style="font-weight:700; color:#fff;"> ${totalPerfects} (${perfectPct}%)</span>
+                        <div class="sd-stat-row" style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span class="sd-stat-label" style="color:var(--text-2);">Timing Hits (Perfect)</span>
+                            <span class="sd-stat-value" style="font-weight:700; color:var(--text-1);"> ${totalPerfects} (${perfectPct}%)</span>
                         </div>
-                        <div class="sd-stat-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span class="sd-stat-label" style="color:rgba(255,255,255,0.6);">Max Streak/Combo</span>
-                            <span class="sd-stat-value" style="font-weight:700; color:#F59E0B;"> ${maxCombo}</span>
+                        <div class="sd-stat-row" style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span class="sd-stat-label" style="color:var(--text-2);">Max Streak/Combo</span>
+                            <span class="sd-stat-value" style="color:var(--accent);"> ${maxCombo}</span>
                         </div>
-                        <div class="sd-stat-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span class="sd-stat-label" style="color:rgba(255,255,255,0.6);">Tid spelat</span>
-                            <span class="sd-stat-value" style="font-weight:700; color:#fff;">⏱ ${timeSpent}s</span>
+                        <div class="sd-stat-row" style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span class="sd-stat-label" style="color:var(--text-2);">Tid spelat</span>
+                            <span class="sd-stat-value" style="font-weight:700; color:var(--text-1);">⏱ ${timeSpent}s</span>
                         </div>
-                        <div class="sd-stat-row sd-stat-highlight" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(249,115,22,0.3); padding:0.4rem 0; font-size:1.15rem; font-weight:800;">
-                            <span class="sd-stat-label" style="color:#F97316;">Slutpoäng</span>
-                            <span class="sd-stat-value" style="color:#fff;">${score}</span>
+                        <div class="sd-stat-row sd-stat-highlight" style="display:flex; justify-content:space-between; border-bottom:1px solid var(--surface-3); padding:0.4rem 0; font-size:1.15rem; font-weight:800;">
+                            <span class="sd-stat-label" style="color:var(--rate-2);">Slutpoäng</span>
+                            <span class="sd-stat-value" style="color:var(--text-1);">${score}</span>
                         </div>
                         ${isNewPB ? `
-                            <div style="background: rgba(255,215,0,0.15); border: 1px dashed #FFD700; border-radius: 6px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #FFD700; text-shadow: 0 0 4px rgba(255,215,0,0.2); margin-top:0.4rem;">
+                            <div style="background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 6px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--accent); margin-top:0.4rem;">
                                  NYTT REKORD! 
                             </div>
                         ` : `
                             <div class="sd-stat-row" style="display:flex; justify-content:space-between; opacity: 0.7; padding-top:0.4rem;">
-                                <span class="sd-stat-label" style="color:rgba(255,255,255,0.5);">Rekord (${pbTitle})</span>
-                                <span class="sd-stat-value" style="font-weight:700; color:#FFD700;"> ${personalBest}</span>
+                                <span class="sd-stat-label" style="color:var(--text-3);">Rekord (${pbTitle})</span>
+                                <span class="sd-stat-value" style="font-weight:700; color:var(--accent);"> ${personalBest}</span>
                             </div>
                         `}
                     </div>

@@ -17,7 +17,6 @@ export const fritextSessionReveal = () => {
     const overlay = document.createElement('div');
     overlay.id = 'cinema-overlay';
     overlay.className = 'cinema-overlay';
-    overlay.style.background = 'radial-gradient(ellipse at center, #1b0035 0%, #0d001f 60%, #050010 100%)';
 
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.classList.add('active'));
@@ -60,19 +59,21 @@ export const fritextSessionReveal = () => {
         const hintText = `Cirka ${wordCount} ord, ${Math.max(1, sentences.length)} ${sentences.length === 1 ? 'mening' : 'meningar'}`;
 
         overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1rem;">
-                <div style="display:flex;justify-content:space-between;width:100%;font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.5);">
-                    <span>${cardIdx + 1} / ${cards.length}</span>
-                    <span style="color:#A855F7;">FRITEXT</span>
+            <div class="arena">
+                <div class="arena-top">
+                    <span class="micro">Fritext</span>
+                    <span class="arena-meta num">${cardIdx + 1} av ${cards.length}</span>
                 </div>
-                <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(168,85,247,0.6);font-weight:700;">Fråga</div>
-                <div id="ft-question" style="font-size:1.2rem;font-weight:600;color:#fff;text-align:center;line-height:1.4;width:100%;padding:0.75rem;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:12px;">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
-                <div style="font-size:0.8rem;color:rgba(255,255,255,0.3);font-style:italic;">${hintText}</div>
-                <textarea id="ft-textarea" placeholder="Skriv ditt svar här..." style="width:100%;min-height:120px;max-height:30vh;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-family:inherit;font-size:1rem;line-height:1.5;padding:0.75rem;outline:none;resize:vertical;" spellcheck="false"></textarea>
-                <button id="ft-submit" class="btn primary" style="width:100%;max-width:300px;padding:0.75rem;border-radius:10px;font-weight:700;">Visa svar ⌘↵</button>
+                <div class="arena-body">
+                    <p class="micro">Fråga</p>
+                    <div id="ft-question" class="arena-question">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
+                    <p class="arena-hint">${hintText}</p>
+                    <textarea id="ft-textarea" class="arena-input" placeholder="Skriv ditt svar ur minnet" spellcheck="false"></textarea>
+                </div>
+                <div class="arena-foot arena-foot--center">
+                    <button id="ft-submit" class="btn primary lg">Rätta <span class="kbd">⌘↵</span></button>
+                </div>
             </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
         `;
         renderLatex(overlay.querySelector('#ft-question'));
         const textarea = overlay.querySelector('#ft-textarea');
@@ -102,25 +103,27 @@ export const fritextSessionReveal = () => {
             if (pct >= 50) S.playgroundSessionStats.correct++;
             else S.playgroundSessionStats.again++;
 
-            const kwHtml = keywords.map(kw => `<span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:6px;font-size:0.8rem;font-weight:600;margin:0.15rem;${kw.found ? 'background:rgba(52,168,83,0.2);color:#34A853;border:1px solid rgba(52,168,83,0.3);' : 'background:rgba(234,67,53,0.1);color:rgba(234,67,53,0.7);border:1px solid rgba(234,67,53,0.2);'}">${escapeHtml(kw.original)}</span>`).join('');
+            const kwHtml = keywords.map(kw => `<span class="arena-keyword${kw.found ? ' is-found' : ''}">${escapeHtml(kw.original)}</span>`).join('');
 
-            const content = overlay.querySelector('.cinema-content');
-            content.innerHTML = `
-                <div style="display:flex;justify-content:space-between;width:100%;font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.5);">
-                    <span>${cardIdx + 1} / ${cards.length}</span>
-                    <span style="font-size:1.3rem;font-weight:800;color:${pct >= 80 ? '#34A853' : pct >= 50 ? '#FBBC04' : '#EA4335'};">${pct}%</span>
+            overlay.innerHTML = `
+                <div class="arena">
+                    <div class="arena-top">
+                        <span class="micro">Fritext</span>
+                        <span class="arena-meta num">${cardIdx + 1} av ${cards.length}</span>
+                    </div>
+                    <div class="arena-score-row">
+                        <span class="arena-score-n num${pct >= 50 ? ' is-good' : ' is-bad'}">${pct}%</span>
+                        <span class="arena-score-l">${matched} av ${total} nyckelbegrepp</span>
+                    </div>
+                    <div class="arena-keywords">${kwHtml}</div>
+                    <div class="arena-body">
+                        <p class="micro">Ditt svar</p>
+                        <div class="arena-plain">${escapeHtml(userText || '(tomt)')}</div>
+                        <p class="micro">Rätt svar</p>
+                        <div id="ft-real" class="arena-answer">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
+                        <p class="arena-hint"><span class="kbd">Space</span> nästa kort</p>
+                    </div>
                 </div>
-                <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);">${matched} av ${total} nyckelbegrepp</div>
-                <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:0.1rem;width:100%;">${kwHtml}</div>
-                <div style="width:100%;">
-                    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">Ditt svar</div>
-                    <div style="font-size:0.95rem;color:rgba(255,255,255,0.7);line-height:1.5;padding:0.75rem;background:rgba(255,255,255,0.03);border-radius:8px;white-space:pre-wrap;">${escapeHtml(userText || '(tomt)')}</div>
-                </div>
-                <div style="width:100%;">
-                    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">Rätt svar</div>
-                    <div id="ft-real" style="font-size:0.95rem;color:#fff;line-height:1.5;padding:0.75rem;background:rgba(255,255,255,0.03);border-radius:8px;">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
-                </div>
-                <div style="font-size:0.8rem;color:rgba(255,255,255,0.3);font-style:italic;">Klicka eller [Space] → nästa kort</div>
             `;
             const realEl = overlay.querySelector('#ft-real');
             renderLatex(realEl);
@@ -150,14 +153,17 @@ export const fritextSessionReveal = () => {
     const showEnd = () => {
         cleanup();
         const avgPct = cards.length > 0 ? Math.round(totalScore / cards.length) : 0;
-        overlay.querySelector('.cinema-content').innerHTML = `
-            <h2 style="font-family:'Russo One','Impact',sans-serif;font-size:2.2rem;color:#A855F7;margin:0;">KLART!</h2>
-            <div class="sd-stats-grid" style="width:100%;max-width:400px;">
-                <div class="sd-stat-row"><span class="sd-stat-label">Kort</span><span class="sd-stat-value">${cards.length}</span></div>
-                <div class="sd-stat-row"><span class="sd-stat-label">Nyckelbegrepp</span><span class="sd-stat-value">${totalMatched} / ${totalKeywords}</span></div>
-                <div class="sd-stat-row sd-stat-highlight"><span class="sd-stat-label">Snittresultat</span><span class="sd-stat-value">${avgPct}%</span></div>
+        overlay.innerHTML = `
+            <div class="arena arena--end">
+                <p class="micro">Fritext</p>
+                <h2 class="arena-end-title">Klart</h2>
+                <dl class="arena-stats">
+                    <div><dt>Kort</dt><dd class="num">${cards.length}</dd></div>
+                    <div><dt>Nyckelbegrepp</dt><dd class="num">${totalMatched} av ${totalKeywords}</dd></div>
+                    <div><dt>Snittresultat</dt><dd class="num">${avgPct}%</dd></div>
+                </dl>
+                <div class="arena-end-actions"><button id="ft-exit" class="btn">Avsluta</button></div>
             </div>
-            <div class="sd-end-actions"><button id="ft-exit" class="btn secondary" style="border-radius:10px;">Avsluta</button></div>
         `;
         overlay.querySelector('#ft-exit').onclick = closeGame;
         const endKH = (e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); document.removeEventListener('keydown', endKH); closeGame(); } };

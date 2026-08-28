@@ -12,7 +12,6 @@ export const jeopardyReveal = () => {
     const overlay = document.createElement('div');
     overlay.id = 'cinema-overlay';
     overlay.className = 'cinema-overlay';
-    overlay.style.background = 'radial-gradient(ellipse at center, #001050 0%, #000820 60%, #000510 100%)';
 
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.classList.add('active'));
@@ -25,18 +24,20 @@ export const jeopardyReveal = () => {
         const card = cards[cardIdx];
 
         overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1.25rem;">
-                <div style="display:flex;justify-content:space-between;width:100%;font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.5);">
-                    <span>${cardIdx + 1} / ${cards.length}</span>
-                    <span style="color:#FBBC04;">JEOPARDY</span>
+            <div class="arena">
+                <div class="arena-top">
+                    <span class="micro">Jeopardy</span>
+                    <span class="arena-meta num">${cardIdx + 1} av ${cards.length}</span>
                 </div>
-                <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,188,4,0.6);font-weight:700;">Svaret är:</div>
-                <div id="jp-answer" style="font-size:1.3rem;font-weight:700;color:#fff;text-align:center;line-height:1.5;width:100%;padding:1.25rem;background:rgba(251,188,4,0.06);border:1px solid rgba(251,188,4,0.2);border-radius:12px;">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
-                <div style="font-size:0.85rem;color:rgba(255,255,255,0.35);font-style:italic;">Vad är frågan? Tänk efter, klicka sedan för att avslöja.</div>
-                <button id="jp-reveal-btn" class="btn primary" style="width:100%;max-width:300px;padding:0.75rem;border-radius:10px;font-weight:700;">Visa frågan [Space]</button>
+                <div class="arena-body">
+                    <p class="micro">Svaret är</p>
+                    <div id="jp-answer" class="arena-question">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
+                    <p class="arena-hint">Vad är frågan? Tänk efter, avslöja sedan.</p>
+                </div>
+                <div class="arena-foot arena-foot--center">
+                    <button id="jp-reveal-btn" class="btn primary lg">Visa frågan <span class="kbd">Space</span></button>
+                </div>
             </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
         `;
         const ansEl = overlay.querySelector('#jp-answer');
         renderLatex(ansEl);
@@ -46,17 +47,17 @@ export const jeopardyReveal = () => {
             const btn = overlay.querySelector('#jp-reveal-btn');
             if (!btn) return;
             btn.remove();
-            const hint = overlay.querySelector('.cinema-content div[style*="font-style:italic"]');
-            if (hint) hint.remove();
+            overlay.querySelector('.arena-hint')?.remove();
+            overlay.querySelector('.arena-foot')?.remove();
 
             const qDiv = document.createElement('div');
-            qDiv.style.cssText = 'width:100%;text-align:center;';
+            qDiv.className = 'arena-reveal';
             qDiv.innerHTML = `
-                <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(52,168,83,0.7);font-weight:700;margin-bottom:0.5rem;">Frågan var:</div>
-                <div id="jp-question" style="font-size:1.2rem;color:#fff;line-height:1.5;padding:1rem;background:rgba(52,168,83,0.06);border:1px solid rgba(52,168,83,0.2);border-radius:12px;">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
-                <div style="font-size:0.8rem;color:rgba(255,255,255,0.3);margin-top:0.75rem;font-style:italic;">[Space] nästa kort</div>
+                <p class="micro">Frågan var</p>
+                <div id="jp-question" class="arena-answer">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
+                <p class="arena-hint"><span class="kbd">Space</span> nästa kort</p>
             `;
-            overlay.querySelector('.cinema-content').appendChild(qDiv);
+            overlay.querySelector('.arena-body').appendChild(qDiv);
             renderLatex(qDiv);
 
             let advanced = false;
@@ -84,10 +85,13 @@ export const jeopardyReveal = () => {
 
     const showEnd = () => {
         cleanup();
-        overlay.querySelector('.cinema-content').innerHTML = `
-            <h2 style="font-family:'Bebas Neue','Impact',sans-serif;font-size:2.5rem;color:#FBBC04;margin:0;">KLART!</h2>
-            <p style="color:rgba(255,255,255,0.6);margin:0;">${cards.length} kort omvänt repeterade.</p>
-            <div class="sd-end-actions"><button id="jp-exit" class="btn secondary" style="border-radius:10px;">Avsluta</button></div>
+        overlay.innerHTML = `
+            <div class="arena arena--end">
+                <p class="micro">Jeopardy</p>
+                <h2 class="arena-end-title">Klart</h2>
+                <p class="arena-end-lead">${cards.length} kort omvänt repeterade.</p>
+                <div class="arena-end-actions"><button id="jp-exit" class="btn">Avsluta</button></div>
+            </div>
         `;
         overlay.querySelector('#jp-exit').onclick = closeGame;
         const endKH = (e) => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); document.removeEventListener('keydown', endKH); closeGame(); } };

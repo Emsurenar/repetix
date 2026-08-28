@@ -160,7 +160,7 @@ import { processRating } from '../ui/study.js';
         };
 
         const triggerConfetti = () => {
-            const colors = ['#8B5CF6', '#A78BFA', '#7C3AED', '#C4B5FD', '#DDD6FE'];
+            const colors = ['var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
             for (let j = 0; j < 60; j++) {
                 const confetti = document.createElement('div');
                 confetti.className = 'sd-confetti';
@@ -237,7 +237,7 @@ import { processRating } from '../ui/study.js';
                 <div class="lucktext-card">
                     <h1 class="lucktext-title">LUCKTEXT</h1>
                     <p class="lucktext-subtitle">Memorera svaret. Fyll i luckorna. Bygg combo.</p>
-                    <p class="lucktext-subtitle" style="font-size:0.95rem; color:rgba(255,255,255,0.5);">
+                    <p class="lucktext-subtitle" style="font-size:0.95rem; color:var(--text-3);">
                         ${cards.length} kort väntar. Du får se svaret, sedan göms nyckelord som du fyller i ur minnet.
                         Rätt svar i rad ger combo-multiplikator!
                     </p>
@@ -276,13 +276,13 @@ import { processRating } from '../ui/study.js';
                 <div class="lucktext-card">
                     <div class="lucktext-card-header">FRÅGA</div>
                     <div class="lucktext-text-question">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
-                    <div class="lucktext-card-header" style="color: #34A853; margin-top: 1rem;">MEMORERA SVARET</div>
+                    <div class="lucktext-card-header" style="color: var(--accent); margin-top: 1rem;">MEMORERA SVARET</div>
                     <div id="lt-memorize-text" class="lucktext-text-memorize">${backHtml}</div>
                     <div class="lucktext-timer-container">
                         <div id="lt-timer-fill" class="lucktext-timer-fill" style="transition: transform ${timerDuration}s linear;"></div>
                     </div>
                     <div class="lucktext-timer-label">${timerDuration}s att memorera</div>
-                    <button id="lt-btn-ready" class="lucktext-btn-ready">Jag är redo &mdash; visa luckor</button>
+                    <button id="lt-btn-ready" class="btn primary lg lucktext-btn-ready">Jag är redo &mdash; visa luckor</button>
                 </div>
             `;
 
@@ -468,9 +468,9 @@ import { processRating } from '../ui/study.js';
             const pct = blankCount > 0 ? Math.round((correctCount / blankCount) * 100) : 100;
 
             let feedbackClass, feedbackText;
-            if (pct === 100) { feedbackClass = 'perfect'; feedbackText = `<span style="color:#34A853; font-weight:800;">PERFEKT! ${correctCount}/${blankCount}</span>`; }
-            else if (pct >= 50) { feedbackClass = 'partial'; feedbackText = `<span style="color:#FBBC04; font-weight:800;">${correctCount}/${blankCount} rätt (${pct}%)</span>`; }
-            else { feedbackClass = 'low'; feedbackText = `<span style="color:#EA4335; font-weight:800;">${correctCount}/${blankCount} rätt (${pct}%)</span>`; }
+            if (pct === 100) { feedbackClass = 'perfect'; feedbackText = `<span style="color:var(--accent); font-weight:800;">PERFEKT! ${correctCount}/${blankCount}</span>`; }
+            else if (pct >= 50) { feedbackClass = 'partial'; feedbackText = `<span style="color:var(--accent); font-weight:800;">${correctCount}/${blankCount} rätt (${pct}%)</span>`; }
+            else { feedbackClass = 'low'; feedbackText = `<span style="color:var(--danger); font-weight:800;">${correctCount}/${blankCount} rätt (${pct}%)</span>`; }
 
             const existingCard = arena.querySelector('.lucktext-card');
             if (existingCard) {
@@ -533,41 +533,41 @@ import { processRating } from '../ui/study.js';
             const blankPct = totalBlanks > 0 ? Math.round((totalCorrectBlanks / totalBlanks) * 100) : 0;
 
             arena.innerHTML = `
-                <div class="lucktext-card" style="border-color: rgba(139, 92, 246, 0.5); background: rgba(15, 10, 30, 0.9);">
-                    <h2 class="lucktext-title" style="font-size:3rem;">KLART!</h2>
-                    <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 0.95rem;">
+                <div class="lucktext-card" style="border-color:var(--accent-line); background: var(--surface-1);">
+                    <h2 class="lucktext-title" style="font-size:var(--t-2xl);">KLART!</h2>
+                    <p style="color: var(--text-2); margin: 0; font-size: 0.95rem;">
                         ${cards.length} kort avklarade
                     </p>
 
                     <div style="width:100%; display:grid; gap:0.6rem; margin:1rem 0;">
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span style="color:rgba(255,255,255,0.6);">Luckor rätt</span>
-                            <span style="font-weight:700; color:#fff;">${totalCorrectBlanks} / ${totalBlanks} (${blankPct}%)</span>
+                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span style="color:var(--text-2);">Luckor rätt</span>
+                            <span style="font-weight:700; color:var(--text-1);">${totalCorrectBlanks} / ${totalBlanks} (${blankPct}%)</span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span style="color:rgba(255,255,255,0.6);">Perfekta kort</span>
-                            <span style="font-weight:700; color:#34A853;">${totalPerfectCards} / ${cards.length}</span>
+                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span style="color:var(--text-2);">Perfekta kort</span>
+                            <span style="font-weight:700; color:var(--accent);">${totalPerfectCards} / ${cards.length}</span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span style="color:rgba(255,255,255,0.6);">Max combo</span>
-                            <span style="font-weight:700; color:#8B5CF6;">x${maxCombo}</span>
+                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span style="color:var(--text-2);">Max combo</span>
+                            <span style="font-weight:700; color:var(--accent);">x${maxCombo}</span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:0.4rem;">
-                            <span style="color:rgba(255,255,255,0.6);">Tid</span>
-                            <span style="font-weight:700; color:#fff;">${timeSpent}s</span>
+                        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:0.4rem;">
+                            <span style="color:var(--text-2);">Tid</span>
+                            <span style="font-weight:700; color:var(--text-1);">${timeSpent}s</span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; padding:0.5rem 0; font-size:1.15rem; font-weight:800; border-bottom:1px solid rgba(139,92,246,0.3);">
-                            <span style="color:#8B5CF6;">Slutpoäng</span>
-                            <span style="color:#fff;">${score}</span>
+                        <div style="display:flex; justify-content:space-between; padding:0.5rem 0; font-size:1.15rem; font-weight:800; border-bottom:1px solid var(--accent-soft);">
+                            <span style="color:var(--accent);">Slutpoäng</span>
+                            <span style="color:var(--text-1);">${score}</span>
                         </div>
                         ${isNewPB ? `
-                            <div style="background: rgba(139,92,246,0.15); border: 1px dashed #8B5CF6; border-radius: 6px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #A78BFA; text-shadow: 0 0 4px rgba(139,92,246,0.3); margin-top:0.4rem;">
+                            <div style="background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 6px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--accent); margin-top:0.4rem;">
                                 NYTT REKORD!
                             </div>
                         ` : `
                             <div style="display:flex; justify-content:space-between; opacity: 0.7; padding-top:0.4rem;">
-                                <span style="color:rgba(255,255,255,0.5);">Rekord (${pbTitle})</span>
-                                <span style="font-weight:700; color:#8B5CF6;">${personalBest}</span>
+                                <span style="color:var(--text-3);">Rekord (${pbTitle})</span>
+                                <span style="font-weight:700; color:var(--accent);">${personalBest}</span>
                             </div>
                         `}
                     </div>
