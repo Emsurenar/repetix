@@ -144,6 +144,9 @@ export function initUiWiringAddCard() {
               initialSelectVal = S.currentSectionId;
           }
           populateAddCardSections(deck, initialSelectVal);
+          // Dörren öppnas och pennan är redan i handen: första fältet har
+          // fokus så att man kan börja skriva utan ett klick till.
+          document.getElementById('card-front').focus();
       }, true);
 
       // --- Section (mapp) create/rename modal ---

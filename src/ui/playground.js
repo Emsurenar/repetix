@@ -10,6 +10,7 @@ import { fritextSessionReveal } from '../games/fritext.js';
 import { jeopardyReveal } from '../games/jeopardy.js';
 import { lucktextReveal } from '../games/lucktext.js';
 import { suddenDeathReveal } from '../games/suddendeath.js';
+import { washUrl } from './wash.js';
 import { transportbandetReveal } from '../games/transportbandet.js';
 import { renderLatex } from './latex.js';
 import { switchView } from './router.js';
@@ -306,7 +307,11 @@ export const renderPlayground = ({ tona = true } = {}) => {
                 /* Knapp, inte länk. Lägena var <a> utan href: de gick inte att
                  * nå med tangentbord alls, och skärmläsaren läste dem som
                  * text. */
-                return `<button type="button" class="arcade-mode${stangt ? ' is-closed' : ''}" data-mode="${m.id}" style="--i:${i}" ${stangt ? 'disabled' : ''}>
+                /* Varje läge bär sin egen utblurrade bild, precis som varje
+                 * kortlek gör. Samma läge får alltid samma — hallen ska gå att
+                 * navigera på färgminne när man kommer tillbaka till den. */
+                const bild = washUrl(`spel:${m.id}`);
+                return `<button type="button" class="arcade-mode hero-wash${stangt ? ' is-closed is-quiet' : ''}" data-mode="${m.id}" style="--i:${i};--wash-photo:url('${bild}')" ${stangt ? 'disabled' : ''}>
                     <span class="arcade-mode-mark" aria-hidden="true">${m.mark}</span>
                     <span class="arcade-mode-name">${m.name}</span>
                     <span class="arcade-mode-desc">${stangt ? `Kräver minst ${m.min} kort.` : m.desc}</span>

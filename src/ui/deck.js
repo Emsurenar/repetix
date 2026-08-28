@@ -11,6 +11,7 @@ import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
 import { switchView } from './router.js';
 import { renderStudyCard, startSectionStudy, startStudy } from './study.js';
+import { applyWash } from './wash.js';
 import { uppskattadTid } from '../domain/estimate.js';
 
 
@@ -78,7 +79,7 @@ export const openDeck = (id, sectionId = null) => {
     const studyable = displayCards.filter(c => c.type !== 'note').length;
 
     if (studyable === 0) {
-        heroStatus.className = 'deck-hero is-quiet';
+        heroStatus.className = 'deck-hero hero-wash is-quiet';
         heroStatus.dataset.action = '';
         heroStatus.innerHTML = `
             <div class="deck-hero-body">
@@ -88,7 +89,7 @@ export const openDeck = (id, sectionId = null) => {
             <button type="button" class="btn" data-hero-action="new">Nytt kort</button>
         `;
     } else if (dueCount === 0) {
-        heroStatus.className = 'deck-hero is-quiet';
+        heroStatus.className = 'deck-hero hero-wash is-quiet';
         heroStatus.dataset.action = 'study-early';
         heroStatus.innerHTML = `
             <div class="deck-hero-body">
@@ -98,7 +99,7 @@ export const openDeck = (id, sectionId = null) => {
             <button type="button" class="btn" data-hero-action="study-early">Träna ändå</button>
         `;
     } else {
-        heroStatus.className = 'deck-hero';
+        heroStatus.className = 'deck-hero hero-wash';
         heroStatus.dataset.action = 'study';
         const tid = uppskattadTid(dueCount);
         heroStatus.innerHTML = `
@@ -110,6 +111,8 @@ export const openDeck = (id, sectionId = null) => {
             <button type="button" class="btn primary lg" data-hero-action="study">Repetera</button>
         `;
     }
+
+    applyWash(heroStatus, S.currentDeckId);
 
     heroStatus.querySelector('[data-hero-action]')?.addEventListener('click', (e) => {
         const handling = e.currentTarget.dataset.heroAction;

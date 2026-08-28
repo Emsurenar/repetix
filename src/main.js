@@ -16,11 +16,22 @@ import './styles/views/study.css';
 import './styles/views/forms.css';
 import './styles/views/auth.css';
 import './styles/views/search.css';
+import './styles/views/settings.css';
 import './styles/games-legacy.css';
 // Spelhallen laddas sist och ar scopad till #view-playground: den ska vinna
 // over den gamla stilmallens .pg-regler utan !important.
 import './styles/views/playground.css';
 import './styles/views/games.css';
+/* Ett läge per fil, laddade sist så att de vinner över den gamla
+ * stilmallen utan !important. */
+import './styles/games/action.css';
+import './styles/games/lucktext.css';
+import './styles/games/fritext.css';
+import './styles/games/jeopardy.css';
+import './styles/games/dammiga.css';
+import './styles/games/suddendeath.css';
+import './styles/games/transportbandet.css';
+import './styles/games/dragkampen.css';
 
 import './app/vendor.js';
 

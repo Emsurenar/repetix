@@ -218,17 +218,17 @@
             <div class="view-header">
                 <div>
                     <button id="btn-back-deck" class="btn text" style="display:none">← Tillbaka</button>
-                    <h1>Lägg till nytt kort</h1>
+                    <h1>Nytt kort</h1>
                 </div>
             </div>
             <form id="form-add-card" class="card-form">
                 <div class="form-group">
-                    <label for="card-front">Framsida (Fråga)</label>
+                    <label for="card-front">Fråga</label>
                     <textarea id="card-front" required></textarea>
                 </div>
                 <div class="form-group">
                     <label for="card-back" class="label-row">
-                        Baksida (Svar)
+                        Svar
                         <button type="button" id="btn-generate-answer" class="label-action">Generera svar</button>
                     </label>
                     <textarea id="card-back" required></textarea>
@@ -240,9 +240,7 @@
                         Fördjupning
                         <span class="label-note">valfritt</span>
                     </label>
-                    <textarea id="card-description" class="textarea-short"></textarea>
-                    <p class="form-hint">Visas när du sett svaret. Ingår inte i det du ska minnas.</p>
-                </div>
+                    <textarea id="card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
                     <div class="grid-item">
                         <label for="card-back-image-input">Bild</label>
@@ -724,11 +722,11 @@
             <h2 id="edit-card-modal-title">Redigera kort</h2>
             <form id="form-edit-card" class="card-form">
                 <div class="form-group">
-                    <label for="edit-card-front">Framsida (Fråga)</label>
+                    <label for="edit-card-front">Fråga</label>
                     <textarea id="edit-card-front" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="edit-card-back">Baksida (Svar)</label>
+                    <label for="edit-card-back">Svar</label>
                     <textarea id="edit-card-back" required></textarea>
                 </div>
                 <div class="form-group">
@@ -736,9 +734,7 @@
                         Fördjupning
                         <span class="label-note">valfritt</span>
                     </label>
-                    <textarea id="edit-card-description" class="textarea-short"></textarea>
-                    <p class="form-hint">Visas när du sett svaret. Ingår inte i det du ska minnas.</p>
-                </div>
+                    <textarea id="edit-card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
                     <div class="grid-item">
                         <label for="edit-card-back-image-input">Bild</label>
@@ -873,13 +869,11 @@
                 <div id="topic-input-container" class="form-group">
                     <label for="input-topic-name">Vilket ämne vill du generera kort om?</label>
                     <input type="text" id="input-topic-name">
-                    <p class="form-hint">Ett ämne, ett kapitel eller ett begrepp. Ju smalare, desto vassare kort.</p>
                 </div>
                 
                 <div id="text-input-container" class="form-group hidden">
                     <label for="input-source-text">Klistra in din text eller dina anteckningar</label>
                     <textarea id="input-source-text" rows="6"></textarea>
-                    <p class="form-hint">Föreläsningsanteckningar, ett kapitel, en artikel — allt som texten täcker kan bli kort.</p>
                 </div>
 
                 <!-- Settings Grid -->
@@ -985,11 +979,9 @@
                 <h2 id="diary-modal-title">Dagens lärdomar</h2>
                 <button type="button" id="btn-close-diary-top" class="modal-close-x" aria-label="Stäng"></button>
             </div>
-            <p class="modal-lead">Skriv fritt vad du lärt dig idag. AI:n analyserar texten och föreslår flashcards med
-                rätt kortlek.</p>
             <form id="form-diary">
                 <textarea id="input-diary-text" rows="6" required></textarea>
-                <button type="submit" class="btn primary block">Analysera och generera kort</button>
+                <button type="submit" class="btn primary block">Föreslå kort</button>
             </form>
 
             <div id="diary-loading" class="pulse-text hidden">AI analyserar dina lärdomar...</div>

@@ -23,38 +23,20 @@ export const switchView = (viewName, sectionId = null) => {
     const bytterVy = S.currentViewName !== viewName;
     S.currentViewName = viewName;
 
-    // Vyn visas synkront. Tidigare doldes allt direkt och malvyn visades i en
-    // setTimeout pa 10 ms, vilket gjorde vaxlingen till en kapplopning: tva
-    // byten tatt inpa varandra — t.ex. att oppna en kortlek och genast starta
-    // en repetition — lat den forsta timeouten av-dolja sin vy EFTER att den
-    // andra gomt allt. Bada vyerna blev da synliga samtidigt, staplade.
-    // Overtoningen gors numera av CSS-animationen pa .view och behover ingen
-    // fordrojning.
-    /* Korsovertoning. Den utgaende vyn doldes tidigare i samma bildruta som
-     * den inkommande borjade pa noll — resultatet var en tom yta i ett par
-     * tiondelar vid varje byte, vilket ar den enskilt storsta anledningen till
-     * att appen kandes hackig.
+    /* Bytet ar synkront och rent: den gamla vyn doljs i samma bildruta som
+     * den nya visas. Ingen korsovertoning — tva synliga vyer samtidigt ar en
+     * dubbelexponering, och det underkande agaren. Ingen setTimeout heller:
+     * varje fordrojd doljning har tidigare skapat kapplopningar dar tva
+     * byten tatt inpa varandra lamnade bada vyerna synliga.
      *
-     * Den utgaende vyn tas ur floden med position:absolute medan den tonar,
-     * sa att sidan inte hoppar, och doljs forst nar rorelsen ar over. Den
-     * inkommande visas fortfarande synkront: det ar den ordningen som en gang
-     * loste kapplopningen dar tva vyer kunde bli synliga samtidigt. */
+     * Att den nya vyn anda inte klipper fram beror pa att dess intoning i
+     * motion.css aldrig ror genomskinligheten — vyn star fardig i forsta
+     * bildrutan och satter sig, medan innehallet tonar in forskjutet. */
     const inkommandeVy = views[viewName];
     for (const v of Object.values(views)) {
         if (v === inkommandeVy) {
-            v.classList.remove('hidden', 'is-leaving');
-            continue;
-        }
-        const varSynlig = !v.classList.contains('hidden');
-        if (varSynlig && bytterVy) {
-            v.classList.add('is-leaving');
-            clearTimeout(v._leaveTimer);
-            v._leaveTimer = setTimeout(() => {
-                v.classList.remove('is-leaving');
-                v.classList.add('hidden');
-            }, 180);
+            v.classList.remove('hidden');
         } else {
-            v.classList.remove('is-leaving');
             v.classList.add('hidden');
         }
     }

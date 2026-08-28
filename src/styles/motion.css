@@ -128,32 +128,31 @@
   }
 }
 
-/* Ytan som byts: en vy. Den reser lite kortare än sitt innehåll, så att
- * innehållet ser ut att komma med den i stället för efter den.
+/* Ytan som byts: en vy. Bara resningen — aldrig genomskinligheten.
+ *
+ * Korsövertoningen som stod här är underkänd: två vyer synliga samtidigt är
+ * en dubbelexponering, inte ett byte. Men en vy som i stället tonar från
+ * noll lämnar en tom sida i några bildrutor — det var därför övertoningen
+ * en gång infördes. Det enda som gör ingetdera är att låta den nya vyn stå
+ * färdig i första bildrutan och bara sätta sig de sex pixlarna, medan
+ * innehållet tonar in genom förskjutningen nedan. Den gamla vyn döljs i
+ * samma ögonblick, i router.js.
  *
  * Bara vid ett faktiskt byte. Vyn ritas om av många andra skäl — en mapp som
- * öppnas, ett kort som sparas — och en intoning då hade varit en blinkning
+ * öppnas, ett kort som sparas — och en rörelse då hade varit en blinkning
  * mitt i något som skulle kännas sammanhängande. */
-.view.is-entering {
-  animation: rise-in var(--dur-3) var(--ease-out) both;
-}
+@keyframes view-settle {
+  from {
+    transform: translateY(var(--rise));
+  }
 
-/* Den vy man lämnar tonar bort medan den nya kommer in. Den tas ur flödet så
- * att sidan inte hoppar när två vyer finns samtidigt, och pekaren går rakt
- * igenom den — den är på väg bort och ska inte gå att träffa. */
-@keyframes view-out {
   to {
-    opacity: 0;
+    transform: none;
   }
 }
 
-.view.is-leaving {
-  position: absolute;
-  inset: var(--s6) var(--s6) auto;
-  max-width: var(--content-max);
-  margin-inline: auto;
-  pointer-events: none;
-  animation: view-out var(--dur-2) var(--ease-in) forwards;
+.view.is-entering {
+  animation: view-settle var(--dur-3) var(--ease-out) both;
 }
 
 /* ======================================================================

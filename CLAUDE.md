@@ -77,6 +77,34 @@ tolkning, och användaren underkände resultatet med orden "detta är ju inte de
   enda mediefråga. Hårdkoda aldrig höjder.
 - Inga emojis. Inga hover-beroende funktioner — allt ska nås med ett finger.
 
+### Kurvatur — **en enda**
+
+Ägaren pekade ut hörnet på "Dagens mapp" och sa att **exakt alla knappar** ska
+ha det. Därför är `--r-md` och `--r-lg` **båda 16px**: knappar, fält, väljare,
+ikonknappar, kort och paneler har samma hörn. Skalan finns kvar för att
+beskriva vad en sak är, inte för att den ska se annorlunda ut.
+
+- Skriv **aldrig** en egen radie. Ingen `border-radius: 8px` någonstans.
+- `--r-sm` (10px) är bara för listrader, menyval och tangentmärken — de är
+  inte knappar, och 16px hade gjort en 30px hög rad till en kapsel.
+- `--r-pill` är bara chips.
+- Ändrar du den ena av md/lg måste du ändra den andra.
+
+### Övriga låsta beslut
+
+- **Primärknappen är bläck** (`--ink`), inte accentfylld. Accenten bär tal,
+  tillstånd och länkar — aldrig massa.
+- **Knappar och navigering bär vikt 600.** Kortleksrader i sidopanelens träd
+  står kvar på 400: viktskillnaden skiljer appens egna vägar från användarens
+  innehåll.
+- **Inbjudningspanelerna** ("Dagens mapp", kortlekens statusband) är appens
+  **enda mörka ytor**: en utblurrad bild per kortlek ur `public/wash/`, vald i
+  `src/ui/wash.js`. Allt som står i dem använder `--on-wash-*`. Sprid dem
+  inte — en mörk yta som återkommer slutar vara en accent.
+- **Inga instruerande stycken** i formulär och modaler. Etiketten bär
+  betydelsen. Status och varningar med konsekvens får finnas.
+- **Vybytet visar aldrig två vyer samtidigt** och tonar aldrig från noll.
+
 ## AI
 
 Allt går genom **en** funktion: `callAI({ system, user, maxTokens })` i

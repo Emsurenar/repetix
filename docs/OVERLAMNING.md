@@ -185,6 +185,56 @@ Kvar att göra om någon vill:
 - Touch är provspelat för Transportbandet. Övriga sju har knappar och fungerar
   med tryck, men ingen har provspelats på en riktig telefon.
 
+### 4b. Referensdriven polering — klart (2026-08-28, kväll)
+
+Ägaren gav tre referenser i följd — Wispr Flow (kurvatur, luft, feta
+småtitlar, suddig bild som bakgrund), en nästan svart knapp ("jag älskar
+den") — och underkände korsövertoningen och de instruerande texterna.
+Ledbilden var **"en bra frisör": dörren öppnas, inget är ansträngt, sidan
+ska kännas som att den bryr sig om en.**
+
+- Radieskalan är 6/10/16. Knappar och fält ligger på `--r-md`, paneler och
+  kort på `--r-lg` — hörnet är knappt en tredjedel av kontrollhöjden, som
+  referensknappen.
+- **Primärknappen är bläck** (`--ink`), inte accentfylld. Accenten behåller
+  tal, tillstånd och länkar.
+- Små titlar — kortlekskort, panelerna, mapparna — bär vikt 600.
+- `.hero-wash` i components.css är "den suddiga bilden": ägaren gav ett foto
+  av ett mörkt biblioteksvalv och bad om det blurrat fullt ut bakom "Dagens
+  mapp". Bilden fanns bara i konversationen, aldrig som fil — men fullt
+  utblurrad är ett foto inte längre ett foto, utan sex färgfält. De ritas
+  som gradienter efter bildens egen ljusfördelning: valvets mörker, lamporna
+  längs väggarna, kupolens kalla dager, boksidornas kräm. Panelerna är
+  därmed **mörka ytor**, och allt i dem vänder (`--on-wash-*`).
+  - **Överskjutet är pixlar, inte procent.** Med `inset: -30%` växer
+    pseudoelementet med panelens bredd; på en bred banderoll blev det 60 %
+    bredare än panelen och lamporna hamnade utanför bild.
+  - **Vinjetten måste vara hög.** En ellips på 120 % av en 117 px hög panel
+    slukar hela ytan.
+  - **Skärmen till vänster är inte dekor.** Utan den står rubriken över
+    lampornas ljusaste punkt: 4,2:1. Med den 10:1.
+  - **Verdigris bär inte mot valvet** (2,8:1). Panelens tal använder
+    `--on-wash-accent`, den ljusa systern, med 10:1.
+  - Tysta lägen dämpas med `saturate`/`brightness` på pseudoelementet — inte
+    med `opacity` på panelen, som hade tagit texten med sig.
+  - Vill man byta till ett riktigt fotografi: lägg filen i `public/`, sätt
+    den som `background-image` på `.hero-wash::before` och behåll skärmen
+    och `--on-wash-*`. Inget annat behöver ändras.
+- **Knappar och navigering bär halvfetstil** (600): `.btn`, `.chip` och
+  sidopanelens fot. Kortleksraderna i trädet står kvar i normal vikt —
+  viktskillnaden är det som skiljer appens egna vägar från innehållet
+  användaren lagt in.
+- Formulärvyerna (`#view-add-card`, `#view-add-note`) är centrerade spalter
+  på 46 rem. Vyn heter "Nytt kort" som knappen som ledde dit, fälten heter
+  Fråga och Svar utan parenteser, och fokus står redan i första fältet.
+- **Instruerande texter är borttagna**: dagbokens inledning ("Skriv fritt
+  vad du lärt dig idag…"), AI-guidens två fälttips, fördjupningens
+  förklaring, och AI-förslagens "Anpassa eller välj…". Etiketten bär
+  betydelsen. Statusrader och varningar med konsekvens (Inställningar → Data)
+  står kvar.
+- `npm run dev` läser numera `$PORT` med 5173 som standard, så att två
+  sessioner kan köra var sin server (`autoPort` i launch.json).
+
 ### 5. Etapp 6 — publicering
 
 README, licens, CI, säkerhetsgenomgång, Vercel-deploy. Paketet är cirka 800 kB
@@ -207,8 +257,12 @@ att varje enskild regel behöver komma ihåg att fråga.
   bara med mus: på en pekskärm finns inget "över".
 - Listor lägger sig på plats med 30 ms mellan raderna, knutet till **navigering**
   och inte till rendering. En sökning ritar om listan vid varje tangenttryck.
-- Vyer korsövertonar. Den utgående togs tidigare bort i samma bildruta som den
-  inkommande började på noll — en tom sida i ett par tiondelar vid varje byte.
+- Vybytet visar aldrig två vyer samtidigt. Korsövertoningen som stod här
+  underkändes ("man kan se båda sidorna samtidigt. Fult"), och intoning från
+  noll ger en tom sida i några bildrutor — det var därför övertoningen en gång
+  infördes. Lösningen som gör ingetdera: den utgående döljs i samma bildruta,
+  den nya står färdig med full opacitet och sätter sig sex pixlar, och bara
+  innehållet tonar via förskjutningen.
 - Repetitionen är koreograferad: täckningen lyfts ett streck i taget, svaret
   följer, betygen kommer efter. Betygsättningen bär kortet bort åt domens håll.
 - Spelytan tonar in och ut. In-toningen fanns aldrig: alla åtta lägen lade till
@@ -282,6 +336,11 @@ att varje enskild regel behöver komma ihåg att fråga.
 | Språk | Enbart svenska, ingen språkfil |
 | Spellägen | Alla åtta behålls, men byggs om |
 | Design | "Lugn precision", enbart ljust läge, verdigris-grönt. Aldrig blått |
+| Primärknapp | Bläck (`--ink`), inte accentfylld — ägarens referensknapp 2026-08-28. Accenten bär tal, tillstånd och länkar |
+| Vybyte | Ingen korsövertoning och ingen intoning från noll. Två synliga vyer samtidigt är underkänt |
+| Texter | Inga instruerande stycken i formulär och modaler. Etiketten bär betydelsen; status och varningar med konsekvens får finnas |
+| Inbjudningspanelerna | Mörka, med den utblurrade biblioteksbilden som tvätt. Enda mörka ytorna i appen — sprid dem inte, då slutar de vara en accent |
+| Knappvikt | 600 på knappar, chips och sidopanelens fot. Kortleksrader i trädet står kvar på 400 |
 | Nyckeltalen | **Inga lodräta linjer mellan talen.** Användaren underkände dem, trots att mockupen har dem. Återinför dem inte |
 | Repetitionen | Fokusläge: sidopanelen fälls in medan passet pågår |
 | Mobil | Tolkningen "stram komposition", inte den gestledda |

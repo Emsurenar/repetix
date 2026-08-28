@@ -3,6 +3,7 @@ import { escapeHtml } from '../core/utils.js';
 import { getLocalDateString } from '../domain/stats.js';
 import { uppskattadTid } from '../domain/estimate.js';
 import { ticksHtml } from './ticks.js';
+import { applyWash } from './wash.js';
 
 
 // --- DAGENS MAPP (DAILY RECOMMENDATION) ---
@@ -93,14 +94,11 @@ export const renderDagensMapp = () => {
         // Inga mappar än. Panelen förklarar vad den skulle ha visat i stället
         // för att försvinna spårlöst.
         container.innerHTML = `
-            <section class="today-folder is-empty">
+            <section class="today-folder hero-wash is-empty">
                 <div class="today-folder-body">
                     <p class="label today-folder-kicker">Dagens mapp</p>
                     <h2 class="today-folder-title">Dela in korten i mappar</h2>
-                    <p class="today-folder-text">
-                        Med mappar i kortlekarna får du en rekommenderad mapp att repetera varje dag.
-                        Skapa dem själv under Ny mapp, eller låt AI-sorteringen strukturera korten åt dig.
-                    </p>
+                    <p class="today-folder-text">Med mappar i kortlekarna får du en rekommenderad mapp att repetera varje dag.</p>
                 </div>
             </section>
         `;
@@ -117,7 +115,7 @@ export const renderDagensMapp = () => {
 
     if (dueCards === 0) {
         container.innerHTML = `
-            <section class="today-folder is-done">
+            <section class="today-folder hero-wash is-done">
                 <div class="today-folder-body">
                     <p class="label today-folder-kicker">Dagens mapp</p>
                     <h2 class="today-folder-title">Klart för idag</h2>
@@ -128,11 +126,12 @@ export const renderDagensMapp = () => {
                 </div>
             </section>
         `;
+        applyWash(container.querySelector('.today-folder'), dagens.deckId);
         return;
     }
 
     container.innerHTML = `
-        <section class="today-folder">
+        <section class="today-folder hero-wash">
             <div class="today-folder-body">
                 <p class="label today-folder-kicker">Dagens mapp</p>
                 <h2 class="today-folder-title">${escapeHtml(dagens.deckTitle)} <span>/</span> ${escapeHtml(dagens.sectionTitle)}</h2>
@@ -148,4 +147,7 @@ export const renderDagensMapp = () => {
             </div>
         </section>
     `;
+    // Panelen pekar på en kortlek och bär därför den lekens bild — samma som
+    // man möter när man går in i den.
+    applyWash(container.querySelector('.today-folder'), dagens.deckId);
 };

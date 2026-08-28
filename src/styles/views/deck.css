@@ -48,15 +48,18 @@
   gap: var(--s5);
   margin-bottom: var(--s7);
   padding: 22px var(--s5);
-  background: var(--surface-1);
-  border: 1px solid var(--line);
+  /* Ytan bärs av färgtvätten i components.css. Grundtonen står kvar under
+   * den som botten innan tvätten målats. */
+  background: var(--wash-base);
+  border: 1px solid transparent;
   border-left: 2px solid var(--accent);
-  border-radius: var(--r-md);
+  /* Panelradien, inte kontrollradien: inbjudan är en yta. */
+  border-radius: var(--r-lg);
 }
 
 /* Klar eller tom lek: ingenting brådskar, alltså ingen accentkant. */
 .deck-hero.is-quiet {
-  border-left-color: var(--line-strong);
+  border-left-color: var(--on-wash-line);
 }
 
 .deck-hero-body {
@@ -64,19 +67,18 @@
   min-width: 0;
 }
 
+/* Etiketten på tvätten. Accenten syns inte mot det mörka valvet — den ljusa
+ * tonen bär i stället, och strecket till vänster gör brådskan. */
 .deck-hero-kicker {
   margin: 0 0 var(--s2);
-  color: var(--accent);
-}
-
-.deck-hero.is-quiet .deck-hero-kicker {
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
 .deck-hero-title {
   margin: 0;
+  color: var(--on-wash-1);
   font-size: var(--t-lg);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
@@ -85,11 +87,12 @@
 .deck-hero-meta {
   margin: var(--s1) 0 0;
   font-size: var(--t-sm);
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
+/* Talet är panelens hela ärende och ska vara det ljusaste på ytan. */
 .deck-hero-title .num {
-  color: var(--accent);
+  color: var(--on-wash-accent);
 }
 
 .deck-hero.is-quiet .deck-hero-title .num {
@@ -251,7 +254,7 @@
 .section-title {
   overflow: hidden;
   font-size: var(--t-md);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: var(--track-tight);
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -9,7 +9,8 @@ export const renderProposedCards = () => {
     container.innerHTML = '';
 
     // Update summary count
-    document.getElementById('topic-summary-count').innerText = `${S.proposedTopicCards.length} kort skapade. Anpassa eller välj vilka du vill behålla.`;
+    // Bara talet. Instruktionen som stod här sade vad listan under redan visar.
+    document.getElementById('topic-summary-count').innerText = `${S.proposedTopicCards.length} kort`;
     
     S.proposedTopicCards.forEach((card, index) => {
         const div = document.createElement('div');

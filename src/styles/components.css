@@ -9,9 +9,10 @@
  * KNAPPAR
  *
  * Blockigheten kom av tre saker samtidigt: hög fast höjd, tung fetstil och
- * stor radie. Här är höjden knuten till pekdonet, vikten 500 i stället för
- * 600, radien måttlig, och den primära knappen får bara den bredd innehållet
- * kräver. En knapp ska väga så mycket som handlingen väger.
+ * stor radie. Höjden är knuten till pekdonet och radien måttlig — då bär
+ * etiketten halvfetstil utan att knappen blir tung, och en rad med knappar
+ * läses som namn i stället för som fyllda ytor. Den primära knappen får bara
+ * den bredd innehållet kräver.
  * ====================================================================== */
 
 .btn {
@@ -23,15 +24,14 @@
   padding: 0 var(--s3);
   font-family: inherit;
   font-size: var(--t-sm);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
   color: var(--text-1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
-  /* Liten radie. Åtta pixlar på en 34 hög knapp läses som en kapsel; sex
-   * håller kvar formen som en knapp. Den stora knappen får den större radien,
-   * eftersom proportionen mellan hörn och höjd ska vara densamma. */
-  border-radius: var(--r-sm);
+  /* Hörnet är knappt en tredjedel av höjden — ägarens referensknapp. Radien
+   * följer kontrollhöjden via tokens, så fingerläget rundas i samma mån. */
+  border-radius: var(--r-md);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -68,19 +68,20 @@
   background: var(--surface-1);
 }
 
-/* Den enda knappen på en skärm som bär huvudhandlingen. Fylld accent, men
- * samma höjd och vikt som övriga — det är färgen som skiljer den ut, inte
- * massan. */
+/* Den enda knappen på en skärm som bär huvudhandlingen. Bläck, inte accent:
+ * mot de ljusa ytorna är den mörka knappen sidans tyngdpunkt, och accenten
+ * får fortsätta betyda tal och tillstånd i stället för massa. Samma höjd och
+ * vikt som övriga knappar — det är tonen som skiljer den ut. */
 .btn.primary {
   color: var(--text-inverse);
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .btn.primary:hover,
 .btn.primary:active {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: var(--ink-hover);
+  border-color: var(--ink-hover);
 }
 
 /* Sekundär: samma form, tystare yta. */
@@ -121,7 +122,6 @@
   min-height: var(--control-h-lg);
   padding: 0 var(--s5);
   font-size: var(--t-md);
-  border-radius: var(--r-md);
 }
 
 /* Ikonknapp. Kvadratisk och exakt så stor som pekdonet kräver. */
@@ -135,7 +135,7 @@
   color: var(--text-2);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   cursor: pointer;
 }
 
@@ -165,7 +165,7 @@
   min-height: var(--control-h);
   padding: 0 var(--s3);
   font-size: var(--t-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-2);
   background: transparent;
   border: 1px solid var(--line);
@@ -216,9 +216,9 @@ textarea {
   color: var(--text-1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
-  /* Samma radie som knapparna. Åtta pixlar på ett fält som är fyra rader högt
-   * läser som en låda; sex håller kvar formen som ett fält. */
-  border-radius: var(--r-sm);
+  /* Samma radie som knapparna, så att en rad med fält och knapp läses som en
+   * enda form. */
+  border-radius: var(--r-md);
 }
 
 textarea {
@@ -267,6 +267,134 @@ textarea:disabled {
 
 .panel-pad {
   padding: var(--s5);
+}
+
+/* ----------------------------------------------------------------------
+ * FÄRGTVÄTT
+ *
+ * En fullt utblurrad bild bakom inbjudningspanelerna. Varje kortlek har sin
+ * egen ur en bas på trettio, vald i src/ui/wash.js — samma lek får alltid
+ * samma bild, så bakgrunden blir en identitet och inte ett infall.
+ *
+ * Tre lager: bilden underst, skärmen över den, innehållet överst. Det är
+ * skärmen som gör att vilken bild som helst kan bära text — utan den beror
+ * läsbarheten på vilken kortlek man råkar ha öppnat, och en skog i motljus
+ * hade lämnat rubriken oläslig.
+ *
+ * Bara på panelerna som är inbjudningar. En tvätt bakom brödtext hade varit
+ * brus, och en mörk yta som återkommer slutar vara en accent.
+ * -------------------------------------------------------------------- */
+
+.hero-wash {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-wash > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-wash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Kortlekens egen bild, satt av src/ui/wash.js. Saknas den står panelens
+   * mörka grundton kvar och ytan ser hel ut ändå. */
+  background-image: var(--wash-photo, none);
+  background-size: cover;
+  background-position: center;
+  /* Bilden är fyrtio pixlar bred och alltså redan suddig när den täcker
+   * panelen. De få pixlarna oskärpa jämnar bara ut trappstegen mellan dem,
+   * och uppskalningen tar bort kanterna. */
+  filter: blur(7px);
+  transform: scale(1.18);
+  pointer-events: none;
+}
+
+/* Skärmen. Den ligger över bilden och under innehållet, och är det som gör
+ * att vilken bild som helst kan bära text: tyngst till vänster där orden
+ * står, nästan borta till höger där bilden får vara bild. Utan den beror
+ * läsbarheten på vilken kortlek man råkar ha öppnat. */
+.hero-wash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* Tyngst till vänster, där rubriken står. */
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--wash-deep) 90%, transparent) 0%,
+      color-mix(in srgb, var(--wash-deep) 62%, transparent) 40%,
+      color-mix(in srgb, var(--wash-deep) 12%, transparent) 78%
+    ),
+    /* Ett jämnt lager över hela ytan, så att även en ljus bild — en skog i
+     * motljus — hamnar under den ljusa knappen i stället för att tävla med
+     * den. */
+    linear-gradient(
+      color-mix(in srgb, var(--wash-deep) 22%, transparent),
+      color-mix(in srgb, var(--wash-deep) 34%, transparent)
+    );
+  pointer-events: none;
+}
+
+/* Tysta lägen — klart, tomt. Salen slocknar: lamporna dras ned och färgen ur.
+ * Panelen ska inte fortsätta lysa när ingenting väntar. */
+.hero-wash.is-quiet::before,
+.hero-wash.is-done::before,
+.hero-wash.is-empty::before {
+  filter: blur(7px) saturate(0.4) brightness(0.72);
+}
+
+/* ----------------------------------------------------------------------
+ * OVANPÅ TVÄTTEN
+ *
+ * Panelen är mörk, alltså vänder allt som står i den. Knapparna följer
+ * referensen: huvudhandlingen är ljus mot det mörka i stället för mörk mot
+ * det ljusa — samma knapp, spegelvänd, så att den fortfarande är det tyngsta
+ * på ytan.
+ * -------------------------------------------------------------------- */
+
+.hero-wash .btn {
+  color: var(--on-wash-1);
+  background: transparent;
+  border-color: var(--on-wash-line);
+}
+
+.hero-wash .btn:hover {
+  background: color-mix(in srgb, var(--on-wash-1) 14%, transparent);
+}
+
+.hero-wash .btn.text {
+  color: var(--on-wash-2);
+  border-color: transparent;
+}
+
+.hero-wash .btn.text:hover {
+  color: var(--on-wash-1);
+  background: color-mix(in srgb, var(--on-wash-1) 12%, transparent);
+}
+
+.hero-wash .btn.primary {
+  color: var(--ink);
+  background: var(--on-wash-1);
+  border-color: var(--on-wash-1);
+}
+
+.hero-wash .btn.primary:hover,
+.hero-wash .btn.primary:active {
+  background: var(--surface-1);
+  border-color: var(--surface-1);
+}
+
+/* Tickskalan mot det mörka: spåret blir ett svagt ljus i stället för en grå
+ * linje, och det avklarade blir helt ljust. Accenten försvinner mot valvet. */
+.hero-wash .ticks > i {
+  background: color-mix(in srgb, var(--on-wash-1) 26%, transparent);
+}
+
+.hero-wash .ticks > i.is-on {
+  background: var(--on-wash-1);
 }
 
 /* Hårfin avgränsare. Ersätter de skuggor som tidigare skilde ytor åt. */

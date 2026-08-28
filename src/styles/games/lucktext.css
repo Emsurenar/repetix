@@ -1,0 +1,8 @@
+/* lucktext — spelets egna stilar.
+ *
+ * Äger BARA det här spelet. Rör aldrig games-legacy.css, games.css eller
+ * playground.css: de delas med de sju andra lägena.
+ *
+ * Laddas sist av alla stilar, så en regel här vinner över den gamla
+ * stilmallen utan !important.
+ */

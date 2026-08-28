@@ -111,17 +111,20 @@
   gap: var(--s5);
   margin-bottom: var(--s7);
   padding: 22px var(--s5);
-  background: var(--surface-1);
-  border: 1px solid var(--line);
+  /* Ytan bärs av färgtvätten i components.css. Grundtonen står kvar under
+   * den som botten innan tvätten målats. */
+  background: var(--wash-base);
+  border: 1px solid transparent;
   border-left: 2px solid var(--accent);
-  border-radius: var(--r-md);
+  /* Panelradien, inte kontrollradien: inbjudan är en yta. */
+  border-radius: var(--r-lg);
 }
 
 /* Klart eller inget att rekommendera: samma form, tystare kant. Panelen ska
  * inte fortsätta hävda att något är brådskande när det inte är det. */
 .today-folder.is-done,
 .today-folder.is-empty {
-  border-left-color: var(--line-strong);
+  border-left-color: var(--on-wash-line);
 }
 
 .today-folder-body {
@@ -129,20 +132,20 @@
   min-width: 0;
 }
 
+/* Etiketten på tvätten. Accenten syns inte mot det mörka valvet — den ljusa
+ * tonen bär i stället, och strecket till vänster gör brådskan. */
 .today-folder-kicker {
   margin: 0 0 var(--s2);
-  color: var(--accent);
-}
-
-.today-folder.is-done .today-folder-kicker,
-.today-folder.is-empty .today-folder-kicker {
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
 .today-folder-title {
   margin: 0;
+  color: var(--on-wash-1);
   font-size: var(--t-lg);
-  font-weight: 500;
+  /* De mindre titlarna bär halvfetstilen — ägarens riktning: panelens namn
+   * ska kännas igen före dess brödtext. */
+  font-weight: 600;
   /* Ett långt kortleksnamn utan mellanslag ska brytas, inte skjuta panelen
    * utanför skärmen. */
   overflow-wrap: break-word;
@@ -151,7 +154,7 @@
 /* Snedstrecket mellan kortlek och mapp är skiljetecken, inte innehåll. */
 .today-folder-title span {
   font-weight: 400;
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
 /* Skalan i panelen räknar kort, inte procent: strecken har därför en fast
@@ -165,7 +168,7 @@
 
 .today-folder-time {
   font-family: var(--font-ui);
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
 .today-folder-meta {
@@ -176,20 +179,20 @@
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   font-size: var(--t-xs);
-  color: var(--text-2);
+  color: var(--on-wash-2);
 }
 
 .today-folder-due {
   margin-left: var(--s3);
   font-weight: 500;
-  color: var(--accent);
+  color: var(--on-wash-accent);
 }
 
 .today-folder-text {
   max-width: 56ch;
   margin: var(--s2) 0 0;
   font-size: var(--t-sm);
-  color: var(--text-2);
+  color: var(--on-wash-2);
 }
 
 .today-folder-actions {
@@ -264,7 +267,9 @@
   padding: 20px;
   background: var(--surface-1);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  /* Samma hörn som inbjudningspanelen ovanför. Kortet och panelen är båda
+   * ytor man går in i, och två radier i samma rutnät läses som två system. */
+  border-radius: var(--r-lg);
   cursor: pointer;
   transition:
     border-color var(--dur) var(--ease),
@@ -291,7 +296,7 @@
 
 .deck-card-title {
   font-size: var(--t-lg);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.015em;
   overflow-wrap: break-word;
@@ -363,7 +368,7 @@
   color: var(--text-3);
   text-align: center;
   border: 1px dashed var(--line-strong);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
 }
 
 /* ======================================================================

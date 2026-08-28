@@ -19,6 +19,15 @@
  * components.css — här bestäms bara rytmen mellan dem.
  * ====================================================================== */
 
+/* Formulärvyerna är en centrerad spalt, som repetitionen. Vyn är redan
+ * mittställd via margin-inline i layout.css — det räcker att smalna av den,
+ * så följer rubriken och fälten med in i samma spalt. Vänsterhängt i den
+ * fulla innehållsbredden såg formuläret ut att ha blivit över. */
+#view-add-card,
+#view-add-note {
+  max-width: 46rem;
+}
+
 .card-form {
   display: flex;
   flex-direction: column;
@@ -157,16 +166,17 @@
   min-width: 0;
 }
 
+/* Samma etikett som fälten ovanför. Rutnätet hade versaler i elva pixlar
+ * medan Fråga och Svar stod i tolv med gemener — två etikettspråk i samma
+ * formulär, och det var det som fick raden att se påklistrad ut. */
 .grid-item > label:not(.checkbox-grid-option) {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s2);
-  font-size: var(--t-micro);
+  font-size: var(--t-xs);
   font-weight: 500;
-  letter-spacing: var(--track-wide);
-  text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .btn-grid-action {
@@ -178,7 +188,7 @@
   padding: 0 var(--s3);
   font-family: inherit;
   font-size: var(--t-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
@@ -209,52 +219,65 @@
   height: 1px;
 }
 
-/* Kryssrutan är en kryssruta, inte en knapp. Ramen runt den gjorde ett val
- * som är av eller på till ännu en ruta i raden. */
+/* Långformat är ett av eller på, och står i en rad med en knapp och en
+ * väljare. Därför bär det samma form som dem: samma höjd, samma kant, samma
+ * hörn. Som naken kryssruta bredvid två ramade kontroller såg valet ut att
+ * höra till ett annat formulär — det var radens tydligaste skavank.
+ *
+ * Kryssrutan finns kvar under ytan, så att tangentbord och skärmläsare
+ * fortfarande möter ett riktigt av-och-på. */
 .grid-option-box {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--s2);
   min-height: var(--control-h);
+  padding: 0 var(--s3);
   font-size: var(--t-sm);
+  font-weight: 600;
   color: var(--text-1);
-}
-
-.grid-checkmark {
-  position: relative;
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
+}
+
+.checkbox-grid-option:hover .grid-option-box {
+  background: var(--surface-2);
+}
+
+/* Pricken visar läget utan att skrika. Den ersätter bocken: en bock i en ruta
+ * inuti en knapp är två kontroller ovanpå varandra. */
+.grid-checkmark {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-strong);
 }
 
 .checkbox-grid-option input:checked + .grid-option-box {
   color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
 }
 
 .checkbox-grid-option input:checked + .grid-option-box .grid-checkmark {
   background: var(--accent);
-  border-color: var(--accent);
 }
 
-/* Bocken är två kanter roterade 45 grader — ingen ikonfil för fyra pixlar. */
-.checkbox-grid-option input:checked + .grid-option-box .grid-checkmark::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 4px;
-  height: 9px;
-  border-right: 2px solid var(--text-inverse);
-  border-bottom: 2px solid var(--text-inverse);
-  transform: rotate(45deg);
-}
-
-.checkbox-grid-option input:focus-visible + .grid-option-box .grid-checkmark {
+.checkbox-grid-option input:focus-visible + .grid-option-box {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Väljaren står i rad med två knappar och måste vara exakt lika hög som dem.
+ * Fältets lodräta luft gjorde den två pixlar högre, vilket syns när tre
+ * kontroller står bredvid varandra. */
+.grid-item .select-wrapper select {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* Select med egen pil: webbläsarens standardpil är olika stor i varje
@@ -319,7 +342,7 @@
   padding: 0;
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   cursor: pointer;
 }
 
@@ -573,7 +596,7 @@
 
 .create-option-title {
   font-size: var(--t-md);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .create-option-desc {
@@ -617,7 +640,7 @@
 
 .modal-choice-title {
   font-size: var(--t-md);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .modal-choice-desc {
@@ -787,7 +810,7 @@
   color: var(--text-2);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   cursor: pointer;
 }
 

@@ -207,18 +207,22 @@
   margin-bottom: var(--s7);
 }
 
+/* Varje läge är ett eget kort med sin egen utblurrade bild, samma språk som
+ * inbjudningspanelerna. Åtta vita rutor i ett rutnät gav ingen anledning att
+ * välja det ena framför det andra; åtta bilder gör hallen till en plats man
+ * känner igen sig i. */
 #view-playground .arcade-mode {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 128px;
+  min-height: 152px;
   padding: 20px;
   font-family: inherit;
   text-align: left;
-  color: var(--text-1);
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  color: var(--on-wash-1);
+  background: var(--wash-base);
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
   cursor: pointer;
   transition:
     border-color var(--dur-1) var(--ease-soft),
@@ -263,9 +267,9 @@
   justify-content: center;
   width: 46px;
   height: 46px;
-  color: var(--text-2);
-  background: var(--surface-2);
-  border: 1px solid var(--line-strong);
+  color: var(--on-wash-1);
+  background: color-mix(in srgb, var(--on-wash-1) 12%, transparent);
+  border: 1px solid var(--on-wash-line);
   border-radius: var(--r-md);
   /* Märket fylls med accent när kortet pekas ut. Det är den största färgytan
    * som byts i vyn och får därför det längre tempot: på 120 ms klipptes den
@@ -284,15 +288,16 @@
 #view-playground .arcade-mode-name {
   margin-top: auto;
   font-size: var(--t-md);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--on-wash-1);
 }
 
 #view-playground .arcade-mode-desc {
   margin-top: -4px;
   font-size: var(--t-sm);
   line-height: 1.45;
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
 /* Märket fylls när läget är valt. Det är hela markeringen som behövs — en

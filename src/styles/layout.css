@@ -276,6 +276,14 @@
   border-top: 1px solid var(--line);
 }
 
+/* Foten är navigering och bär därför samma halvfetstil som knapparna.
+ * Kortleksraderna ovanför står kvar i normal vikt: de är namn på användarens
+ * eget material, och skillnaden i vikt är det som skiljer appens egna vägar
+ * från innehållet man lagt in. */
+.sidebar-account .sidebar-item {
+  font-weight: 600;
+}
+
 /* Synkläget. En prick och ett ord, på samma indrag som raderna ovanför —
  * det är en upplysning om appen, inte en av dess handlingar, och ska därför
  * väga mindre utan att hamna på ett eget avstånd. */
@@ -286,6 +294,9 @@
   min-height: var(--row-h);
   padding: 0 var(--s2);
   font-size: var(--t-xs);
+  /* En nivå under navigeringen ovanför: synkläget är en upplysning man kan
+   * läsa, inte en väg man kan gå. */
+  font-weight: 500;
   color: var(--text-3);
   white-space: nowrap;
   overflow: hidden;

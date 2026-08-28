@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Repetitionsapp med spaced repetition, molnsynk och leverantorsoberoende AI",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port ${PORT:-5173}",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

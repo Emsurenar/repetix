@@ -55,6 +55,13 @@
   --danger: #a03530;
   --danger-soft: #f7e9e8;
 
+  /* --- Bläck ------------------------------------------------------------
+   * Primärknappen är bläck, inte accent — efter ägarens referensknapp
+   * (2026-08-28): nästan svart, mjukt rundad, på gräddvit botten. Accenten
+   * fortsätter betyda tal, tillstånd och länkar i stället för massa. */
+  --ink: #17181a;
+  --ink-hover: #313437;
+
   /* --- Märken ----------------------------------------------------------
    * Allt som visar mängd — framsteg, kölängd, aktivitet — ritas med samma
    * tre toner: accent för det som är klart, mark-1 för det som är påbörjat,
@@ -62,6 +69,25 @@
    */
   --mark-0: #dededa;
   --mark-1: #bfc4c2;
+
+  /* --- Färgtvätten ------------------------------------------------------
+   * Inbjudningspanelerna bär en fullt utblurrad bild, en per kortlek. Här
+   * bor bara det som inte kommer ur bilden: grundtonen under den, och den
+   * djupa tonen som skärmen ovanpå är gjord av.
+   */
+  --wash-base: #16120e; /* under bilden, och kvar om den uteblir */
+  --wash-deep: #0b0908; /* skärmen som texten vilar på */
+
+  /* Text och kanter ovanpå tvätten. Mätt mot den ljusaste punkt skärmen
+   * släpper fram: on-wash-1 ger 14:1, on-wash-2 5,1:1, linjen 3,3:1. */
+  --on-wash-1: #f5f2ea;
+  --on-wash-2: #cbc2b4;
+  --on-wash-line: #6f665c;
+
+  /* Accenten mot det mörka. Verdigris i sin vanliga ton ger 2,8:1 mot valvet
+   * och duger inte till panelens viktigaste tal; den ljusa systern bär samma
+   * kulör med 10:1. */
+  --on-wash-accent: #a8cfc7;
 
   /* --- Aktivitetskarta -------------------------------------------------- */
   --heat-0: #e6e6e3;
@@ -119,10 +145,18 @@
    * härifrån; ser du ett mellan två komponenter är det ett fel.
    */
 
-  /* --- Form ------------------------------------------------------------- */
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
+  /* --- Form -------------------------------------------------------------
+   * EN kurvatur. Ägaren pekade ut hörnet på "Dagens mapp" och sa att alla
+   * knappar ska ha det — så md och lg är samma sextonde pixel, och skalan
+   * finns kvar bara för att beskriva vad en sak är, inte för att den ska se
+   * annorlunda ut. Ändra inte det ena utan det andra.
+   *
+   * sm är de minsta detaljerna: listrader, menyval, tangentmärken. De är
+   * inte knappar, och sexton pixlar hade gjort en trettio pixlar hög rad
+   * till en kapsel. */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 16px;
   --r-pill: 999px;
 
   /* Kontrollhöjder. Med mus räcker 34px och ser stramt ut; med finger krävs
