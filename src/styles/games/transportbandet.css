@@ -5,4 +5,751 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Bilden är en sorteringsmaskin, ritad med det enda maskinen behöver: en
+ * hårfin linje per rännas kant och en ytkontrast för rännan man siktar i.
+ * Schaktet och korgarna är EN kropp — de delar ytterkant och radie, och
+ * rännorna fortsätter rakt ner i korgen under. Därför har korgarna ingen
+ * mellanrumsspalt: kortets mitt måste ligga exakt över korgens mitt, och med
+ * ett gap gör den inte det.
  */
+
+/* Spelytan får inte studsa eller dras med när ett finger sveper över den. */
+.tb-overlay {
+  overscroll-behavior: contain;
+  touch-action: manipulation;
+}
+
+.tb-plan {
+  position: relative;
+  z-index: 12;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  min-height: 0;
+  max-width: 47.5rem;
+  margin: 0 auto;
+  padding: var(--s4) var(--s4) var(--s3);
+}
+
+/* ======================================================================
+ * HUD
+ *
+ * Tre tunna rader, en fråga var: hur mycket tål bandet (liv) och hur går det
+ * (nivå, poäng, svit); hur ligger jag till mot mig själv (jaktlinjen); och hur
+ * långt efter är jag just nu (kön). Kön har en egen rad därför att den är en
+ * varning och inte ett resultat — den ska kunna läsas i ögonvrån.
+ * ====================================================================== */
+
+.tb-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  min-height: var(--control-h);
+}
+
+/* Liven är märken, inte ikoner. Tre fyllda rutor som töms — samma primitiv som
+ * sidopanelens fyrkantsprick och framstegsstapeln, och en form som klarar sig
+ * utan en enda emoji. Radien är de två pixlarna den primitiven redan har. */
+.tb-liv {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--s1);
+}
+
+.tb-liv-namn {
+  flex: 0 0 auto;
+}
+
+.tb-liv > i {
+  display: block;
+  width: 10px;
+  height: 14px;
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 2px;
+  transition:
+    background var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+.tb-liv > i.is-borta {
+  background: transparent;
+  border-color: var(--mark-1);
+}
+
+.tb-hud-tal {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  font-size: var(--t-xs);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.tb-poang {
+  font-size: var(--t-md);
+  color: var(--text-1);
+}
+
+/* Sviten. Den syns bara när den är värd något — en multiplikator på ett är
+ * ingen belöning, bara en rad till att läsa. */
+.tb-mult {
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.tb-mult.is-on {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------------------------
+ * JAKTLINJEN
+ *
+ * Rekordet under hela rundan, inte bara på slutbilden. Det är skillnaden
+ * mellan att spela och att tävla: man ska kunna se att man ligger före sig
+ * själv medan man fortfarande kan göra något åt det.
+ * -------------------------------------------------------------------- */
+
+.tb-jakt {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  font-size: var(--t-micro);
+  color: var(--text-3);
+}
+
+.tb-jakt .progress {
+  flex: 1 1 auto;
+}
+
+.tb-jakt .progress-fill {
+  transition: width var(--dur-2) var(--ease-out);
+}
+
+.tb-jakt.is-slaget .tb-jakt-namn,
+.tb-jakt.is-slaget .tb-jakt-tal {
+  color: var(--accent);
+}
+
+.tb-jakt.is-slaget .progress {
+  background: var(--accent-soft);
+}
+
+/* Utan rekord finns ingen jakt. Stapeln tas bort i stället för att stå tom. */
+.tb-jakt.is-tom .progress {
+  display: none;
+}
+
+.tb-jakt.is-tom .tb-jakt-namn {
+  flex: 1 1 auto;
+}
+
+/* ----------------------------------------------------------------------
+ * KÖN
+ *
+ * Lägets hela spänning bor här. Korten läggs på bandet efter en egen klocka,
+ * inte efter hur snabbt man hinner: tvekar man växer högen, och en full kö
+ * kostar ett liv. Rutorna är kort i miniatyr, och radien följer samma andel av
+ * höjden som knapparnas gör av sin.
+ * -------------------------------------------------------------------- */
+
+.tb-ko {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  color: var(--text-3);
+}
+
+.tb-ko-slots {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--s1);
+}
+
+.tb-ko-slots > i {
+  display: block;
+  width: 16px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft);
+}
+
+.tb-ko-slots > i.is-fylld {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.tb-ko-tal {
+  font-size: var(--t-micro);
+}
+
+.tb-ko.is-varning .tb-ko-namn,
+.tb-ko.is-varning .tb-ko-tal {
+  color: var(--rate-2);
+}
+
+.tb-ko.is-varning .tb-ko-slots > i.is-fylld {
+  background: var(--rate-2);
+  border-color: var(--rate-2);
+}
+
+.tb-ko.is-full .tb-ko-namn,
+.tb-ko.is-full .tb-ko-tal {
+  color: var(--danger);
+}
+
+.tb-ko.is-full .tb-ko-slots > i.is-fylld {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ======================================================================
+ * SCHAKTET
+ *
+ * Fyra rännor över fyra korgar. Skiljelinjerna gör att man ser vilken korg ett
+ * kort är på väg mot innan det landat — utan dem är fallet en gissning ända
+ * till sista tiondelen.
+ * ====================================================================== */
+
+.tb-schakt {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-bottom: 0;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  transition: border-color var(--dur-2) var(--ease-out);
+}
+
+/* Kön är på väg att bli för lång. Maskinen färgas innan den går sönder, så att
+ * varningen kommer medan man fortfarande kan sortera bort den. */
+.tb-schakt.is-trangt {
+  border-color: var(--rate-2);
+}
+
+.tb-schakt.is-overfull {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* Rännornas väggar. Starkare linje än appens hårfina: de ligger på en nedsänkt
+ * yta, och på den syns den ljusa linjen inte alls. */
+.tb-skiljare {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+/* Rännan man siktar i. En ljusare yta och två accentkanter räcker: ögat följer
+ * spalten ner i korgen utan att något behöver blinka. */
+.tb-lane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(100% / var(--tb-korgar));
+  background: var(--surface-3);
+  border-left: 1px solid var(--accent-line);
+  border-right: 1px solid var(--accent-line);
+  transition:
+    left var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-soft);
+}
+
+/* Sista femtedelen av fallet. Bärnsten, inte rött: det är bråttom, det är
+ * ännu inte fel. */
+.tb-lane.is-kritisk {
+  border-left-color: var(--rate-2);
+  border-right-color: var(--rate-2);
+}
+
+/* ----------------------------------------------------------------------
+ * KORTET I LUFTEN
+ * -------------------------------------------------------------------- */
+
+.tb-kort {
+  position: absolute;
+  top: 0;
+  z-index: 10;
+  max-width: min(19rem, 76%);
+  max-height: 46%;
+  padding: var(--s3) var(--s4);
+  overflow: hidden;
+  font-family: var(--font-content);
+  font-size: var(--t-lg);
+  line-height: var(--lh-tight);
+  text-align: center;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  word-break: break-word;
+  animation: tb-mata-in var(--dur-2) var(--ease-out) both;
+  transition:
+    left var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-soft);
+}
+
+.tb-kort > :first-child {
+  margin-top: 0;
+}
+
+.tb-kort > :last-child {
+  margin-bottom: 0;
+}
+
+/* Kortet matas in genom luckan. Bara opaciteten animeras — läget skrivs av
+ * spelklockan varje bildruta, och en animering på transform hade slagits ihop
+ * med den. */
+@keyframes tb-mata-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tb-kort.is-kritisk {
+  border-color: var(--rate-2);
+}
+
+.tb-kort.is-landar {
+  transition:
+    transform var(--dur-2) var(--ease-in),
+    opacity var(--dur-2) var(--ease-in);
+}
+
+/* Svaret efter ett fel. Kortet slutar vara en bricka och blir en text att läsa:
+ * bredare, draget till mitten av schaktet, och med plats att rulla om svaret är
+ * långt. Texten står kvar i bläck — ramen säger att man svarade fel, svaret
+ * självt är bara ett svar och ska gå att läsa som ett. */
+.tb-kort.is-svar {
+  max-width: min(28rem, 88%);
+  max-height: 52%;
+  padding: var(--s4) var(--s5);
+  overflow-y: auto;
+  color: var(--text-1);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  transition:
+    top var(--dur-2) var(--ease-out),
+    left var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+/* ----------------------------------------------------------------------
+ * RÄTTELSEN
+ *
+ * Ett fel är lägets enda skäl att stanna bandet. Då ska rätt mapp stå under
+ * svaret, inte i en dialog man måste klicka bort.
+ * -------------------------------------------------------------------- */
+
+.tb-rattelse {
+  position: absolute;
+  right: var(--s4);
+  bottom: var(--s4);
+  left: var(--s4);
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  align-items: center;
+  padding: var(--s3);
+  text-align: center;
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  animation: tb-stig-in var(--dur-2) var(--ease-out) both;
+}
+
+.tb-rattelse-mapp {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+@keyframes tb-stig-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * NEDRÄKNINGEN
+ *
+ * 3–2–1 i stället för en startknapp. Rundan börjar av sig själv, och sekunderna
+ * går åt till att läsa korgarnas namn — vilket är precis vad man behöver.
+ * -------------------------------------------------------------------- */
+
+.tb-nedrakning {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: var(--t-3xl);
+  line-height: 1;
+  color: var(--text-1);
+  letter-spacing: var(--track-tight);
+  transform: translate(-50%, -50%);
+  animation: tb-rakna var(--dur-4) var(--ease-out) both;
+}
+
+@keyframes tb-rakna {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * BESKEDEN
+ *
+ * Stiger ur den korg man träffade, inte ur mitten: bekräftelsen ska komma där
+ * handlingen skedde, annars måste ögat lämna korgarna för att läsa den.
+ * -------------------------------------------------------------------- */
+
+.tb-flyt {
+  position: absolute;
+  bottom: var(--s5);
+  z-index: 20;
+  font-family: var(--font-data);
+  font-size: var(--t-lg);
+  white-space: nowrap;
+  pointer-events: none;
+  /* Centreringen ligger i grundregeln och inte bara i animeringen: utan rörelse
+   * spelas inga bildrutor, och beskedet skulle hamna en halv bredd åt sidan. */
+  transform: translateX(-50%);
+  animation: tb-flyt-upp var(--dur-4) var(--ease-out) both;
+}
+
+@keyframes tb-flyt-upp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48px);
+  }
+}
+
+.tb-flyt.is-ratt {
+  color: var(--accent);
+}
+
+.tb-flyt.is-fel {
+  color: var(--danger);
+}
+
+.tb-flyt.is-niva {
+  color: var(--rate-2);
+}
+
+.tb-flyt.is-rekord {
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
+/* ======================================================================
+ * KORGARNA
+ *
+ * Knappar, och lägets enda styrning på telefon: ett tryck siktar och släpper.
+ * De delar kant med varandra och med schaktet ovanför, så att rännan man ser
+ * kortet falla i är samma spalt som korgen den landar i. Ingen korg bär egen
+ * färg — färgen skulle ha antytt att den betyder något. Siffran skiljer dem åt
+ * och accenten pekar ut den man siktar mot.
+ * ====================================================================== */
+
+.tb-korgar {
+  display: grid;
+  grid-template-columns: repeat(var(--tb-korgar), 1fr);
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+}
+
+.tb-korg {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--control-h) * 2);
+  padding: var(--s3) var(--s2);
+  font: inherit;
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 0;
+  border-left: 1px solid var(--line);
+  cursor: pointer;
+  /* Ett snabbt upprepat tryck ska sortera kort, inte zooma in sidan. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft),
+    transform var(--dur-1) var(--ease-spring);
+}
+
+.tb-korg:first-child {
+  border-left: 0;
+}
+
+/* Korgen ger efter under fingret. Ett sorteringsläge utan taktil kvittens
+ * känns som om trycket aldrig gick fram. */
+.tb-korg:active {
+  transform: scale(var(--press));
+}
+
+.tb-korg:focus-visible {
+  outline: 2px solid var(--text-1);
+  outline-offset: -3px;
+}
+
+/* Målmarkeringen sitter i kanten mot schaktet, så att rännan och korgen möts i
+ * ett streck. En ram runt hela knappen hade sagt "vald", inte "hit faller det". */
+.tb-korg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  transition: background var(--dur-1) var(--ease-soft);
+}
+
+.tb-korg.is-sikte {
+  color: var(--accent);
+  background: var(--surface-3);
+}
+
+.tb-korg.is-sikte::before {
+  background: var(--accent);
+}
+
+.tb-korg.is-ratt {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tb-korg.is-ratt::before {
+  background: var(--accent);
+}
+
+.tb-korg.is-fel {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.tb-korg.is-fel::before {
+  background: var(--danger);
+}
+
+/* Facit under rättelsen: korgen kortet borde ha hamnat i. */
+.tb-korg.is-facit {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tb-korg.is-facit::before {
+  background: var(--accent);
+}
+
+.tb-korg-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: var(--t-micro);
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.tb-korg.is-sikte .tb-korg-num,
+.tb-korg.is-ratt .tb-korg-num,
+.tb-korg.is-fel .tb-korg-num,
+.tb-korg.is-facit .tb-korg-num {
+  color: inherit;
+  background: transparent;
+  border-color: currentcolor;
+}
+
+.tb-korg-namn {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  text-align: center;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.tb-hint {
+  margin: 0;
+  font-size: var(--t-micro);
+  color: var(--text-3);
+  text-align: center;
+}
+
+/* Utan tangentbord är tangenterna brus. */
+@media (pointer: coarse) {
+  .tb-hint-tangent {
+    display: none;
+  }
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Rundan är ändlös, så det finns ingen seger att fira — bara ett tal att
+ * jämföra. Därför är jämförelsen mot rekordet bilden, inte en rad i en lista.
+ * ====================================================================== */
+
+.tb-slut-poang {
+  margin: 0;
+  font-size: var(--t-3xl);
+  line-height: 1;
+  color: var(--accent);
+  letter-spacing: var(--track-tight);
+}
+
+.tb-jamfor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  margin-top: var(--s2);
+}
+
+.tb-jamfor-rad {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.tb-jamfor-namn {
+  flex: 0 0 auto;
+  min-width: 9rem;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* Två staplar i samma spår och samma skala — en procent per rad hade dolt att
+ * den ena är dubbelt så lång som den andra. Måtten är framstegsstapelns egna:
+ * tre pixlar hög, två i radie. */
+.tb-jamfor-spar {
+  display: flex;
+  flex: 1 1 auto;
+  height: 3px;
+  background: var(--mark-0);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tb-jamfor-spar > i {
+  height: 100%;
+  background: var(--mark-1);
+}
+
+.tb-jamfor-spar > i.is-nu {
+  background: var(--accent);
+}
+
+.tb-jamfor-tal {
+  flex: 0 0 auto;
+  min-width: 3.5rem;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  text-align: right;
+}
+
+/* ======================================================================
+ * SMÅ SKÄRMAR
+ *
+ * Korgarna behåller sina fyra spalter: de motsvarar rännorna, och ett rutnät
+ * på två gånger två hade brutit sambandet mellan var kortet faller och var det
+ * landar. I stället krymper texten och HUD:en.
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .tb-plan {
+    gap: var(--s1);
+    padding: var(--s3) var(--s3) var(--s2);
+  }
+
+  .tb-korg {
+    padding: var(--s2) var(--s1);
+  }
+
+  .tb-korg-namn {
+    font-size: var(--t-xs);
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  /* Smalare än på skrivbordet, och avsiktligt: kortet måste kunna glida
+   * märkbart i sidled för att siktet ska synas på kortets läge och inte bara i
+   * rännan bakom. Ett kort som täcker nästan hela schaktet står alltid still. */
+  .tb-kort {
+    max-width: 66%;
+    padding: var(--s2) var(--s3);
+    font-size: var(--t-md);
+  }
+
+  .tb-jamfor-namn {
+    min-width: 7rem;
+  }
+}
+
+/* Liggande telefon: höjden är allt som fattas. Kontrollraden och kön räcker
+ * som instruktion när utrymmet tar slut. */
+@media (max-height: 520px) {
+  .tb-hint {
+    display: none;
+  }
+
+  .tb-korg {
+    min-height: var(--control-h);
+  }
+
+  .tb-rattelse {
+    right: var(--s2);
+    bottom: var(--s2);
+    left: var(--s2);
+    padding: var(--s2);
+  }
+}

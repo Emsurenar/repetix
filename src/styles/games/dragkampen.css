@@ -5,4 +5,618 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Kompositionen har fyra våningar och en enda huvudperson:
+ *
+ *   slist      var man är och hur många rundor som finns kvar
+ *   REPET      matchen, och det enda som rör sig
+ *   påståendet det man bedömer
+ *   knappar    de två taget i repet
+ *   hyllan     vad som står på spel, och efteråt vad som hände
+ *
+ * Talen inuti repet — repets tjocklek, knutens höjd, mållinjens bredd — står
+ * i pixlar med flit. tokens.css skiljer på avstånd MELLAN saker, som kommer ur
+ * skalan, och mått INUTI en komponent, som är komponentens egna. Repet är en
+ * ritning, inte en kontroll: dess grepp får inte växa till 44 px i fingerläge.
  */
+
+/* ======================================================================
+ * SPELYTAN
+ *
+ * Arenan ligger normalt lodrätt centrerad i spelytan. Här ligger den överst
+ * i stället, och det är ingen smaksak: hyllan under knapparna byter höjd när
+ * facit visas, och med centrering flyttar den knapparna uppåt medan fingret
+ * fortfarande är på väg ned. Det är exakt det fel som en gång satte ett betyg
+ * på ett kort ingen läst. Överst kan bara tomrummet under växa.
+ * ====================================================================== */
+
+.dk-yta {
+  justify-content: flex-start;
+  padding: var(--s7) 0 var(--s6);
+  overflow-y: auto;
+}
+
+/* ======================================================================
+ * REPET
+ * ====================================================================== */
+
+.dk-matare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* Lagen och ställningen på en rad: motståndaren till vänster, talet i mitten,
+ * du till höger. Mitten är en egen spalt så att talet står stilla när
+ * kraftorden till vänster växer från "drar" till "drar stenhårt". */
+.dk-sidor {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.dk-sida {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  min-width: 0;
+}
+
+.dk-sida--du {
+  justify-content: flex-end;
+}
+
+/* Datorns kraft och din svit står på samma plats i raden, i vars en färg. De
+ * är matchens två motorer och ska kunna läsas i ögonvrån.
+ *
+ * Etiketten tonar inte in utan byter färg. En text som dyker upp ur intet är
+ * en händelse att titta på; en som mörknar från grått till rött är ett
+ * tillstånd man känner av utan att flytta blicken. */
+.dk-kraft {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-3);
+  transition: color var(--dur-2) var(--ease-out);
+}
+
+.dk-sida--dator .dk-kraft.is-on {
+  color: var(--danger);
+}
+
+.dk-sida--du .dk-kraft.is-on {
+  color: var(--accent);
+}
+
+/* Ställningen. Ett tal som ändras medan man läser är hela poängen med läget,
+ * så det får den grad ett tal med betydelse har i resten av appen. */
+.dk-lage {
+  font-size: var(--t-lg);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-3);
+  transition: color var(--dur-2) var(--ease-out);
+}
+
+.dk-lage.is-du {
+  color: var(--accent);
+}
+
+.dk-lage.is-dator {
+  color: var(--danger);
+}
+
+/* Banan är geometrin: repet i mitten, mållinjerna i kanterna, knuten ovanpå.
+ * Höjden är knutens, inte repets — knuten sticker upp över repet och kan
+ * därför inte ligga i det som klipper fyllningen. */
+.dk-bana {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 30px;
+}
+
+.dk-rep {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+
+/* Vunnen mark. Halvorna skalas från mitten och ut med transform i stället för
+ * med bredd: värdet skrivs om varje bildruta och får inte tvinga fram en ny
+ * layout sextio gånger i sekunden. */
+.dk-fyll {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+
+.dk-fyll--dator {
+  left: 0;
+  background: var(--danger);
+  transform-origin: right center;
+  transform: scaleX(var(--dator, 0));
+}
+
+.dk-fyll--du {
+  left: 50%;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(var(--du, 0));
+}
+
+/* Utgångsläget. En hårfin linje, inte en markering — den ska gå att se när man
+ * letar efter den och annars vara tyst. */
+.dk-mitt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 16px;
+  background: var(--line-strong);
+  transform: translate(-50%, -50%);
+}
+
+/* Mållinjerna. Två streck som betyder slut, i samma penna som resten av
+ * gränssnittet. De tänds först när någon är nära dem. */
+.dk-mal {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 24px;
+  background: var(--line-strong);
+  transform: translateY(-50%);
+  transition: background var(--dur-2) var(--ease-out);
+}
+
+.dk-mal--dator {
+  left: 0;
+}
+
+.dk-mal--du {
+  right: 0;
+}
+
+/* Vagnen är lika bred som banan, så en förflyttning på halva vagnbredden är
+ * halva banan. Det gör hela repet styrbart med ett enda tal mellan -1 och 1,
+ * utan att en enda pixel behöver mätas i JavaScript. */
+.dk-vagn {
+  position: absolute;
+  inset: 0;
+  transform: translateX(calc(var(--p, 0) * 50%));
+  pointer-events: none;
+}
+
+.dk-knut {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 10px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+}
+
+/* Själva greppet ligger i ett eget element: vagnens transform skrivs om varje
+ * bildruta och kan inte samtidigt bära en animation. */
+.dk-knut-i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--ink);
+  border-radius: var(--r-pill);
+}
+
+/* Rycket. Knuten lutar bakåt och snäpper på plats åt det håll repet drogs —
+ * riktningen är beskedet, storleken är hur mycket. Sträckan är --rise, som
+ * nollas tillsammans med resten vid mindre rörelse. */
+.dk-knut-i.is-ryck-du {
+  animation: dk-ryck-du var(--dur-3) var(--ease-spring) both;
+}
+
+.dk-knut-i.is-ryck-dator {
+  animation: dk-ryck-dator var(--dur-3) var(--ease-spring) both;
+}
+
+@keyframes dk-ryck-du {
+  from {
+    transform: translateX(calc(var(--rise) * -1)) scaleY(1.4);
+  }
+}
+
+@keyframes dk-ryck-dator {
+  from {
+    transform: translateX(var(--rise)) scaleY(1.4);
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * ZONERNA
+ *
+ * Matchboll och avgrundskant är samma sak sedda från var sitt håll: någon är
+ * ett drag från att avgöra det. Mållinjen som gäller tänds och andas. Det är
+ * den enda pulsen i läget, och den sitter på ett två pixlar brett streck —
+ * inte på arenan, som ska gå att läsa i.
+ * -------------------------------------------------------------------- */
+
+.dk.is-matchboll .dk-mal--du {
+  background: var(--accent);
+  animation: dk-mal-puls var(--dur-4) var(--ease-soft) infinite alternate;
+}
+
+.dk.is-avgrund .dk-mal--dator {
+  background: var(--danger);
+  animation: dk-mal-puls var(--dur-4) var(--ease-soft) infinite alternate;
+}
+
+@keyframes dk-mal-puls {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.25;
+  }
+}
+
+/* ======================================================================
+ * PÅSTÅENDET
+ *
+ * Frågan är sammanhanget och sätts tystare; påståendet är det man bedömer och
+ * är därför ytans huvudperson. Det gamla läget hade det omvänt — frågan stor
+ * och påståendet i en liten grå ruta under — vilket gjorde att man läste fel
+ * sak först.
+ * ====================================================================== */
+
+.dk-pastaende {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-2) var(--ease-out);
+}
+
+.dk-pastaende .micro + * {
+  margin-bottom: var(--s3);
+}
+
+.dk-pastaende .micro + *:last-child {
+  margin-bottom: 0;
+}
+
+.dk-fraga {
+  font-family: var(--font-content);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.dk-ansprak {
+  font-family: var(--font-content);
+  font-size: var(--t-xl);
+  line-height: 1.3;
+  color: var(--text-1);
+}
+
+/* Efter svaret stämplas påståendet med vad det var. Kanten bär beskedet, inte
+ * en fylld yta: texten ska fortfarande gå att läsa som text. */
+.dk-pastaende.is-sant {
+  border-color: var(--accent-line);
+}
+
+.dk-pastaende.is-falskt {
+  border-color: var(--danger);
+}
+
+.dk-pastaende.is-sant .dk-ansprak {
+  color: var(--accent);
+}
+
+.dk-pastaende.is-falskt .dk-ansprak {
+  color: var(--danger);
+}
+
+/* Ett nytt påstående kommer in nedifrån som allt annat i appen. */
+.dk-pastaende.is-ny {
+  animation: dk-in var(--dur-2) var(--ease-out) both;
+}
+
+@keyframes dk-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+}
+
+/* ======================================================================
+ * DE TVÅ TAGEN
+ *
+ * Två knappar, lika stora, med pilen på den sida av etiketten som svarar mot
+ * tangenten. Ingen av dem är primär: det finns inget rätt val att peka ut
+ * innan man vet svaret.
+ * ====================================================================== */
+
+.dk-knapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  min-height: calc(var(--control-h) + var(--s5));
+  padding: 0 var(--s4);
+  font-family: inherit;
+  font-size: var(--t-md);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+.dk-knapp:active {
+  transform: scale(var(--press));
+  transition-duration: var(--dur-1);
+}
+
+.dk-knapp--falskt:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.dk-knapp--sant:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Efter svaret är knapparna facit. De blir aldrig disabled: fokus ligger på
+ * den man just tryckte, och en disabled knapp kastar tangentbordet till
+ * dokumentets början mitt i rundan. */
+.dk-knapp[aria-disabled='true'] {
+  cursor: default;
+}
+
+.dk-knapp[aria-disabled='true']:hover {
+  color: var(--text-1);
+  border-color: var(--line-strong);
+}
+
+.dk-knapp.is-facit,
+.dk-knapp.is-facit:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.dk-knapp.is-miss,
+.dk-knapp.is-miss:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.dk-knapp.is-facit .kbd,
+.dk-knapp.is-miss .kbd {
+  color: inherit;
+  background: transparent;
+  border-color: currentcolor;
+}
+
+/* Med finger finns inget tangentbord att härma — varken pilarna på knapparna
+ * eller ledtexterna om Space och Enter. */
+@media (pointer: coarse) {
+  .dk-knapp .kbd,
+  .dk-vidare .arena-hint,
+  .dk-slut .arena-hint {
+    display: none;
+  }
+}
+
+/* ======================================================================
+ * HYLLAN
+ *
+ * Står kvar hela rundan och byter bara innehåll. Före svaret bär den vad som
+ * står på spel, efter svaret vad som hände. Att den aldrig göms är halva
+ * spänningen: man ska veta priset innan man bestämmer sig.
+ * ====================================================================== */
+
+.dk-hylla {
+  min-height: calc(var(--control-h) + var(--s5));
+  justify-content: center;
+}
+
+.dk-insats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.dk-insats-del {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.dk-tal {
+  font-size: var(--t-md);
+  font-weight: 500;
+}
+
+.dk-tal.is-du {
+  color: var(--accent);
+}
+
+.dk-tal.is-dator {
+  color: var(--danger);
+}
+
+/* Utfallet. Talet först och stort — det är belöningen, och det är det man
+ * tittar efter innan man läst ett enda ord. */
+.dk-utfall {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+}
+
+.dk-utfall-tal {
+  flex: 0 0 auto;
+  font-size: var(--t-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  animation: dk-tal-in var(--dur-3) var(--ease-spring) both;
+}
+
+.dk-utfall-tal.is-du {
+  color: var(--accent);
+}
+
+.dk-utfall-tal.is-dator {
+  color: var(--danger);
+}
+
+@keyframes dk-tal-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise)) scale(0.86);
+  }
+}
+
+.dk-utfall-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dk-utfall-lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+/* Ett besked i taget. Läget har fem saker att säga efter ett svar — svit,
+ * comeback, matchboll, tappat grepp, nytt rekord — och säger alltid bara den
+ * som betyder mest. Fem märken samtidigt är inget märke alls. */
+.dk-flagga {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--s2);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+}
+
+/* "Du tappade greppet" är inte en belöning. Ett besked om motgång i accent är
+ * en grön etikett som säger något rött. */
+.dk-flagga.is-dator {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.dk-vidare {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Repet fryses där det stannade och står överst: matchen sammanfattas av sin
+ * egen bild, inte av en rubrik. Under den två listor — matchen, och rekordet
+ * den ska jämföras med.
+ * ====================================================================== */
+
+.dk-matare--slut {
+  margin: var(--s3) 0 var(--s2);
+}
+
+/* Rubriken behöver två klasser för att nå: .arena .micro nollar marginalen,
+ * och en enda klass förlorar mot den oavsett var i filen den står. */
+.dk-slut .dk-rekordrubrik {
+  margin-top: var(--s4);
+}
+
+.dk-slut .arena-stats dd {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+/* Rekordet man inte slog står kvar bredvid det man gjorde. Utan jämförelsen är
+ * ett tal bara ett tal; med den är det ett avstånd att stänga. */
+.dk-tidigare {
+  font-family: var(--font-ui);
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.dk-rekord .is-nytt dt,
+.dk-rekord .is-nytt dd {
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * SMAL SKÄRM
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .dk-yta {
+    padding: var(--s4) 0;
+  }
+
+  .dk-pastaende {
+    padding: var(--s4);
+  }
+
+  .dk-ansprak {
+    font-size: var(--t-lg);
+  }
+
+  /* De två tagen står kvar sida vid sida. Arenan lägger annars alternativ på
+   * varandra, men här ÄR sidorna riktningar: falskt till vänster, sant till
+   * höger, som repet ovanför. */
+  .dk-knappar {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s2);
+  }
+
+  .dk-utfall {
+    gap: var(--s3);
+  }
+
+  .dk-utfall-tal {
+    font-size: var(--t-xl);
+  }
+}

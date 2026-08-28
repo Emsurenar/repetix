@@ -5,4 +5,660 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Lägets färglära, och den skiljer sig från de övrigas: HÄR FINNS INGEN RÖD
+ * TON. Att inte minnas ett ord är inte ett fel, det är hela anledningen till
+ * att man spelar. Accenten säger "det satt", bärnstenen (--rate-2) säger "här
+ * fattas något, titta", och allt annat är tyst grått. Ett svar kan alltså inte
+ * se ut som ett misslyckande — bara som en karta över vad som är kvar.
  */
+
+/* ======================================================================
+ * YTAN
+ *
+ * Facitbilden är hög: utfall, eget svar, facit och fördjupning under varandra.
+ * Den gemensamma spelytan har overflow: hidden och centrerar sitt innehåll,
+ * vilket klipper bort både topp och botten så fort innehållet växer förbi
+ * rutan. Här går ytan att rulla i stället.
+ *
+ * margin-block: auto och inte justify-content: center — ett centrerat
+ * flexbarn som är högre än sin behållare får sin överkant avklippt och går
+ * inte att rulla tillbaka till. Automarginaler ger samma centrering när det
+ * finns plats över, och släpper taget när det inte gör det.
+ * ====================================================================== */
+
+.ft-overlay {
+  justify-content: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ft-arena {
+  margin-block: auto;
+}
+
+/* ======================================================================
+ * KAPPLÖPNINGEN MOT REKORDET
+ *
+ * Linjen över frågan är lägets motor. Fyllningen är passets poäng, strecket
+ * är rekordets takt vid samma kort. Skalan är den största av de två, så
+ * strecket står i högerkanten tills man går om det och sedan vandrar inåt —
+ * rörelsen säger "du leder" utan att något behöver skrivas ut.
+ * ====================================================================== */
+
+.ft-kapp {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--control-h);
+}
+
+.ft-kapp .micro {
+  white-space: nowrap;
+}
+
+.ft-kapp-spar {
+  position: relative;
+  flex: 1 1 auto;
+  height: 3px;
+  background: var(--mark-0);
+  border-radius: var(--r-pill);
+}
+
+.ft-kapp-fyll {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--mark-1);
+  border-radius: var(--r-pill);
+  transform-origin: left;
+  /* Slutläget står i elementets egen stil. Nyckelbilden har därför bara ett
+   * från-läge: då växer linjen fram till just det värdet i stället för att
+   * animeringen skriver över det. */
+  animation: ft-vaxa var(--dur-4) var(--ease-out) backwards;
+  animation-delay: var(--dur-1);
+}
+
+.ft-kapp.is-fore .ft-kapp-fyll {
+  background: var(--accent);
+}
+
+/* Strecket korsar linjen i stället för att ligga i den: en markör man kan
+ * peka på, inte en till mängd. */
+.ft-kapp-tick {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 9px;
+  margin-left: -1px;
+  background: var(--text-1);
+}
+
+.ft-kapp-delta {
+  min-width: 9.5rem;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ft-kapp.is-fore .ft-kapp-delta {
+  color: var(--accent);
+}
+
+/* Omtaget har ingen mätning. Anmärkningen står bredvid etiketten i stället för
+ * längst ut till höger, där den hade sett ut som ett värde. */
+.ft-kapp.is-omtag .ft-kapp-delta {
+  min-width: 0;
+  text-align: left;
+}
+
+/* ======================================================================
+ * FRÅGAN
+ * ====================================================================== */
+
+.ft-fraga {
+  padding: var(--s5);
+  font-family: var(--font-content);
+  font-size: var(--t-xl);
+  line-height: 1.3;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+/* ======================================================================
+ * LEDTRÅDEN
+ *
+ * Svarets form, aldrig dess innehåll: begynnelsebokstaven och en prick per
+ * tecken som återstår. Monospace, för att prickarna ska bli lika breda som
+ * bokstäverna och längden därmed gå att läsa av.
+ * ====================================================================== */
+
+.ft-ledtrad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.ft-ledtrad-ord {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  word-break: break-word;
+}
+
+.ft-kostnad {
+  margin-left: var(--s1);
+  font-size: var(--t-micro);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * SKRIVRUTAN OCH MÅTTET
+ *
+ * Den tomma rutan är lägets svåraste ögonblick. Måttet under den fylls mot
+ * facits ordantal och byter till accent när man är i rätt storleksordning.
+ * Det är den enda återkopplingen som finns medan man skriver — allt som röjt
+ * innehåll hade gjort minnesprovet till en gissningslek.
+ * ====================================================================== */
+
+.ft-svarsruta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.ft-falt {
+  width: 100%;
+  min-height: 9rem;
+  max-height: 40vh;
+  padding: var(--s3) var(--s4);
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  resize: vertical;
+  transition: border-color var(--dur-1) var(--ease-soft);
+}
+
+.ft-falt:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ft-matt {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.ft-matt-spar {
+  flex: 1 1 auto;
+  height: 3px;
+  background: var(--mark-0);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.ft-matt-fyll {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--mark-1);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition:
+    transform var(--dur-1) var(--ease-out),
+    background var(--dur-2) var(--ease-out);
+}
+
+.ft-matt.is-nara .ft-matt-fyll {
+  background: var(--accent);
+}
+
+.ft-matt-tal {
+  min-width: 7rem;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ft-matt.is-nara .ft-matt-tal {
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * UTFALLET
+ *
+ * Talet säger hur mycket, ordet säger vad det betyder, poängen säger vad det
+ * gav. Ingen av dem säger "fel": den lägsta tonen är tyst grå, inte röd.
+ * ====================================================================== */
+
+.ft-utfall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.ft-utfall-topp {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+}
+
+/* Grundtonen ÄR det låga utfallet — därför finns ingen .is-lag-regel. Ett
+ * svagt resultat ska se tyst ut, inte utpekat, och en egen färg för det hade
+ * varit precis det utpekandet. */
+.ft-procent {
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-2);
+}
+
+.ft-procent.is-hog {
+  color: var(--accent);
+}
+
+.ft-procent.is-mellan {
+  color: var(--rate-2);
+}
+
+.ft-procent-tecken {
+  margin-left: 2px;
+  font-size: var(--t-lg);
+  color: var(--text-3);
+}
+
+.ft-omdome {
+  flex: 1 1 auto;
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+.ft-kortpoang {
+  font-size: var(--t-xl);
+  font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Ett "+0" i accent påstår att något hände. Nollan står tyst i stället. */
+.ft-kortpoang.is-noll {
+  color: var(--text-3);
+}
+
+.ft-traffspar {
+  height: 3px;
+  background: var(--mark-0);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.ft-traffyll {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--text-2);
+  transform-origin: left;
+  animation: ft-vaxa var(--dur-4) var(--ease-out) backwards;
+  animation-delay: var(--dur-1);
+}
+
+.ft-traffyll.is-hog {
+  background: var(--accent);
+}
+
+.ft-traffyll.is-mellan {
+  background: var(--rate-2);
+}
+
+.ft-detalj {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.ft-detalj .num {
+  color: var(--text-1);
+}
+
+/* ======================================================================
+ * SKILLNADEN, ORD FÖR ORD
+ *
+ * Bara det som gav poäng får en färg. Ingenting stryks över och ingenting
+ * ringas in i rött — den som skrev fel ord får se dem stå kvar i sin egen
+ * tysta ton, och den som skrev nästan rätt får en färg som säger att det
+ * räknades.
+ *
+ * Tre former, inte tre färger: hel understrykning för det som fattas, prickad
+ * för det som var nära, ingen för träffen. Skillnaden går att läsa utan att
+ * kunna skilja grönt från bärnsten.
+ * ====================================================================== */
+
+.ft-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* Ditt eget svar sätts i gränssnittets grotesk: det är något du skrev, inte
+ * kortets innehåll. Radbrytningarna står kvar som du gjorde dem. */
+.ft-svar {
+  padding: var(--s3) var(--s4);
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  white-space: pre-wrap;
+  color: var(--text-3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.ft-tomt {
+  color: var(--text-3);
+}
+
+/* Facit är kortets innehåll, alltså serif — samma som i repetitionen. */
+.ft-facit {
+  padding: var(--s4);
+  font-family: var(--font-content);
+  font-size: var(--t-lg);
+  line-height: var(--lh-normal);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* Markerat facit: bindeorden träder tillbaka så att begreppen bär texten. */
+.ft-facit.is-markerad {
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+
+.ft-ord--traff {
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.ft-ord--nara {
+  font-weight: 500;
+  color: var(--rate-2);
+  text-decoration: underline dotted var(--rate-2);
+  text-underline-offset: 3px;
+}
+
+.ft-ord--miss {
+  color: var(--text-1);
+  text-decoration: underline solid var(--rate-2);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* Reserv för kort med formler, kod eller tabeller: där går facit inte att
+ * dela i ord utan att skrivas sönder, så begreppen man missade får en egen
+ * rad i stället. */
+.ft-missade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+}
+
+.ft-missad {
+  display: inline-flex;
+  padding: 2px var(--s2);
+  font-size: var(--t-xs);
+  color: var(--rate-2);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+/* Resten räknas i stället för att listas: tolv märken är en översikt,
+ * trettio är en vägg. */
+.ft-missad--fler {
+  color: var(--text-3);
+  border-style: dashed;
+}
+
+.ft-fordjupning {
+  padding: var(--s3) var(--s4);
+  font-family: var(--font-ui);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.ft-fordjupning > :first-child {
+  margin-top: 0;
+}
+
+.ft-fordjupning > :last-child {
+  margin-bottom: 0;
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Poängen ensam säger ingenting. Två staplar under varandra — passet och
+ * rekordet, på samma skala — gör avståndet till något man ser i stället för
+ * räknar ut, och det är det avståndet som får en att köra en gång till.
+ * ====================================================================== */
+
+.ft-slutpoang {
+  margin: 0;
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+.ft-slutlead {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--text-2);
+}
+
+.ft-slutlead.is-rekord {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.ft-jamfor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  margin-top: var(--s3);
+}
+
+.ft-jamfor-rad {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.ft-jamfor-namn {
+  min-width: 5rem;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.ft-jamfor-spar {
+  flex: 1 1 auto;
+  height: 6px;
+  background: var(--mark-0);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.ft-jamfor-spar > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--mark-1);
+  transform-origin: left;
+  animation: ft-vaxa var(--dur-4) var(--ease-out) backwards;
+  animation-delay: var(--dur-1);
+}
+
+.ft-jamfor-rad.is-nu .ft-jamfor-spar > i {
+  background: var(--accent);
+}
+
+.ft-jamfor-tal {
+  min-width: 4.5rem;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  text-align: right;
+}
+
+.ft-jamfor-rad.is-nu .ft-jamfor-tal {
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.ft-slutlista {
+  width: 100%;
+  margin: var(--s4) 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.ft-slutlista > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ft-slutlista dt {
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.ft-slutlista dd {
+  margin: 0;
+  font-size: var(--t-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+/* De kort som satt sämst. Listan finns för knappen bredvid: den gör
+ * "en gång till" till något riktat i stället för en omgång till på måfå. */
+.ft-svaga {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  margin-top: var(--s5);
+}
+
+.ft-svag {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.ft-svag-fraga {
+  overflow: hidden;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ft-svag-tal {
+  flex: 0 0 auto;
+  font-size: var(--t-sm);
+  color: var(--rate-2);
+}
+
+.ft-arena.arena--end .arena-end-actions {
+  flex-wrap: wrap;
+  margin-top: var(--s5);
+}
+
+/* ======================================================================
+ * RÖRELSEN
+ *
+ * Facitbilden monteras i tre steg: utfallet först, sedan ditt svar, sist
+ * facit. Fördröjningen räknas ur rörelsetokens och inte i millisekunder, så
+ * att den som bett systemet om mindre rörelse får noll och inte lite mindre.
+ * ====================================================================== */
+
+@keyframes ft-vaxa {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.ft-in {
+  animation: rise-in var(--dur-2) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-1));
+}
+
+/* ======================================================================
+ * MOBIL
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .ft-fraga {
+    padding: var(--s4);
+    font-size: var(--t-lg);
+  }
+
+  /* Rekordets namn får vika: linjen och avståndet bär betydelsen, etiketten
+   * upprepar bara vad man redan vet att man tittar på. */
+  .ft-kapp .micro {
+    display: none;
+  }
+
+  .ft-kapp-delta {
+    min-width: 0;
+  }
+
+  .ft-utfall-topp {
+    flex-wrap: wrap;
+    gap: var(--s3);
+  }
+
+  .ft-procent {
+    font-size: var(--t-2xl);
+  }
+
+  .ft-omdome {
+    flex-basis: 100%;
+    order: 3;
+    font-size: var(--t-md);
+  }
+
+  .ft-facit {
+    font-size: var(--t-md);
+  }
+
+  .ft-matt-tal {
+    min-width: 5.5rem;
+  }
+}

@@ -5,4 +5,530 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Lägets bild är åldern. Den syns på tre ställen samtidigt: som tal över
+ * frågan, som damm på frågans egen yta, och som en hög vid sidan som krymper
+ * medan man gräver. Allt annat är arenans gemensamma språk.
  */
+
+/* ======================================================================
+ * HÖGEN
+ *
+ * Ett ark per kort som är kvar, sett från sidan. Det främsta arket är mörkt —
+ * samma konvention som tickskalans is-now: en lägesmarkör, inte ett utfört
+ * kort. Djupare ark bleknar, så att högen har en botten man ser närma sig.
+ *
+ * Arken flyttar sig med transform och inte med layout: en hög på tjugofyra
+ * ark ska kunna lägga om sig i en enda bildruta.
+ * ====================================================================== */
+
+.dm-vagskal {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.dm-hog-rad {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s3);
+}
+
+.dm-hog {
+  /* Högens egna mått. De hör till den här komponenten och finns därför inte i
+   * tokens: skalan där gäller avstånd mellan saker, inte pappersark.
+   * --djup sätts om av dammiga.js så att bilden och MAX_ARK aldrig glider
+   * isär; värdet här är bara ett fallande skydd. */
+  --ark-b: 104px;
+  --ark-h: 2px;
+  --pitch: 2px;
+  --djup: 23;
+
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--ark-b);
+  /* Pixeln på slutet är marklinjen: med border-box ligger den innanför höjden,
+   * och utan den sticker det djupaste arket ut ovanför högen. */
+  height: calc(var(--ark-h) + var(--djup) * var(--pitch) + 1px);
+  /* Marken högen står på. Utan den vet ögat inte var noll är, och då syns det
+   * inte att högen krymper. */
+  border-bottom: 1px solid var(--line);
+}
+
+.dm-ark {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: calc(var(--ark-b) - var(--i) * 1px);
+  height: var(--ark-h);
+  background: var(--mark-1);
+  opacity: calc(1 - var(--i) * 0.022);
+  transform: translate(calc(var(--i) * 0.5px), calc(var(--i) * var(--pitch) * -1));
+  transition:
+    transform var(--dur-3) var(--ease-out),
+    width var(--dur-3) var(--ease-out),
+    opacity var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-soft);
+}
+
+.dm-ark.is-framst {
+  background: var(--text-1);
+  opacity: 1;
+}
+
+/* Kortet man just lämnat glider av högen åt sidan och nedåt. Sex pixlar ur
+ * tokens — den som bett om mindre rörelse får noll. */
+.dm-ark.is-av {
+  transform: translate(calc(var(--ark-b) * 0.45), var(--rise));
+  opacity: 0;
+}
+
+/* Ett kort som lagts tillbaka efter Igen kommer in bakifrån. Klassen tas bort
+ * först efter en framtvingad layoutläsning i JS; utan den slås utgångsläget
+ * och sluttillståndet ihop och övergången hoppas över. */
+.dm-ark.is-ny {
+  opacity: 0;
+  transform: translate(
+    calc(var(--i) * 0.5px + 10px),
+    calc(var(--i) * var(--pitch) * -1)
+  );
+}
+
+.dm-kvar {
+  font-size: var(--t-xs);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+/* ----------------------------------------------------------------------
+ * SKÖRDEN
+ *
+ * Talet som aldrig blir mindre. Accent, för det är ett tal som betyder något —
+ * summan av den tid man väckt ur högen.
+ * -------------------------------------------------------------------- */
+
+.dm-skord {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s1);
+  margin: 0;
+}
+
+.dm-skord-n {
+  font-size: var(--t-lg);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+}
+
+/* Svepet finns bara medan det pågår. En tom plats i slisten som fylls när man
+ * är på gång säger mer än en nolla som alltid står där. */
+.dm-svep {
+  font-size: var(--t-xs);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.dm-svep.is-on {
+  opacity: 1;
+}
+
+/* ======================================================================
+ * AKTEN
+ *
+ * Varje kort ritas om i sin egen behållare, så att bytet blir en förflyttning
+ * och inte en omritning. Slisten och högen står kvar.
+ * ====================================================================== */
+
+.dm-akt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  animation: dm-fram var(--dur-2) var(--ease-out) both;
+}
+
+@keyframes dm-fram {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * ÅLDERN
+ *
+ * Rubrik, inte fotnot. Det är den enda siffra i appen som gör en repetition
+ * till ett fynd, och den satt tidigare som grå metatext i hörnet.
+ * -------------------------------------------------------------------- */
+
+.dm-alder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.dm-alder-rad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.dm-alder-n {
+  font-size: var(--t-2xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+/* Dammets steg. Ordet är belöningen: man vill hitta en fossil. Därför
+ * eskalerar märket — tyst i botten, bläck i mitten, accent på översta steget
+ * och när kortet väl är uppgrävt. */
+.dm-niva,
+.dm-flagga {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--s2);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+
+.dm-niva {
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition:
+    color var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+.dm-niva[data-niva='3'] {
+  color: var(--text-1);
+  background: var(--surface-3);
+  border-color: var(--line-strong);
+}
+
+.dm-niva[data-niva='4'],
+.dm-niva[data-niva='ren'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.dm-flagga {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+}
+
+.dm-flagga.is-tyst {
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+/* ----------------------------------------------------------------------
+ * DAMMET
+ *
+ * Frågan bär sin egen ålder som yta: ju längre kortet legat, desto grövre
+ * korn och desto smutsigare botten. Kornet ligger UNDER texten, aldrig över —
+ * ett kort som blivit svårare att läsa är inte en effekt, det är ett fel.
+ *
+ * Vändningen torkar av kortet med en svep från vänster till höger. Det är
+ * lägets belöning, och den enda rörelsen här som får ta ett helt fjärde
+ * tempo: man ska hinna se den hända.
+ * -------------------------------------------------------------------- */
+
+.dm-fraga {
+  position: relative;
+  background: var(--surface-2);
+  /* Kanten håller emot så länge kortet är smutsigt och mjuknar när det
+   * torkats av: rengöringen syns i konturen och inte bara i ytan. */
+  border-color: var(--line-strong);
+  transition:
+    background var(--dur-4) var(--ease-out),
+    border-color var(--dur-4) var(--ease-out);
+}
+
+.dm-fraga[data-niva='0'] {
+  background: var(--surface-1);
+  border-color: var(--line);
+}
+
+.dm-fraga[data-niva='4'] {
+  background: var(--surface-3);
+}
+
+.dm-fraga::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: var(--r-md);
+  background-image:
+    radial-gradient(circle at 30% 30%, var(--mark-1) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 68% 62%, var(--mark-1) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 12% 78%, var(--mark-0) 0 1.6px, transparent 2.2px);
+  /* Tre olika, inbördes udda rutstorlekar. Med en enda syns mönstret som ett
+   * rutnät i stället för som damm. */
+  background-size: 19px 23px, 29px 17px, 41px 37px;
+  opacity: 0;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--dur-4) var(--ease-out);
+}
+
+.dm-fraga[data-niva='1']::before {
+  opacity: 0.3;
+}
+
+.dm-fraga[data-niva='2']::before {
+  opacity: 0.55;
+}
+
+.dm-fraga[data-niva='3']::before {
+  opacity: 0.8;
+}
+
+.dm-fraga[data-niva='4']::before {
+  opacity: 1;
+}
+
+/* Texten står över kornet. Utan det egna lagret hamnar dammet på glyferna och
+ * kontrasten faller med kortets ålder. */
+.dm-yta {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+.dm-fraga.is-ren {
+  background: var(--surface-1);
+  border-color: var(--line);
+}
+
+.dm-fraga.is-ren::before {
+  clip-path: inset(0 0 0 100%);
+}
+
+/* Dammtrasans kant. Den följer med svepet och lämnar kortet på högerkanten. */
+.dm-fraga.is-ren::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  width: 2px;
+  background: var(--accent-line);
+  animation: dm-dammtrasa var(--dur-4) var(--ease-out) both;
+}
+
+@keyframes dm-dammtrasa {
+  from {
+    left: 0;
+    opacity: 1;
+  }
+
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * SVARET
+ * -------------------------------------------------------------------- */
+
+.dm-djup > * {
+  max-width: 60ch;
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.dm-djup > *:last-child {
+  margin-bottom: 0;
+}
+
+.dm-djup code {
+  padding: 0.1em 0.35em;
+  font-family: var(--font-data);
+  font-size: 0.9em;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+
+/* Betygsraden byggs av läget själv och delar arenans knappstil. Den ligger
+ * under svaret och aldrig på de pixlar "Blås bort dammet" låg på — ett betyg
+ * går inte att ta tillbaka, och en dubbelklick får inte sätta ett. */
+.dm-betyg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+/* ======================================================================
+ * INGÅNGEN
+ *
+ * Insatsen sägs innan man börjar: så här mycket damm ligger i högen. Ett pass
+ * utan löfte är bara en lista kort.
+ * ====================================================================== */
+
+.dm-start {
+  gap: var(--s2);
+}
+
+.dm-hero {
+  margin: 0;
+  font-size: var(--t-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+}
+
+.dm-hero-l {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--text-2);
+}
+
+.dm-start .arena-foot {
+  margin-top: var(--s4);
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Två frågor besvaras: vad grävde jag genom, och var står jag mot mig själv?
+ * ====================================================================== */
+
+.dm-slut {
+  width: 100%;
+}
+
+/* Borrkärnan. Ett streck per kort i den ordning de kom, högt om kortet legat
+ * länge. Passet börjar med det äldsta, så profilen lutar nedåt — man ser hur
+ * djupt man grävde, och exakt var man tappade greppet. */
+.dm-karna {
+  --karna-h: 56px;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: var(--karna-h);
+  margin-top: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+
+.dm-stav {
+  flex: 1 1 0;
+  min-width: 2px;
+  height: calc(var(--h) * 1%);
+  background: var(--mark-0);
+  transform-origin: bottom;
+  animation: dm-stav-upp var(--dur-3) var(--ease-out) both;
+  /* Fördröjningen räknas ur ett tempo och aldrig ur millisekunder: den som
+   * bett om mindre rörelse har noll i --dur-1 och får kärnan färdigritad. */
+  animation-delay: calc(var(--dur-1) * 0.15 * var(--i));
+}
+
+.dm-stav.is-vackt {
+  background: var(--accent);
+}
+
+@keyframes dm-stav-upp {
+  from {
+    transform: scaleY(0);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.dm-jamfor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  width: 100%;
+  margin-top: var(--s4);
+}
+
+.dm-jamfor-rad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.dm-jamfor-n {
+  font-size: var(--t-lg);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-2);
+}
+
+.dm-jamfor-n.is-nu {
+  font-size: var(--t-3xl);
+  color: var(--accent);
+}
+
+.dm-jamfor-l {
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.dm-slut .arena-stats dd {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+/* ======================================================================
+ * FINGER OCH SMAL SKÄRM
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .dm-hog {
+    --ark-b: 76px;
+    --pitch: 1.5px;
+  }
+
+  .dm-hero,
+  .dm-jamfor-n.is-nu {
+    font-size: var(--t-2xl);
+  }
+
+  .dm-alder-n {
+    font-size: var(--t-xl);
+  }
+
+  .dm-betyg {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s2);
+  }
+
+  .dm-karna {
+    --karna-h: 44px;
+  }
+}

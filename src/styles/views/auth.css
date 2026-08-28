@@ -283,13 +283,6 @@
   font-size: var(--t-lg);
 }
 
-.settings-section-lead {
-  max-width: 44ch;
-  margin: var(--s1) 0 0;
-  font-size: var(--t-sm);
-  line-height: var(--lh-normal);
-  color: var(--text-2);
-}
 
 /* En rad: etikett till vänster, det raden gör till höger, hårfin linje över.
  * Avsnittet hade tidigare rubrik, undergrupp med egen versal rubrik och
@@ -340,64 +333,6 @@
   display: inline-flex;
   width: 100%;
   max-width: 22rem;
-}
-
-/* Leverantörsväljaren. Fyra alternativ bredvid varandra i stället för en
- * meny: valet man gjort går att jämföra med de man inte gjort. */
-.seg {
-  display: inline-flex;
-  overflow: hidden;
-  background: var(--surface-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
-}
-
-.seg-item {
-  position: relative;
-  display: inline-flex;
-}
-
-.seg-item input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.seg-item > span {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--control-h);
-  padding: 0 var(--s4);
-  font-size: var(--t-sm);
-  color: var(--text-2);
-  border-right: 1px solid var(--line);
-  transition:
-    background var(--dur) var(--ease),
-    color var(--dur) var(--ease);
-}
-
-.seg-item:last-child > span {
-  border-right: 0;
-}
-
-.seg-item input:checked + span {
-  font-weight: 500;
-  color: var(--text-1);
-  background: var(--surface-1);
-}
-
-.seg-item input:focus-visible + span {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-}
-
-.seg-item input:disabled + span {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 /* Handlingen hör till raden den ändrar, inte till en egen rad under den. En

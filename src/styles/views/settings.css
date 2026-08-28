@@ -1,4 +1,416 @@
 /* Inställningar — sidans egna stilar.
  *
- * Laddas efter forms.css, så en regel här vinner utan !important.
+ * Laddas efter forms.css och auth.css, så en regel här vinner utan !important.
+ * Allt är scopat till #view-settings: vyns klasser (.set-row, .set-label,
+ * .settings-*) definierades en gång i auth.css och används ingen annanstans,
+ * men den filen ägs av en annan etapp. Id-scopet vinner på specificitet och
+ * gör dessutom den här filen till en fullständig beskrivning av vyn — man
+ * behöver inte läsa två stilmallar för att veta hur en rad ser ut.
+ *
+ * Tre saker styr rytmen, och de gäller undantagslöst:
+ *
+ *   Ett avstånd kommer ur skalan --s1..s8. Inga tal.
+ *   Samma sorts saker står lika långt ifrån varandra. En panel andas s5 upptill
+ *   och s5 nedtill, en rad s5 över och s5 under sin hårfina linje.
+ *   Ingen tom marginal. Varje cell är en flexkolumn med gap, så att ett dolt
+ *   element inte lämnar ett hål efter sig — det var det som gjorde sidan
+ *   ojämn: en tom statusrad och en gömd knapp bar sina marginaler ändå.
  */
+
+/* ======================================================================
+ * SPALTEN
+ *
+ * Vyn är mittställd av margin-inline i layout.css; det räcker att smalna av
+ * den, precis som formulärvyerna. Rubriken, notisen och panelerna hamnar då i
+ * samma spalt och delar vänsterkant.
+ * ====================================================================== */
+
+#view-settings {
+  max-width: 46rem;
+}
+
+/* ======================================================================
+ * NOTISEN
+ *
+ * Utan konto finns ingen server att lagra nyckeln hos. Bandet bär ett
+ * tillstånd och vägen ur det, ingenting mer. Sidoluften är panelens, så att
+ * texten börjar på samma linje som allt annat i spalten.
+ * ====================================================================== */
+
+#view-settings .settings-notice {
+  max-width: none;
+  margin: 0 0 var(--s5);
+  padding: var(--s5) var(--s6);
+  gap: var(--s4);
+}
+
+/* ======================================================================
+ * PANELEN
+ *
+ * Rubriken och raderna delar panelens sidoluft, så att linjerna mellan
+ * raderna är indragna lika mycket som texten ovanför dem. Panelen har ingen
+ * egen lodrät luft: huvudet och sista raden bär den, och då blir avståndet
+ * upptill och nedtill exakt lika stort utan att någon behöver räkna.
+ * ====================================================================== */
+
+#view-settings .settings-section {
+  max-width: none;
+  margin: 0 0 var(--s5);
+  padding: 0 var(--s6);
+}
+
+#view-settings .settings-section:last-child {
+  margin-bottom: 0;
+}
+
+#view-settings .settings-section-head {
+  margin: 0;
+  padding: var(--s5) 0;
+}
+
+#view-settings .settings-section-title {
+  margin: 0;
+  font-size: var(--t-lg);
+}
+
+/* ======================================================================
+ * RADEN
+ *
+ * Etikett till vänster, det raden gör till höger, hårfin linje över. Etiketten
+ * är lika hög som en kontroll och centrerar sitt eget innehåll — det är det
+ * som linjerar den mot fältet bredvid, i stället för ett påhittat indrag som
+ * slutar stämma så fort kontrollhöjden byter till fingerläge.
+ * ====================================================================== */
+
+#view-settings .set-row {
+  display: grid;
+  grid-template-columns: 10.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s3) var(--s5);
+  padding: var(--s5) 0;
+  border-top: 1px solid var(--line);
+}
+
+#view-settings .set-label {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h);
+  padding: 0;
+  font-size: var(--t-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+/* Radens högra sida. Allt som står här ligger på samma avstånd från nästa sak,
+ * och ett dolt element försvinner helt i stället för att lämna sin marginal. */
+#view-settings .set-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+#view-settings .set-field > * {
+  margin: 0;
+}
+
+/* Raden som bär ett val i full bredd i stället för i högerspalten.
+ * Leverantörsbrickorna behöver hela panelen för att fyra namn ska få stå
+ * bredvid varandra utan att brytas. */
+#view-settings .set-row-wide {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s3);
+}
+
+#view-settings .set-row-wide .set-label {
+  min-height: 0;
+}
+
+#view-settings .set-hint {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-3);
+}
+
+/* Backupraden står tom i markupen tills core/backup.js hunnit fylla den. Ett
+ * tomt stycke är ändå ett flexbarn och hade lämnat ett gap efter sig. */
+#view-settings #backup-status:empty {
+  display: none;
+}
+
+/* ======================================================================
+ * LEVERANTÖREN
+ *
+ * Fyra brickor med varsitt märke, inte en meny bland andra. Märket är ritat
+ * som inline-SVG i currentColor: det följer brickans tillstånd i stället för
+ * att bära en egen färg, och kostar varken en bildfil eller ett nätverksanrop.
+ * Radioknappen ligger kvar osynlig ovanpå brickan, så att valet fungerar med
+ * tangentbord och skärmläsare som vilken radiogrupp som helst.
+ * ====================================================================== */
+
+#view-settings .provider-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s2);
+}
+
+#view-settings .provider-option {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+#view-settings .provider-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Innehållet är vänsterställt, inte centrerat: fyra märken som börjar på samma
+ * linje läses som en rad alternativ, fyra som flyter mot mitten som fyra
+ * olyckor. */
+#view-settings .provider-face {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Brickan är en kontroll med luft omkring märket, inte en ny höjd. */
+  min-height: calc(var(--control-h) + var(--s4));
+  padding: 0 var(--s4);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+#view-settings .provider-face svg {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+#view-settings .provider-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#view-settings .provider-option:hover .provider-face {
+  background: var(--surface-2);
+}
+
+/* Brickan ger efter under fingret, som varje annan kontroll i appen. */
+#view-settings .provider-option:active .provider-face {
+  transform: scale(var(--press));
+  transition-duration: var(--dur-1);
+}
+
+/* Det valda är ett tillstånd, och tillstånd bärs av accenten. */
+#view-settings .provider-option input:checked + .provider-face {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+#view-settings .provider-option input:checked + .provider-face svg {
+  color: var(--accent);
+}
+
+#view-settings .provider-option input:focus-visible + .provider-face {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+#view-settings .provider-option input:disabled {
+  cursor: not-allowed;
+}
+
+#view-settings .provider-option input:disabled + .provider-face {
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+#view-settings .provider-option input:disabled + .provider-face svg {
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * FÄLT
+ *
+ * Fältet och dess knapp står på en rad: nyckeln klistras in och sparas i samma
+ * rörelse. Modellen sparas likadant, så de två raderna har samma form — det
+ * var den ensamma knappen under väljaren som gjorde rytmen ojämn.
+ * ====================================================================== */
+
+#view-settings .field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+/* Fälten fyller sin spalt. Ett tak på 22rem gav varje rad sin egen högerkant. */
+#view-settings .field {
+  width: 100%;
+  max-width: none;
+}
+
+#view-settings .field-row > .field,
+#view-settings .field-row > .select-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Väljaren med egen pil: webbläsarens standardpil är olika stor i varje
+ * webbläsare och drar med sig en ram vi inte kan färga. */
+#view-settings .select-wrap {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  max-width: none;
+}
+
+#view-settings .select-wrap select {
+  appearance: none;
+  padding-right: var(--s6);
+}
+
+#view-settings .select-wrap > svg {
+  position: absolute;
+  right: var(--s3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+/* ======================================================================
+ * STATUS OCH BESKED
+ *
+ * Neutralt läge som utgångspunkt; tonen bärs av data-tone, som settings.js
+ * sätter. Pricken tar färg ur texten, så att alla tre lägena får sin markör
+ * utan en enda extra regel.
+ * ====================================================================== */
+
+#view-settings .settings-key-status,
+#view-settings .settings-message {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+#view-settings .settings-key-status::before,
+#view-settings .settings-message::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+#view-settings .settings-key-status[data-tone='ok'],
+#view-settings .settings-message[data-tone='ok'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+#view-settings .settings-key-status[data-tone='fel'],
+#view-settings .settings-message[data-tone='fel'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+/* ======================================================================
+ * ÅTGÄRDER
+ * ====================================================================== */
+
+#view-settings .settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin: 0;
+}
+
+/* En ensam, tyst utgång: den ska gå att hitta men inte att träffa på vägen
+ * någon annanstans. */
+#view-settings .btn.settings-danger {
+  align-self: flex-start;
+}
+
+#view-settings .settings-account-email {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h);
+  font-size: var(--t-md);
+  color: var(--text-1);
+  /* En e-postadress kan vara längre än spalten och får inte skjuta ut vyn. */
+  overflow-wrap: anywhere;
+}
+
+/* ======================================================================
+ * SMAL SKÄRM
+ *
+ * Etiketten flyttar ovanför sitt fält. 168 pixlar etikett plus ett fält får
+ * inte plats på 360 utan att fältet blir oanvändbart smalt.
+ * ====================================================================== */
+
+@media (max-width: 700px) {
+  #view-settings .settings-notice {
+    padding: var(--s4);
+  }
+
+  #view-settings .settings-section {
+    padding: 0 var(--s4);
+  }
+
+  #view-settings .settings-section-head {
+    padding: var(--s4) 0;
+  }
+
+  #view-settings .set-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s3);
+    padding: var(--s4) 0;
+  }
+
+  #view-settings .set-label {
+    min-height: 0;
+  }
+
+  /* Brickan tappar fyra pixlar sidoluft i stället för en kolumn. "OpenRouter"
+   * är det längsta namnet och det som avgör när fyra inte längre får plats. */
+  #view-settings .provider-face {
+    padding: 0 var(--s3);
+  }
+}
+
+@media (max-width: 600px) {
+  #view-settings .provider-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

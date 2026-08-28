@@ -5,4 +5,708 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Kompositionen har ett enda tyngdpunkt: klockan. Den är det största talet på
+ * skärmen och det enda som ändrar färg av sig själv. Allt annat — poängen,
+ * multiplikatorn, nivån — står i en tystare spalt till höger, för att man ska
+ * kunna läsa dem i ögonvrån utan att släppa frågan med blicken.
+ *
+ * Energin kommer ur tempo och tal, inte ur neon: ljus botten, hårfina linjer,
+ * en accent. Rytmlekens glöd, gnistor och konfetti är borta med sin kod.
  */
+
+/* ======================================================================
+ * SCENEN
+ * ====================================================================== */
+
+/* Överlägget centrerar sitt enda barn. Här ska spalten i stället fylla höjden,
+ * så att slisten står överst och frågan i mitten oavsett hur lång den är. */
+.action-scene {
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+/* Spalten fyller överläggets höjd. Utan flex-raden här blir den bara så hög som
+ * sitt innehåll, och slisten, frågan och beskedet klumpar ihop sig upptill i
+ * stället för att stå i topp, mitt och botten. Bredden hålls av width + auto-
+ * marginalerna: ett flexbarn med automarginal i tväraxeln sträcks inte, så
+ * enbart max-width hade krympt slisten till innehållets bredd. */
+.action-stage {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--s4);
+  width: 100%;
+  min-height: 0;
+  max-width: 47.5rem; /* samma spalt som arenan */
+  margin: 0 auto;
+  padding: var(--s6) var(--s5);
+  box-sizing: border-box;
+}
+
+/* Frågan bär mitten. Knapparna hänger under den i samma ruta, så att de står
+ * på samma pixlar från kort till kort — ett mål som flyttar sig är ett mål man
+ * missar under tidspress.
+ *
+ * Mitten hålls med auto-marginaler och inte med justify-content: en centrerad
+ * flexspalt som blir högre än sin ruta klipper toppen och går inte att rulla
+ * fram. Slutbildens tal och stapel är precis den sortens innehåll. */
+.action-play {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--s4);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.action-play > :first-child {
+  margin-top: auto;
+}
+
+.action-play > :last-child {
+  margin-bottom: auto;
+}
+
+/* ======================================================================
+ * SLISTEN
+ *
+ * Klockan till vänster i den största graden appen har. Talen till höger i
+ * monospace, så att de står stilla när de ändras.
+ * ====================================================================== */
+
+.action-rail {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.action-rail .label {
+  margin: 0 0 var(--s1);
+}
+
+.action-clock {
+  display: block;
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+.action-tally {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s1);
+  text-align: right;
+}
+
+.action-score {
+  font-size: var(--t-xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+/* Passerar man sitt eget rekord mitt i omgången byter talet ton och står kvar
+ * så resten av rundan. Det är den enda gången accenten tar över ett tal här. */
+.action-score.is-record {
+  color: var(--accent);
+}
+
+.action-meter {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.action-mult {
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+.action-mult.is-hot {
+  color: var(--accent);
+}
+
+/* Stegen mot nästa multiplikator. Fyra fyrkanter som fylls ett i taget: tre av
+ * fyra fyllda är hela dragningen — man vill ha den fjärde. */
+.action-ladder {
+  display: flex;
+  gap: 3px;
+}
+
+.action-ladder i {
+  width: 6px;
+  height: 6px;
+  background: var(--mark-0);
+  transition: background var(--dur-1) var(--ease-soft);
+}
+
+.action-ladder i.is-on {
+  background: var(--accent);
+}
+
+.action-level {
+  color: var(--text-3);
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+/* Sista sträckan: nivån ger ingen tid tillbaka längre och omgången kan bara
+ * ta slut. Samma ton som klockan får när den håller på att rinna ut. */
+.action-level.is-slut {
+  color: var(--danger);
+}
+
+/* ======================================================================
+ * KLOCKLINJEN
+ *
+ * Samma tre pixlar som framstegslinjen i biblioteket. Den mäts mot taket och
+ * inte mot startvärdet, så att varje påfyllning syns som att linjen växer
+ * tillbaka. Den drar med transform och inte med bredd: en animering per
+ * bildruta ska inte tvinga fram en ny layout varje gång.
+ * ====================================================================== */
+
+.action-drain {
+  flex: 0 0 auto;
+}
+
+.action-drain-fill {
+  flex: 1 1 100%;
+  transform-origin: left;
+}
+
+/* ----------------------------------------------------------------------
+ * KLOCKAN STÅR
+ *
+ * Medan svaret läses tickar ingenting. Talet dämpas en nivå så att man ser det
+ * i ögonvrån utan att läsa etiketten — och linjen står kvar där den stod, för
+ * det är den man ska tillbaka till.
+ * -------------------------------------------------------------------- */
+
+.action-stage.is-frozen .action-clock {
+  color: var(--text-3);
+}
+
+/* ----------------------------------------------------------------------
+ * SISTA SEKUNDERNA
+ *
+ * Ett enda skifte, inte tre: talet, linjen och rutans kant byter ton samtidigt
+ * och säger samma sak en gång. Ingen pulsering och ingen skakning — ett ryck
+ * mitt i en fråga stjäl den uppmärksamhet det ska påminna om.
+ * -------------------------------------------------------------------- */
+
+.action-stage.is-critical .action-clock {
+  color: var(--danger);
+}
+
+.action-stage.is-critical .action-drain-fill {
+  background: var(--danger);
+}
+
+.action-stage.is-critical .action-panel {
+  border-color: var(--danger);
+}
+
+/* ======================================================================
+ * RUTAN
+ * ====================================================================== */
+
+/* Rutan behåller sin egen höjd. Krympte den med spalten skulle innehållet
+ * klippas i stället för att spalten rullade — och det som klipps är svaret. */
+.action-panel {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  transition: border-color var(--dur-1) var(--ease-soft);
+  animation: action-in var(--dur-2) var(--ease-out) both;
+}
+
+/* Varje kort byter hela rutans innehåll. Utan resan såg bytet ut som ett fel i
+ * ritningen: texten var en annan men ingenting hade rört sig. */
+@keyframes action-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.action-panel .label {
+  margin: 0;
+}
+
+/* Kortets innehåll, alltså serif — samma som i repetitionen. Graden sätts av
+ * längden: en fråga på tre ord ska fylla rutan, en på fyra rader ska rymmas. */
+.action-question {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-family: var(--font-content);
+  font-size: var(--t-2xl);
+  line-height: var(--lh-tight);
+  color: var(--text-1);
+}
+
+.action-question.is-medel {
+  font-size: var(--t-xl);
+}
+
+.action-question.is-lang {
+  font-size: var(--t-lg);
+  line-height: var(--lh-normal);
+}
+
+/* När svaret ligger uppe är frågan bara en påminnelse om vad man svarade på. */
+.action-question.is-dockad {
+  max-height: 18vh;
+  overflow: auto;
+  font-size: var(--t-lg);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.action-answer {
+  max-height: 34vh;
+  overflow: auto;
+  padding: var(--s4);
+  font-family: var(--font-content);
+  font-size: var(--t-xl);
+  line-height: var(--lh-normal);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-md);
+  overflow-wrap: anywhere;
+}
+
+.action-answer img {
+  max-width: 100%;
+  height: auto;
+}
+
+.action-question .katex,
+.action-question .katex-display,
+.action-answer .katex,
+.action-answer .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ======================================================================
+ * TANGENTERNA
+ *
+ * Två knappar, samma två i båda faserna och på samma plats: mellanslag är "det
+ * går bra", F är "det gick inte". Den primära är bläck som överallt annars i
+ * appen; det är tonen och inte accenten som gör den till huvudhandlingen.
+ * ====================================================================== */
+
+.action-choices {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--s3);
+}
+
+.action-key {
+  display: flex;
+  flex: 2 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: calc(var(--control-h) + var(--s5));
+  padding: 0 var(--s4);
+  font-family: inherit;
+  font-size: var(--t-md);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  /* Ett snabbt upprepat tryck ska svara på kort, inte zooma in sidan. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+/* Knappen ger efter under fingret. Nedtryckningen är omedelbar, fjädringen hör
+ * till släppet — utan taktil kvittens känns ett snabbt läge som om trycket
+ * inte gick fram. */
+.action-key:active {
+  transform: scale(var(--press));
+  transition-duration: var(--dur-1);
+}
+
+.action-key:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.action-key--no {
+  flex: 1 1 0;
+}
+
+.action-key--no:hover {
+  border-color: var(--text-3);
+}
+
+.action-key--go {
+  color: var(--text-inverse);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.action-key--go:hover {
+  background: var(--ink-hover);
+  border-color: var(--ink-hover);
+}
+
+.action-key--go .kbd {
+  color: var(--text-inverse);
+  background: transparent;
+  border-color: currentcolor;
+}
+
+/* ======================================================================
+ * BESKEDET
+ *
+ * En rad som stiger och försvinner. Den ligger i en ruta med egen höjd och
+ * skjuter därför aldrig knapparna nedåt när den kommer.
+ * ====================================================================== */
+
+.action-flash {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-h);
+  margin: 0;
+  pointer-events: none;
+}
+
+.action-flash-txt {
+  font-family: var(--font-data);
+  font-size: var(--t-lg);
+  letter-spacing: var(--track-tight);
+  animation: action-flash-up var(--dur-4) var(--ease-out) forwards;
+}
+
+@keyframes action-flash-up {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--rise) * -1.5));
+  }
+}
+
+.action-flash-txt.is-vinst {
+  color: var(--accent);
+}
+
+.action-flash-txt.is-forlust {
+  color: var(--danger);
+}
+
+/* Ytan färgas ett ögonblick när combon bryts eller när ett svar räddar
+ * omgången. Toppen ligger under full täckning: en ogenomskinlig yta hade dolt
+ * svaret man just läser, och beskedet ska höras utan att avbryta. */
+.action-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: action-tint var(--dur-3) var(--ease-out) both;
+}
+
+.action-tint.is-forlust {
+  background: var(--danger-soft);
+}
+
+.action-tint.is-vinst {
+  background: var(--accent-soft);
+}
+
+@keyframes action-tint {
+  0% {
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ======================================================================
+ * INGÅNGEN
+ *
+ * Fyra rader regler och ett rekord att slå. Inga instruerande stycken — raderna
+ * ÄR spelet, och utan dem vet ingen vilka två tangenter som gäller.
+ * ====================================================================== */
+
+.action-intro {
+  gap: var(--s4);
+}
+
+.action-headline {
+  margin: 0;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+.action-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.action-rules li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.action-record {
+  margin: 0;
+  padding-top: var(--s3);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+  border-top: 1px solid var(--line);
+}
+
+.action-record .num {
+  color: var(--accent);
+}
+
+/* ----------------------------------------------------------------------
+ * NEDRÄKNINGEN
+ *
+ * Tre steg innan klockan börjar gå. Utan dem har man förlorat en sekund innan
+ * man hunnit se att omgången startat.
+ * -------------------------------------------------------------------- */
+
+.action-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30vh;
+}
+
+.action-count-n {
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+  animation: action-count var(--dur-3) var(--ease-out) both;
+}
+
+@keyframes action-count {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Ett tal, en linje och ett streck. Linjen är omgången, strecket är rekordet,
+ * och båda mäts mot det största av dem: slog man rekordet ligger det gamla kvar
+ * bakom en, missade man det sitter det längst ut och linjen stannar strax
+ * innan. Mellanrummet är hela anledningen att köra en gång till.
+ * ====================================================================== */
+
+.action-end {
+  gap: var(--s4);
+}
+
+.action-final {
+  margin: 0;
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+.action-final-note {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--text-2);
+}
+
+.action-final-note.is-record {
+  color: var(--accent);
+}
+
+.action-ghost {
+  position: relative;
+  margin-top: var(--s2);
+}
+
+.action-ghost-fill {
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: action-grow var(--dur-4) var(--ease-out) both;
+}
+
+@keyframes action-grow {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Rekordet som ett streck tvärs över linjen, samma penna som avdelaren i
+ * slisten. */
+.action-ghost-mark {
+  position: absolute;
+  top: -4px;
+  width: 1px;
+  height: 12px;
+  background: var(--text-1);
+}
+
+.action-ghost-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin-top: var(--s2);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.action-stats {
+  width: 100%;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.action-stats > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.action-stats dt {
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.action-stats dd {
+  margin: 0;
+  font-size: var(--t-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.action-choices--end {
+  margin-top: var(--s2);
+}
+
+/* ======================================================================
+ * FINGER I STÄLLET FÖR MUS
+ *
+ * Tangentmärkena beskriver ett tangentbord som inte finns. Knapparna säger
+ * samma sak utan dem, och de tar plats som texten behöver.
+ * ====================================================================== */
+
+@media (pointer: coarse) {
+  .action-choices .kbd {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .action-stage {
+    padding: var(--s5) var(--s4);
+    gap: var(--s3);
+  }
+
+  .action-clock {
+    font-size: var(--t-2xl);
+  }
+
+  .action-panel {
+    padding: var(--s4);
+  }
+
+  .action-question {
+    font-size: var(--t-xl);
+  }
+
+  .action-question.is-medel,
+  .action-question.is-lang {
+    font-size: var(--t-lg);
+  }
+
+  .action-answer {
+    font-size: var(--t-lg);
+  }
+
+  .action-final,
+  .action-count-n {
+    font-size: var(--t-2xl);
+  }
+
+  .action-ghost-legend {
+    font-size: var(--t-micro);
+  }
+}

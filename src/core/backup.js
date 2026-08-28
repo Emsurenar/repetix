@@ -115,7 +115,9 @@ export const renderBackupStatus = () => {
     if (!el) return;
     const lastAt = parseInt(localStorage.getItem('noji_backup_last_at') || '0', 10);
     if (!lastAt) {
-        el.textContent = 'Ingen backup ännu — klicka Exportera för en säkerhetskopia.';
+        // Ett konstaterande, inte en uppmaning. Knappen bredvid heter redan
+        // Exportera; att peka på den är att säga samma sak en gång till.
+        el.textContent = 'Ingen backup ännu';
         return;
     }
     const days = Math.floor((Date.now() - lastAt) / DAY_MS);

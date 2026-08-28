@@ -1,53 +1,97 @@
 import { S } from '../core/state.js';
-import { fisherYatesShuffle } from '../core/utils.js';
+import { escapeHtml, fisherYatesShuffle } from '../core/utils.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
 import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 
+/* Sudden Death.
+ *
+ * Läget hette "tre liv" men tog ändå slut efter tjugo kort. Då är livräknaren
+ * bara pynt: man dog sällan, och när man gjorde det spelade det ingen roll,
+ * för rundan var på väg att ta slut ändå. Här är korten en ström som fylls på,
+ * och det enda som avslutar rundan är det tredje felet. Först då betyder "hur
+ * långt kom du" något, och först då finns det ett rekord att jaga.
+ *
+ * Insatsen stiger med djupet: klockan krymper per nivå och kortets värde växer.
+ * Ett sent kort är värt flera tidiga, och det är hela skälet till att man vill
+ * skydda en runda i stället för att slarva bort den och starta om.
+ *
+ * Talen nedan är speltempo, inte rörelse, och får därför INTE komma ur
+ * rörelsetokens. Den som bett systemet om mindre rörelse ska få ett stillare
+ * gränssnitt — inte en kortare betänketid.
+ */
+const LIV = 3;
+const NIVA_STEG = 5; /* rätt svar per nivå */
+const KLOCKA_START = 8000;
+const KLOCKA_KRYMP = 700; /* per nivå */
+const KLOCKA_MIN = 3000;
+const SNABB_ANDEL = 0.3; /* svar inom denna andel av klockan räknas som snabbt */
+const SNABB_FAKTOR = 1.5;
+const POANG_BAS = 100;
+const POANG_PER_NIVA = 25;
+const COMBO_TAK = 3;
+const COMBO_LIV = 10; /* rätt i rad som ger ett liv tillbaka */
+const BONUS_FULLA_LIV = 250; /* ... eller poäng, när alla liv redan finns */
+const PAUS_VID_RATT = 420; /* ms — ett rätt svar ska inte bryta flytet */
+const NARA_REKORD = 0.85; /* härifrån och upp är rekordet inom räckhåll */
 
-// --- SUDDEN DEATH OVERLAY ---
+const enDecimal = (tal) => tal.toFixed(1).replace('.', ',');
+const klockaForNiva = (niva) => Math.max(KLOCKA_MIN, KLOCKA_START - (niva - 1) * KLOCKA_KRYMP);
+const comboFor = (svit) => Math.min(COMBO_TAK, 1 + svit * 0.1);
+
+/* Alternativen är korta rader, inte kortets baksida i sin helhet: fyra
+ * formaterade svar med bilder och formler blir en vägg. Det fullständiga
+ * svaret visas i avslöjningen efter ett fel, där det finns tid att läsa det. */
+const textAv = (html) => {
+    if (!html) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || '').trim().substring(0, 120);
+};
+
 export const suddenDeathReveal = (allCards) => {
-    const cards = S.currentStudyCards;
-    const startTimeSession = Date.now();
-    
-    // Score & gamification state
-    let score = 0;
-    let streak = 0;
-    let maxStreak = 0;
-    let lives = 3;
-    let cardIdx = 0;
-    let correctCount = 0;
-    let gameOverActive = false;
-    let isIntro = true;
-    let answered = false;
-    let mistakes = [];
-    let speedBonusCount = 0;
-    let lateSaveCount = 0;
-    
-    // Auto-advance skip hook
-    let advanceTimeout = null;
+    /* Playground väljer ut en startlek; poolen är hela fokusområdet och fyller
+     * på när leken tar slut. Utan påfyllningen skulle djupet ha ett tak, och
+     * ett tak är precis vad läget inte ska ha. */
+    const startKort = S.currentStudyCards || [];
+    const pool = allCards && allCards.length ? allCards : startKort;
 
-    // Timer handles
-    let timerHandle = null;
-    let timerRAF = null;
+    let ko = fisherYatesShuffle([...startKort]);
+    let koIdx = 0;
+    let poang = 0;
+    let djup = 0;
+    let ratt = 0;
+    let svit = 0;
+    let langstaSvit = 0;
+    let liv = LIV;
+    let niva = 1;
+    let snabbaste = null;
+    let miss = [];
+    let rekordSlaget = false;
+    let besvarat = false;
+    let lage = 'intro'; /* intro | spel | slut */
 
-    // Visual key feedback handlers (declared here so cleanup() can reference them)
-    let pressKeyHandler = null;
-    let releaseKeyHandler = null;
+    let klockaTimeout = null;
+    let klockaRAF = null;
+    let klockaStart = 0;
+    let klockaLangd = KLOCKA_START;
+    let vidareTimeout = null;
 
-    // Determine highscore key & title based on playground focus filter
+    /* Rekordet hör till det man valt att spela: hela biblioteket, en kortlek
+     * eller ett hopplock. Nyckeln för poängen är oförändrad sedan tidigare
+     * versioner, så rekord som redan står kvar fortsätter gälla. */
     let pbKey = 'spaced_rep_sd_pb_all';
     let pbTitle = 'Hela biblioteket';
     if (S.playgroundFilterSource && S.playgroundFilterSource.size > 0) {
         const deckIds = new Set();
-        S.playgroundFilterSource.forEach(val => {
+        S.playgroundFilterSource.forEach((val) => {
             const match = val.match(/^deck:([^:]+)/);
             if (match) deckIds.add(match[1]);
         });
         if (deckIds.size === 1) {
             const singleDeckId = Array.from(deckIds)[0];
-            const deckObj = S.appData.decks.find(d => d.id === singleDeckId);
+            const deckObj = S.appData.decks.find((d) => d.id === singleDeckId);
             pbKey = `spaced_rep_sd_pb_${singleDeckId}`;
             pbTitle = deckObj ? deckObj.title : 'Fokusområde';
         } else {
@@ -55,29 +99,30 @@ export const suddenDeathReveal = (allCards) => {
             pbTitle = 'Fokusområde';
         }
     }
-    
-    let personalBest = parseInt(localStorage.getItem(pbKey) || '0', 10);
+    const pbDjupKey = `${pbKey}_djup`;
 
-    // Create container overlay
+    let rekord = parseInt(localStorage.getItem(pbKey) || '0', 10) || 0;
+    let rekordDjup = parseInt(localStorage.getItem(pbDjupKey) || '0', 10) || 0;
+
     const overlay = document.createElement('div');
     overlay.id = 'cinema-overlay';
-    overlay.className = 'cinema-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
-    overlay.style.zIndex = '9999';
+    /* Egen klass på hela ytan: alla stilar i games/suddendeath.css hänger under
+     * den. Klassnamnen med sd-prefix delas med tre andra lägen, och utan scopet
+     * hade en regel här ritat om deras slutskärmar. */
+    overlay.className = 'cinema-overlay sd-game';
 
     oppnaSpelyta(overlay);
 
+    const rensaTimers = () => {
+        clearTimeout(klockaTimeout);
+        clearTimeout(vidareTimeout);
+        cancelAnimationFrame(klockaRAF);
+    };
+
     const cleanup = () => {
-        clearTimeout(timerHandle);
-        clearTimeout(advanceTimeout);
-        cancelAnimationFrame(timerRAF);
-        document.removeEventListener('keydown', keyHandler);
-        document.removeEventListener('keydown', pressKeyHandler);
-        document.removeEventListener('keyup', releaseKeyHandler);
+        rensaTimers();
+        document.removeEventListener('keydown', tangentNed);
+        document.removeEventListener('keyup', tangentUpp);
     };
 
     const closeGame = () => {
@@ -85,710 +130,761 @@ export const suddenDeathReveal = (allCards) => {
         stangSpelyta(overlay, finishPlaygroundSession);
     };
 
-    /* Ett fel färgar ytan ett ögonblick. Den lades tidigare på och togs bort i
-     * ett hugg efter 300 ms, och skärmen skakade till på köpet — ett ryck mitt
-     * i det man just svarat fel på hjälper ingen att läsa rätt svar. */
-    const visaMissflash = () => {
-        const flash = document.createElement('div');
-        flash.className = 'arena-miss-flash';
-        overlay.appendChild(flash);
-        flash.addEventListener('animationend', () => flash.remove(), { once: true });
+    /* ------------------------------------------------------------------
+     * BESKED
+     * ---------------------------------------------------------------- */
+
+    /* Ett besked i taget. Ett fel, en nivå och ett extra liv kan infalla på
+     * samma svar, och tre texter ovanpå varandra blir en enda gröt — den som
+     * väger tyngst vinner, resten syns ändå i slisten.
+     *
+     * Beskedet hänger i arenan och inte i överlägget, så att det alltid stiger
+     * ur slistens tomma mitt och ut ur bild. Räknat på fönstrets höjd hamnade
+     * det mitt på frågan, och nästa kort kommer efter en knapp halv sekund. */
+    const visaFlyt = (text, typ) => {
+        const hem = overlay.querySelector('.sd-arena') || overlay;
+        hem.querySelector('.sd-flyt')?.remove();
+        const el = document.createElement('div');
+        el.className = `sd-flyt is-${typ}`;
+        el.textContent = text;
+        hem.appendChild(el);
+        el.addEventListener('animationend', () => el.remove(), { once: true });
     };
 
-    const showFloatingFeedback = (text, type) => {
-        const floatEl = document.createElement('div');
-        floatEl.className = `sd-float-feedback ${type}`;
-        floatEl.textContent = text;
-        overlay.appendChild(floatEl);
-        setTimeout(() => floatEl.remove(), 1100);
+    /* Ett fel färgar hela ytan ett ögonblick, och det sista felet färgar den
+     * längre. Slaget är lägets enda skarpa rörelse; att dö ska synas utan att
+     * man läser en siffra. */
+    const visaSlag = (dodande) => {
+        const el = document.createElement('div');
+        el.className = dodande ? 'sd-slag is-tung' : 'sd-slag';
+        overlay.appendChild(el);
+        el.addEventListener('animationend', () => el.remove(), { once: true });
     };
 
-    // Keyboard shortcut handler
-    const keyHandler = (e) => {
-        if (isIntro) {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                startGame();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                closeGame();
-            }
-            return;
-        }
+    /* ------------------------------------------------------------------
+     * SLISTEN
+     * ---------------------------------------------------------------- */
 
-        if (gameOverActive) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                restartGame();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                closeGame();
-            }
+    const ritaLiv = () => {
+        const pips = overlay.querySelector('#sd-pips');
+        if (pips) {
+            /* Prickarna byggs en gång och byter klass, aldrig innerHTML: ett
+             * nyskapat element börjar i sitt slutläge, och då syns aldrig att
+             * ett liv slocknade. */
+            pips.querySelectorAll('.sd-pip').forEach((pip, i) => {
+                pip.classList.toggle('is-borta', i >= liv);
+            });
+        }
+        const etikett = overlay.querySelector('#sd-liv-etikett');
+        if (etikett) {
+            if (liv <= 0) etikett.textContent = 'Inga liv kvar';
+            else if (liv === 1) etikett.textContent = 'Sista livet';
+            else etikett.textContent = `${liv} liv`;
+        }
+        /* Sista livet färgar hela rummet svagt varmt. Ingen skakning och ingen
+         * puls — ett tillstånd som ligger kvar känns längre än ett ryck. */
+        overlay.classList.toggle('is-sista-livet', liv === 1);
+        overlay.classList.toggle('is-dod', liv <= 0);
+    };
+
+    const ritaRekordrad = () => {
+        const rad = overlay.querySelector('#sd-rekord');
+        const fyll = overlay.querySelector('#sd-rekord-fyll');
+        const text = overlay.querySelector('#sd-rekord-text');
+        if (!rad || !fyll || !text) return;
+
+        if (rekord <= 0) {
+            fyll.style.width = '0%';
+            rad.classList.remove('is-nara', 'is-slaget');
+            text.textContent = 'Rundan sätter rekordet';
             return;
         }
-        
+        const andel = Math.min(1, poang / rekord);
+        fyll.style.width = `${(andel * 100).toFixed(1)}%`;
+        const slaget = poang > rekord;
+        rad.classList.toggle('is-slaget', slaget);
+        rad.classList.toggle('is-nara', !slaget && andel >= NARA_REKORD);
+        text.textContent = slaget
+            ? `${poang - rekord} över rekordet`
+            : `${rekord - poang} till rekordet`;
+    };
+
+    const ritaCombo = () => {
+        const el = overlay.querySelector('#sd-combo');
+        if (!el) return;
+        const visa = svit >= 2;
+        const m = comboFor(svit);
+        el.textContent = visa ? `×${enDecimal(m)} · ${svit} i rad` : '';
+        el.classList.toggle('is-on', visa);
+        el.classList.toggle('is-tak', m >= COMBO_TAK);
+    };
+
+    /* Det extra livet är lägets enda väg tillbaka, och en morot man inte ser
+     * drar ingen. Den tänds först när den är inom tre svar. */
+    const ritaStatus = () => {
+        const el = overlay.querySelector('#sd-status');
+        if (!el) return;
+        let text = '';
+        if (liv < LIV && svit > 0) {
+            const kvar = COMBO_LIV - (svit % COMBO_LIV);
+            if (kvar <= 3) text = kvar === 1 ? '1 rätt till ett extra liv' : `${kvar} rätt till ett extra liv`;
+        }
+        el.textContent = text;
+        el.classList.toggle('is-on', text !== '');
+    };
+
+    const ritaHud = () => {
+        const poangEl = overlay.querySelector('#sd-poang');
+        if (poangEl) poangEl.textContent = String(poang);
+        const djupEl = overlay.querySelector('#sd-djup');
+        if (djupEl) djupEl.textContent = `Kort ${djup}`;
+        const nivaEl = overlay.querySelector('#sd-niva');
+        if (nivaEl) nivaEl.textContent = `Nivå ${niva}`;
+        ritaLiv();
+        ritaRekordrad();
+        ritaCombo();
+        ritaStatus();
+    };
+
+    /* ------------------------------------------------------------------
+     * TANGENTER
+     * ---------------------------------------------------------------- */
+
+    const tangentNed = (e) => {
         if (e.key === 'Escape') {
             e.preventDefault();
             closeGame();
             return;
         }
-        
-        // If question is already answered, space/enter/click advances to next card immediately
-        if (answered) {
-            if (e.key === ' ' || e.key === 'Enter') {
+
+        /* Står fokus på en knapp sköter webbläsaren aktiveringen. Utan spärren
+         * skulle Enter både köra handlaren och klicka knappen, och rundan
+         * startade om två gånger. Spärren gäller bara bekräftelsetangenterna —
+         * siffrorna ska välja svar var fokus än råkar stå. */
+        const paKnapp = !!e.target?.closest?.('button');
+        const bekraftar = (e.key === ' ' || e.key === 'Enter') && !paKnapp;
+
+        if (lage === 'intro' || lage === 'slut') {
+            if (bekraftar) {
                 e.preventDefault();
-                advanceNext();
+                startaRunda();
             }
             return;
         }
-        
+
+        if (besvarat) {
+            if (bekraftar) {
+                e.preventDefault();
+                vidare();
+            }
+            return;
+        }
+
         if (['1', '2', '3', '4'].includes(e.key)) {
             e.preventDefault();
-            const optIndex = parseInt(e.key, 10) - 1;
-            const optContainer = overlay.querySelector('#sd-options');
-            if (optContainer) {
-                const buttons = optContainer.querySelectorAll('.sd-option-btn');
-                if (buttons[optIndex] && !buttons[optIndex].disabled) {
-                    buttons[optIndex].click();
-                }
+            const knapp = overlay.querySelectorAll('.sd-option-btn')[parseInt(e.key, 10) - 1];
+            if (knapp) {
+                knapp.classList.add('pressed');
+                knapp.click();
             }
         }
     };
-    document.addEventListener('keydown', keyHandler);
 
-    // Global click-to-skip listener during answers
+    /* Trycket ska släppa när fingret gör det, även om svaret redan är avgivet. */
+    const tangentUpp = (e) => {
+        if (!['1', '2', '3', '4'].includes(e.key)) return;
+        const knapp = overlay.querySelectorAll('.sd-option-btn')[parseInt(e.key, 10) - 1];
+        knapp?.classList.remove('pressed');
+    };
+
+    document.addEventListener('keydown', tangentNed);
+    document.addEventListener('keyup', tangentUpp);
+
+    /* Efter ett fel står spelet stilla tills man går vidare. Då ska hela ytan
+     * duga som knapp — den som spelar med mus vill inte sikta. */
     overlay.addEventListener('mousedown', (e) => {
-        if (answered && !gameOverActive && !isIntro) {
-            // Ignore if they click an expanded mistake or something interactive
-            if (e.target.closest('.sd-mistake-item') || e.target.closest('button')) return;
-            advanceNext();
-        }
+        if (lage !== 'spel' || !besvarat) return;
+        if (e.target.closest('button')) return;
+        vidare();
     });
 
-    // Handle button visual click feedback during keyboard events
-    pressKeyHandler = (e) => {
-        if (['1', '2', '3', '4'].includes(e.key) && !answered && !isIntro && !gameOverActive) {
-            const optIndex = parseInt(e.key, 10) - 1;
-            const optContainer = overlay.querySelector('#sd-options');
-            if (optContainer) {
-                const buttons = optContainer.querySelectorAll('.sd-option-btn');
-                if (buttons[optIndex]) {
-                    buttons[optIndex].classList.add('pressed');
-                }
+    /* ------------------------------------------------------------------
+     * RUNDAN
+     * ---------------------------------------------------------------- */
+
+    const startaRunda = () => {
+        rensaTimers();
+        ko = fisherYatesShuffle([...startKort]);
+        koIdx = 0;
+        poang = 0;
+        djup = 0;
+        ratt = 0;
+        svit = 0;
+        langstaSvit = 0;
+        liv = LIV;
+        niva = 1;
+        snabbaste = null;
+        miss = [];
+        rekordSlaget = false;
+        besvarat = false;
+        lage = 'spel';
+        overlay.classList.remove('is-sista-livet', 'is-dod');
+        ritaArena();
+        visaKort();
+    };
+
+    const nastaKort = () => {
+        if (koIdx >= ko.length) {
+            const pafyllning = fisherYatesShuffle([...pool]);
+            /* Samma kort två gånger i rad läser som ett fel i spelet, inte som
+             * slumpen. Det första flyttas sist när det råkar bli en dubblett. */
+            if (pafyllning.length > 1 && ko.length && pafyllning[0].id === ko[ko.length - 1].id) {
+                pafyllning.push(pafyllning.shift());
             }
+            ko = pafyllning;
+            koIdx = 0;
         }
-    };
-    document.addEventListener('keydown', pressKeyHandler);
-
-    releaseKeyHandler = (e) => {
-        if (['1', '2', '3', '4'].includes(e.key)) {
-            const optIndex = parseInt(e.key, 10) - 1;
-            const optContainer = overlay.querySelector('#sd-options');
-            if (optContainer) {
-                const buttons = optContainer.querySelectorAll('.sd-option-btn');
-                if (buttons[optIndex]) {
-                    buttons[optIndex].classList.remove('pressed');
-                }
-            }
-        }
-    };
-    document.addEventListener('keyup', releaseKeyHandler);
-
-    const advanceNext = () => {
-        clearTimeout(advanceTimeout);
-        cardIdx++;
-        showCard();
+        return ko[koIdx++];
     };
 
-    const startGame = () => {
-        isIntro = false;
-        renderGameLayout();
-        showCard();
-    };
-
-    const restartGame = () => {
-        cleanup();
-        
-        // Shuffle fresh subset
-        const freshCards = fisherYatesShuffle([...cards]);
-        S.currentStudyCards = freshCards;
-        
-        score = 0;
-        streak = 0;
-        maxStreak = 0;
-        lives = 3;
-        cardIdx = 0;
-        correctCount = 0;
-        gameOverActive = false;
-        isIntro = false;
-        answered = false;
-        mistakes = [];
-        speedBonusCount = 0;
-        lateSaveCount = 0;
-        
-        renderGameLayout();
-        showCard();
-    };
-
-    const renderGameLayout = () => {
-        /* Arenan i klasser i stallet for inline-stilar. Layouten var kvar fran
-         * den morka versionen: fyra rader som alla lag i mitten av en smal
-         * spalt, med egna radier och egna grader. Nu bar toppslisten laget,
-         * tidslinjen ar samma primitiv som resten av appen, och fragan ar en
-         * yta pa arenans botten. */
+    const ritaArena = () => {
         overlay.innerHTML = `
-            <div class="arena">
+            <div class="arena sd-arena">
                 <div class="arena-top">
-                    <div id="sd-lives" class="arena-lives"></div>
+                    <div class="sd-liv-rad">
+                        <span id="sd-pips" class="sd-pips" aria-hidden="true"
+                            ><i class="sd-pip"></i><i class="sd-pip"></i><i class="sd-pip"></i
+                        ></span>
+                        <span id="sd-liv-etikett" class="sd-liv-etikett">${LIV} liv</span>
+                    </div>
                     <div class="arena-meta num">
-                        <span id="sd-pb">Rekord ${personalBest}</span>
+                        <span id="sd-niva">Nivå 1</span>
                         <span class="arena-sep" aria-hidden="true"></span>
-                        <span id="sd-card-progress">${cardIdx + 1} av ${cards.length}</span>
+                        <span id="sd-djup">Kort 1</span>
                     </div>
                 </div>
 
                 <div class="arena-timer">
-                    <div id="sd-timer-bar" class="progress">
-                        <i id="sd-timer-fill" class="progress-fill"></i>
-                    </div>
-                    <span id="sd-timer-text" class="num">7.0s</span>
+                    <div class="progress"><i id="sd-klocka-fyll" class="progress-fill"></i></div>
+                    <span id="sd-klocka-text" class="num">${enDecimal(KLOCKA_START / 1000)} s</span>
+                </div>
+
+                <div id="sd-rekord" class="sd-rekord">
+                    <span id="sd-poang" class="sd-poang num">0</span>
+                    <div class="progress"><i id="sd-rekord-fyll" class="progress-fill"></i></div>
+                    <span id="sd-rekord-text" class="sd-rekord-text num"></span>
                 </div>
 
                 <div class="arena-body">
-                    <div id="sd-question" class="arena-question"></div>
-                    <div id="sd-options" class="arena-options"></div>
+                    <div id="sd-fraga" class="arena-question"></div>
+                    <div id="sd-alternativ" class="arena-options"></div>
                 </div>
 
                 <div class="arena-foot">
-                    <span id="sd-score-hud" class="arena-score num">Poäng 0</span>
-                    <span id="sd-streak-hud" class="arena-combo">
-                        <span class="sd-combo-badge">Combo x<span id="sd-streak-count">0</span></span>
-                    </span>
+                    <span id="sd-status" class="sd-status" aria-live="polite"></span>
+                    <span id="sd-combo" class="sd-combo num"></span>
                 </div>
             </div>
         `;
     };
 
-    const renderLives = () => {
-        const container = overlay.querySelector('#sd-lives');
-        if (!container) return;
-        container.innerHTML = '';
-        for (let i = 0; i < 3; i++) {
-            const heartSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            heartSvg.setAttribute('class', 'sd-heart-icon');
-            heartSvg.setAttribute('viewBox', '0 0 24 24');
-            heartSvg.innerHTML = `<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>`;
-            
-            if (i >= lives) {
-                heartSvg.classList.add('lost');
-                if (i === lives && answered) {
-                    heartSvg.classList.add('shattered');
-                }
-            }
-            container.appendChild(heartSvg);
+    /* ------------------------------------------------------------------
+     * KORTET
+     * ---------------------------------------------------------------- */
+
+    const visaKort = () => {
+        if (liv <= 0) {
+            visaSlut();
+            return;
         }
-    };
+        rensaTimers();
+        besvarat = false;
 
-    const stripHtmlForOption = (html) => {
-        if (!html) return '';
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        return (tmp.textContent || tmp.innerText || '').trim().substring(0, 120);
-    };
-
-    const showIntroScreen = () => {
-        overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="sd-intro-screen">
-                <div class="sd-crown-container">
-                    <svg viewBox="0 0 24 24" width="60" height="60" fill="currentColor">
-                        <path d="M2 22h20v-2H2v2zm1-3l2.5-9 4.5 4 2.5-10 2.5 10 4.5-4 2.5 9H3z"/>
-                    </svg>
-                </div>
-                <h1 style="font-family:var(--font-ui); font-size:var(--t-2xl); margin:0; color:var(--danger); letter-spacing:0.05em;">SUDDEN DEATH</h1>
-                <div style="background: var(--accent-soft); border: 1px dashed var(--accent); padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; color: var(--accent); font-size: 1.1rem;">
-                    Rekord (${pbTitle}): ${personalBest} poäng
-                </div>
-                <p style="color: var(--text-2); line-height: 1.6; font-size: 0.95rem; margin: 0;">
-                    Välj rätt svar med <strong style="color:var(--text-1);">[1] - [4]</strong>. Du har <strong style="color:var(--danger);">3 liv</strong>.<br>
-                    Tiden tickar snabbare ju fler rätt du har!<br>
-                    Vid fel visas rätt svar — studera det innan du fortsätter.
-                </p>
-                <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%; align-items:center;">
-                    <button id="sd-btn-start" class="btn primary" style="width: 100%; max-width: 250px; font-weight: 700; font-size: 1.1rem; padding: 0.9rem; border-radius: 10px;">STARTA UTMANINGEN</button>
-                    <span style="font-size: 0.8rem; color: var(--text-3); font-style: italic;">[Tryck på Space för att starta]</span>
-                </div>
-            </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
-        `;
-        overlay.querySelector('#sd-btn-start').onclick = startGame;
-    };
-
-    const showEndScreen = () => {
-        cleanup();
-        
-        const isNewPB = score > personalBest;
-        if (isNewPB) {
-            personalBest = score;
-            localStorage.setItem(pbKey, score);
+        const kort = nastaKort();
+        if (!kort) {
+            visaSlut();
+            return;
         }
-        
-        // Sync stats to globally accessible playground session
-        S.playgroundSessionStats.correct = score; 
+        djup++;
+        ritaHud();
 
-        const isVictory = lives > 0 && cardIdx >= cards.length;
-        const screenClass = isVictory ? 'victory' : '';
-        const titleClass = isVictory ? 'victory' : 'gameover';
-        const titleText = isVictory ? 'SEGER!' : 'SPELET SLUT';
-        const timeSpent = Math.round((Date.now() - startTimeSession) / 1000);
-        
-        // Earned badges calculation
-        const badges = [];
-        if (speedBonusCount >= 5) {
-            badges.push({
-                text: 'Blixtsnabb',
-                color: 'var(--accent)',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent)"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34 1.2-2.11 3.03-5.34L13 3h1l-1 7h3.5c.49 0 .56.33.38.66l-4.5 8.34c-.18.33-.38.34-.38.34z"/></svg>`,
-                desc: 'Svarade blixtsnabbt på 5+ kort'
+        const fragaEl = overlay.querySelector('#sd-fraga');
+        if (fragaEl) {
+            fragaEl.innerHTML = safeParse(kort.front);
+            renderLatex(fragaEl);
+            /* En animation startar inte om av att klassen läggs tillbaka. Utan
+             * varvet över offsetWidth byter frågan text utan att röra sig, och
+             * i ett läge där man svarar var fjärde sekund läses det som att
+             * ingenting hände. */
+            fragaEl.classList.remove('is-ny');
+            void fragaEl.offsetWidth;
+            fragaEl.classList.add('is-ny');
+        }
+        overlay.querySelector('.sd-avslojning')?.remove();
+
+        const rattText = textAv(kort.back);
+        const alternativ = byggAlternativ(kort, rattText);
+
+        const behallare = overlay.querySelector('#sd-alternativ');
+        if (!behallare) return;
+        behallare.classList.remove('is-avgjord');
+        behallare.innerHTML = '';
+
+        alternativ.forEach((alt, i) => {
+            const knapp = document.createElement('button');
+            knapp.className = 'sd-option-btn sd-option-entry';
+            /* Bara platsen i raden. Själva förskjutningen räknas i CSS ur
+             * rörelsetokens, så att den nollas med resten vid mindre rörelse. */
+            knapp.style.setProperty('--i', String(i));
+            if (alt.correct) knapp.dataset.ratt = '1';
+            knapp.innerHTML = `<span class="sd-key-badge">${i + 1}</span><span class="sd-opt-text"></span>`;
+            knapp.querySelector('.sd-opt-text').innerHTML = safeParse(alt.text);
+            renderLatex(knapp);
+            knapp.addEventListener('click', (e) => {
+                e.stopPropagation();
+                svara(kort, alt, knapp, rattText);
             });
-        }
-        if (maxStreak >= 10) {
-            badges.push({
-                text: 'Streak-mästare',
-                color: 'var(--rate-2)',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--rate-2)"><path d="M12 23c4.97 0 9-4.03 9-9 0-2.12-.74-4.07-1.97-5.61L12.35 1c-.39-.4-.97-.3-1.09.26C10.74 3.76 8.44 6 5.86 8.62 3.42 11.08 2 13.9 2 17c0 3.31 2.69 6 6 6h4zm-3-9c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>`,
-                desc: 'Nådde en streak på 10+'
-            });
-        }
-        if (lives === 3 && cardIdx > 0) {
-            badges.push({
-                text: 'Oslagbar',
-                color: 'var(--accent)',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>`,
-                desc: 'Förlorade inte ett enda liv'
-            });
-        }
-        if (lateSaveCount >= 1) {
-            badges.push({
-                text: 'Sista sekunden',
-                color: 'var(--danger)',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--danger)"><path d="M6 2v6h.01L6 8.01 10 12l-4 4 .01.01H6v6h12v-6h-.01L18 16l-4-4 4-4-.01-.01H18V2H6zm10 14.5V20H8v-3.5l4-4 4 4zM8 7.5V4h8v3.5l-4 4-4-4z"/></svg>`,
-                desc: 'Svarade med under 0.5s kvar'
-            });
-        }
-        if (badges.length === 0) {
-            badges.push({
-                text: 'Kämpe',
-                color: 'var(--accent)',
-                svg: `<svg viewBox="0 0 24 24" width="14" height="14" fill="var(--accent)"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`,
-                desc: 'Kämpade väl under spelrundan'
-            });
-        }
-
-        // Mistakes list HTML
-        const mistakesHtml = mistakes.length > 0 ? `
-            <div class="sd-mistakes-list">
-                ${mistakes.map((m, idx) => `
-                    <div class="sd-mistake-item" data-idx="${idx}">
-                        <div class="sd-mistake-summary">
-                            <span class="sd-mistake-index">#${idx + 1}</span>
-                            <span class="sd-mistake-front-preview">${stripHtmlForOption(m.card.front)}</span>
-                            <span class="sd-mistake-chevron">
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>
-                            </span>
-                        </div>
-                        <div class="sd-mistake-detail hidden">
-                            <div class="sd-mistake-detail-section">
-                                <strong>Fråga</strong>
-                                <div class="sd-mistake-text">${typeof safeParse === 'function' ? safeParse(m.card.front) : m.card.front}</div>
-                            </div>
-                            <div class="sd-mistake-detail-section">
-                                <strong>Ditt svar</strong>
-                                <div class="sd-mistake-text wrong-text">${m.userAnswer}</div>
-                            </div>
-                            <div class="sd-mistake-detail-section">
-                                <strong>Rätt svar</strong>
-                                <div class="sd-mistake-text correct-text" id="sd-mistake-correct-${idx}">${typeof safeParse === 'function' ? safeParse(m.card.back) : m.card.back}</div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        ` : `
-            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem; opacity:0.8; height: 100%;">
-                <svg viewBox="0 0 24 24" width="40" height="40" fill="var(--accent)"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                <span style="font-weight:700; color:var(--text-1);">Perfekt spelrunda!</span>
-                <span style="font-size:0.85rem; color:var(--text-3); text-align:center;">Du gjorde inga misstag alls. Imponerande!</span>
-            </div>
-        `;
-
-        overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
-            <div class="sd-end-layout">
-                <!-- Left Screen: Stats & Badges -->
-                <div class="sd-end-screen-left ${screenClass}">
-                    <h2 class="sd-end-title ${titleClass}">${titleText}</h2>
-                    <p style="color: var(--text-2); margin: 0; font-size: 0.95rem;">
-                        ${isVictory ? 'Du överlevde alla korten!' : 'Du fick slut på liv.'}
-                    </p>
-                    
-                    <div class="sd-stats-grid" style="margin: 0.5rem 0;">
-                        <div class="sd-stat-row">
-                            <span class="sd-stat-label">Besvarade kort</span>
-                            <span class="sd-stat-value">${cardIdx} / ${cards.length}</span>
-                        </div>
-                        <div class="sd-stat-row">
-                            <span class="sd-stat-label">Längsta streak</span>
-                            <span class="sd-stat-value">${maxStreak}</span>
-                        </div>
-                        <div class="sd-stat-row">
-                            <span class="sd-stat-label">Tid spelat</span>
-                            <span class="sd-stat-value">⏱ ${timeSpent}s</span>
-                        </div>
-                        <div class="sd-stat-row sd-stat-highlight">
-                            <span class="sd-stat-label">Slutpoäng</span>
-                            <span class="sd-stat-value">${score}</span>
-                        </div>
-                        ${isNewPB ? `
-                            <div style="background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 8px; padding: 0.5rem; font-size: 0.9rem; font-weight: 700; color: var(--accent);">
-                                 NYTT REKORD! 👑
-                            </div>
-                        ` : `
-                            <div class="sd-stat-row" style="opacity: 0.65;">
-                                <span class="sd-stat-label">Rekord</span>
-                                <span class="sd-stat-value">${personalBest}</span>
-                            </div>
-                        `}
-                    </div>
-
-                    <!-- Badges Row -->
-                    <div style="border-top:1px solid var(--line); padding-top:1rem; text-align:left;">
-                        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3); margin-bottom:0.5rem; text-align:center;">Intjänade utmärkelser</div>
-                        <div class="sd-badges-list">
-                            ${badges.map(b => `<div class="sd-badge-item" title="${b.desc}">${b.svg} <span>${b.text}</span></div>`).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="sd-end-actions" style="margin-top:0.5rem;">
-                        <button id="sd-btn-restart" class="btn primary" style="border-radius:10px;">Spela igen</button>
-                        <button id="sd-btn-exit" class="btn secondary" style="border-radius:10px;">Avsluta</button>
-                    </div>
-                </div>
-
-                <!-- Right Screen: Mistakes Review -->
-                <div class="sd-end-screen-right">
-                    <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-1); border-bottom: 1px solid var(--line); padding-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-                        <span>Granska dina misstag</span>
-                        <span style="font-size: 0.8rem; color: var(--danger); background: var(--danger-soft); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
-                            ${mistakes.length} fel
-                        </span>
-                    </div>
-                    ${mistakesHtml}
-                </div>
-            </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
-        `;
-        
-        gameOverActive = true;
-        
-        const endLayout = overlay.querySelector('.sd-end-layout');
-        
-        // Mistakes details expand/collapse handler
-        const mistakeItems = endLayout.querySelectorAll('.sd-mistake-item');
-        mistakeItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const detail = item.querySelector('.sd-mistake-detail');
-                const isExpanded = item.classList.contains('expanded');
-                
-                // Collapse all others
-                mistakeItems.forEach(other => {
-                    other.classList.remove('expanded');
-                    other.querySelector('.sd-mistake-detail').classList.add('hidden');
-                });
-                
-                if (!isExpanded) {
-                    item.classList.add('expanded');
-                    detail.classList.remove('hidden');
-                    
-                    const idx = parseInt(item.getAttribute('data-idx'));
-                    const m = mistakes[idx];
-                    const correctTextEl = detail.querySelector(`#sd-mistake-correct-${idx}`);
-                    if (correctTextEl && typeof renderCardBackImages === 'function') {
-                        renderCardBackImages(correctTextEl, m.card.backImages);
-                    }
-                    renderLatex(detail);
-                }
-            });
+            behallare.appendChild(knapp);
         });
 
-        overlay.querySelector('#sd-btn-restart').onclick = restartGame;
-        overlay.querySelector('#sd-btn-exit').onclick = closeGame;
+        klockaLangd = klockaForNiva(niva);
+        startaKlockan(kort, rattText);
     };
 
-    const showCard = () => {
-        if (cardIdx >= cards.length || lives <= 0) {
-            showEndScreen();
+    /* Distraktorerna hämtas i tre led: samma mapp först, sedan samma kortlek,
+     * sist resten. Ett alternativ ur en helt annan kortlek går att sortera bort
+     * utan att kunna kortet, och då mäter läget ingenting. */
+    const byggAlternativ = (kort, rattText) => {
+        const iSammaMapp = kort.sectionId
+            ? pool.filter(
+                  (c) => c.id !== kort.id && c.sectionId === kort.sectionId && textAv(c.back) !== rattText
+              )
+            : [];
+        const iSammaLek = pool.filter(
+            (c) =>
+                c.id !== kort.id &&
+                c.originalDeckId === kort.originalDeckId &&
+                textAv(c.back) !== rattText &&
+                !iSammaMapp.some((s) => s.id === c.id)
+        );
+        const ovriga = pool.filter(
+            (c) =>
+                c.id !== kort.id &&
+                textAv(c.back) !== rattText &&
+                !iSammaMapp.some((s) => s.id === c.id) &&
+                !iSammaLek.some((s) => s.id === c.id)
+        );
+
+        const sedda = new Set();
+        const fel = [];
+        for (const c of [
+            ...fisherYatesShuffle(iSammaMapp),
+            ...fisherYatesShuffle(iSammaLek),
+            ...fisherYatesShuffle(ovriga),
+        ]) {
+            const txt = textAv(c.back);
+            if (sedda.has(txt)) continue;
+            sedda.add(txt);
+            fel.push(txt);
+            if (fel.length === 3) break;
+        }
+        while (fel.length < 3) fel.push('—');
+
+        return fisherYatesShuffle([
+            { text: rattText, correct: true },
+            { text: fel[0], correct: false },
+            { text: fel[1], correct: false },
+            { text: fel[2], correct: false },
+        ]);
+    };
+
+    const startaKlockan = (kort, rattText) => {
+        const fyll = overlay.querySelector('#sd-klocka-fyll');
+        const text = overlay.querySelector('#sd-klocka-text');
+        const rad = overlay.querySelector('.arena-timer');
+        if (fyll) {
+            fyll.style.transition = 'none';
+            fyll.style.transform = 'scaleX(1)';
+        }
+        rad?.classList.remove('is-urgent');
+        klockaStart = performance.now();
+
+        const steg = (nu) => {
+            if (besvarat) return;
+            const kvar = Math.max(0, 1 - (nu - klockaStart) / klockaLangd);
+            if (fyll) fyll.style.transform = `scaleX(${kvar})`;
+            if (text) text.textContent = `${enDecimal((kvar * klockaLangd) / 1000)} s`;
+            /* Ett enda skifte, inte tre. Färgen byter på sista tredjedelen och
+             * storleken står stilla — ett hoppande tal mitt i en fråga stjäl
+             * den uppmärksamhet det ska påminna om. */
+            rad?.classList.toggle('is-urgent', kvar <= 0.33);
+            if (kvar > 0) klockaRAF = requestAnimationFrame(steg);
+        };
+        klockaRAF = requestAnimationFrame(steg);
+
+        klockaTimeout = setTimeout(() => {
+            if (besvarat) return;
+            missa(kort, null, rattText, 'Tiden ute', '(hann inte svara)');
+        }, klockaLangd);
+    };
+
+    /* ------------------------------------------------------------------
+     * SVARET
+     * ---------------------------------------------------------------- */
+
+    /* Bara märkningen. Det fullständiga svaret — med bilder och formler — hör
+     * hemma i avslöjningen under, och att byta ut knappens text mot det gör att
+     * hela rutnätet hoppar en fjärdedels sekund innan nästa kort ändå kommer. */
+    const markeraRatt = () => {
+        overlay.querySelector('.sd-option-btn[data-ratt]')?.classList.add('sd-correct');
+    };
+
+    const lasAlternativ = (valdKnapp) => {
+        const behallare = overlay.querySelector('#sd-alternativ');
+        behallare?.classList.add('is-avgjord');
+        overlay.querySelectorAll('.sd-option-btn').forEach((b) => {
+            b.classList.remove('pressed');
+            if (b !== valdKnapp && !b.dataset.ratt) b.classList.add('is-tyst');
+        });
+    };
+
+    const svara = (kort, alt, knapp, rattText) => {
+        if (besvarat || lage !== 'spel') return;
+        if (!alt.correct) {
+            knapp.classList.add('sd-wrong');
+            missa(kort, knapp, rattText, null, alt.text);
             return;
         }
 
-        clearTimeout(timerHandle);
-        clearTimeout(advanceTimeout);
-        cancelAnimationFrame(timerRAF);
+        besvarat = true;
+        rensaTimers();
 
-        answered = false;
-        const card = cards[cardIdx];
-        
-        // Update HUD
-        const cardProgressEl = overlay.querySelector('#sd-card-progress');
-        const scoreHudEl = overlay.querySelector('#sd-score-hud');
-        if (cardProgressEl) cardProgressEl.textContent = `${cardIdx + 1} av ${cards.length}`;
-        if (scoreHudEl) scoreHudEl.textContent = `Poäng ${score}`;
-        
-        const streakHud = overlay.querySelector('#sd-streak-hud');
-        if (streakHud) {
-            if (streak >= 2) overlay.querySelector('#sd-streak-count').textContent = streak;
-            streakHud.classList.toggle('is-on', streak >= 2);
-        }
+        const anvand = (performance.now() - klockaStart) / klockaLangd;
+        const svarMs = anvand * klockaLangd;
+        if (snabbaste === null || svarMs < snabbaste) snabbaste = svarMs;
 
-        const qEl = overlay.querySelector('#sd-question');
-        if (qEl) {
-            qEl.innerHTML = typeof safeParse === 'function' ? safeParse(card.front) : card.front;
-            renderLatex(qEl);
-        }
-        
-        const showFullAnswer = () => {
-            if (!qEl) return;
-            qEl.style.maxHeight = 'none';
-            qEl.innerHTML = `
-                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: left;">Fråga:</div>
-                <div style="font-size: 1.05rem; margin-bottom: 0.75rem; text-align: left; font-weight:600;">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
-                <div style="font-size: 0.9rem; color: var(--accent); margin-bottom: 0.25rem; font-weight: 700; text-align: left;">Rätt svar:</div>
-                <div id="sd-full-answer-text" style="font-size: 1.1rem; color: var(--text-1); background: var(--accent-soft); border: 1px solid var(--accent-soft); padding: 0.75rem; border-radius: 8px; text-align: left;">
-                    ${typeof safeParse === 'function' ? safeParse(card.back) : card.back}
-                </div>
-                <div style="font-size: 0.8rem; color:var(--text-3); margin-top: 0.75rem; text-align: center; font-style: italic;">
-                    [Space] fortsätt
-                </div>
-            `;
-            const answerTextEl = qEl.querySelector('#sd-full-answer-text');
-            if (answerTextEl && typeof renderCardBackImages === 'function') {
-                renderCardBackImages(answerTextEl, card.backImages);
-            }
-            renderLatex(qEl);
-        };
-        
-        const revealCorrectOption = (button) => {
-            button.classList.add('sd-correct');
-            const optTextEl = button.querySelector('.sd-opt-text');
-            if (optTextEl) {
-                optTextEl.innerHTML = typeof safeParse === 'function' ? safeParse(card.back) : card.back;
-                if (typeof renderCardBackImages === 'function') {
-                    renderCardBackImages(optTextEl, card.backImages);
-                }
-                renderLatex(button);
-            }
-        };
-        
-        renderLives();
+        ratt++;
+        svit++;
+        if (svit > langstaSvit) langstaSvit = svit;
 
-        const optContainer = overlay.querySelector('#sd-options');
-        if (!optContainer) return;
-        optContainer.style.display = 'grid';
+        const snabb = anvand <= SNABB_ANDEL;
+        const kortvarde = POANG_BAS + (niva - 1) * POANG_PER_NIVA;
+        const vunnet = Math.round(kortvarde * (snabb ? SNABB_FAKTOR : 1) * comboFor(svit));
+        poang += vunnet;
 
-        const correctAnswer = stripHtmlForOption(card.back);
-        const sameSectionCards = card.sectionId
-            ? allCards.filter(c => c.id !== card.id && c.sectionId === card.sectionId && stripHtmlForOption(c.back) !== correctAnswer)
-            : [];
-        const sameDeckCards = allCards.filter(c =>
-            c.id !== card.id &&
-            c.originalDeckId === card.originalDeckId &&
-            stripHtmlForOption(c.back) !== correctAnswer &&
-            !sameSectionCards.some(s => s.id === c.id)
-        );
-        const otherCards = allCards.filter(c =>
-            c.id !== card.id &&
-            stripHtmlForOption(c.back) !== correctAnswer &&
-            !sameSectionCards.some(s => s.id === c.id) &&
-            !sameDeckCards.some(s => s.id === c.id)
-        );
-        const wrongPool = [...fisherYatesShuffle(sameSectionCards), ...fisherYatesShuffle(sameDeckCards), ...fisherYatesShuffle(otherCards)];
-        const seen = new Set();
-        const wrongs = [];
-        for (const c of wrongPool) {
-            const txt = stripHtmlForOption(c.back);
-            if (!seen.has(txt)) {
-                seen.add(txt);
-                wrongs.push(txt);
-                if (wrongs.length === 3) break;
+        /* Tio rätt i rad ger tillbaka det man förlorat, och när inget är
+         * förlorat betalas samma bedrift i poäng. Annars vore en felfri runda
+         * den enda där mekaniken inte finns. */
+        let livtext = null;
+        if (svit % COMBO_LIV === 0) {
+            if (liv < LIV) {
+                liv++;
+                livtext = 'Extra liv';
+            } else {
+                poang += BONUS_FULLA_LIV;
+                livtext = `${COMBO_LIV} i rad · +${BONUS_FULLA_LIV}`;
             }
         }
-        while (wrongs.length < 3) wrongs.push('...');
 
-        const options = fisherYatesShuffle([
-            { text: correctAnswer, correct: true },
-            { text: wrongs[0], correct: false },
-            { text: wrongs[1], correct: false },
-            { text: wrongs[2], correct: false },
-        ]);
+        const nyNiva = 1 + Math.floor(ratt / NIVA_STEG);
+        const nivaUpp = nyNiva > niva;
+        niva = nyNiva;
 
-        optContainer.innerHTML = '';
-
-        options.forEach((opt, optIdx) => {
-            const btn = document.createElement('button');
-            btn.className = 'sd-option-btn sd-option-entry';
-            /* Bara platsen i raden. Själva förskjutningen räknas i CSS ur
-             * rörelsetokens, så att den nollas med resten vid mindre rörelse. */
-            btn.style.setProperty('--i', String(optIdx));
-            btn.innerHTML = `<span class="sd-key-badge">${optIdx + 1}</span><span class="sd-opt-text"></span>`;
-            btn.querySelector('.sd-opt-text').innerHTML = typeof safeParse === 'function' ? safeParse(opt.text) : opt.text;
-            renderLatex(btn);
-
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (answered) return;
-                answered = true;
-                
-                clearTimeout(timerHandle);
-                cancelAnimationFrame(timerRAF);
-
-                const responseTime = performance.now() - startTime;
-                const remainingTimePct = Math.max(0, 1 - (performance.now() - startTime) / duration);
-
-                if (opt.correct) {
-                    revealCorrectOption(btn);
-                    correctCount++;
-                    streak++;
-                    if (streak > maxStreak) maxStreak = streak;
-
-                    // Score logic with streak multiplier and speed bonus
-                    const multiplier = 1 + streak * 0.1;
-                    let basePoints = 100;
-                    let isSpeedBonus = false;
-                    
-                    if (responseTime < 1200) {
-                        basePoints += 50;
-                        isSpeedBonus = true;
-                        speedBonusCount++;
-                    }
-                    if (remainingTimePct < 0.08) {
-                        lateSaveCount++;
-                    }
-
-                    const gainedPoints = Math.round(basePoints * multiplier);
-                    score += gainedPoints;
-
-                    // Extra life check at streak of 10
-                    if (streak === 10) {
-                        if (lives < 3) {
-                            lives++;
-                            showFloatingFeedback('Extra liv', 'streak');
-                            renderLives();
-                        } else {
-                            showFloatingFeedback('Combo x10', 'streak');
-                        }
-                    } else if (streak >= 3) {
-                        showFloatingFeedback(`Combo x${streak}`, 'streak');
-                    } else {
-                        showFloatingFeedback(isSpeedBonus ? `Blixtsnabbt +${gainedPoints}` : `+${gainedPoints}`, 'correct');
-                    }
-                    
-                    if (scoreHudEl) scoreHudEl.textContent = `Poäng ${score}`;
-                    showFullAnswer();
-                    if (optContainer) optContainer.style.display = 'none';
-                    advanceTimeout = setTimeout(() => advanceNext(), 2000);
-                } else {
-                    btn.classList.add('sd-wrong');
-                    optContainer.querySelectorAll('.sd-option-btn').forEach(b => {
-                        const originalIndex = Array.from(optContainer.children).indexOf(b);
-                        if (options[originalIndex]?.correct) revealCorrectOption(b);
-                    });
-                    
-                    streak = 0;
-                    lives--;
-                    
-                    // Log mistake
-                    mistakes.push({
-                        card: card,
-                        userAnswer: opt.text || '(tomt)',
-                        correctAnswer: correctAnswer
-                    });
-                    
-                    showFloatingFeedback('Fel', 'wrong');
-                    renderLives();
-
-                    visaMissflash();
-
-                    showFullAnswer();
-                }
-            });
-            optContainer.appendChild(btn);
-        });
-
-        // Setup dynamic countdown timer
-        const fill = overlay.querySelector('#sd-timer-fill');
-        const timerText = overlay.querySelector('#sd-timer-text');
-        const timerRow = overlay.querySelector('.arena-timer');
-        if (fill) {
-            fill.style.transition = 'none';
-            fill.style.transform = 'scaleX(1)';
+        /* Rekordet väger tyngst av alla besked. Det är ögonblicket hela läget
+         * finns för, och det får inte drunkna i en poängsiffra. */
+        if (!rekordSlaget && rekord > 0 && poang > rekord) {
+            rekordSlaget = true;
+            visaFlyt('Rekordet slaget', 'rekord');
+        } else if (livtext) {
+            visaFlyt(livtext, 'liv');
+        } else if (nivaUpp) {
+            visaFlyt(`Nivå ${niva} · ${enDecimal(klockaForNiva(niva) / 1000)} s`, 'niva');
+        } else {
+            visaFlyt(snabb ? `Snabbt +${vunnet}` : `+${vunnet}`, 'ratt');
         }
 
-        // Timer duration scales down as correct count increases (down to 3.5s from 7.0s)
-        const duration = Math.max(3500, 7000 - correctCount * 100);
-        const startTime = performance.now();
+        markeraRatt();
+        lasAlternativ(knapp);
+        ritaHud();
+        if (nivaUpp) markeraNiva();
 
-        const animateTimer = (now) => {
-            if (answered) return;
-            const elapsed = now - startTime;
-            const pct = Math.max(0, 1 - elapsed / duration);
-            if (fill) fill.style.transform = `scaleX(${pct})`;
-            
-            const remainingSecs = (pct * (duration / 1000)).toFixed(1);
-            if (timerText) {
-                timerText.textContent = `${remainingSecs}s`;
-            }
-
-            /* Ett enda skifte, inte tre. Tidslinjen gick tidigare accent →
-             * barnsten → rott och slog dessutom pa en pulsering over hela
-             * arenan; tre lagen ar tre besked om samma sak. Nu byter den farg
-             * pa sista tredjedelen, och klassen sitter pa raden i stallet for
-             * som inline-stil pa tva element. */
-            timerRow?.classList.toggle('is-urgent', pct <= 0.33);
-
-            if (pct > 0) {
-                timerRAF = requestAnimationFrame(animateTimer);
-            }
-        };
-        timerRAF = requestAnimationFrame(animateTimer);
-
-        timerHandle = setTimeout(() => {
-            if (answered) return;
-            answered = true;
-            cancelAnimationFrame(timerRAF);
-            
-            lives--;
-            streak = 0;
-            
-            // Log mistake
-            mistakes.push({
-                card: card,
-                userAnswer: '(Tiden ute)',
-                correctAnswer: correctAnswer
-            });
-            
-            showFloatingFeedback('Tiden ute', 'wrong');
-            renderLives();
-
-            optContainer.querySelectorAll('.sd-option-btn').forEach(b => {
-                const originalIndex = Array.from(optContainer.children).indexOf(b);
-                if (options[originalIndex]?.correct) revealCorrectOption(b);
-            });
-            
-            showFullAnswer();
-            
-            visaMissflash();
-        }, duration);
+        vidareTimeout = setTimeout(vidare, PAUS_VID_RATT);
     };
 
-    showIntroScreen();
+    const markeraNiva = () => {
+        const el = overlay.querySelector('#sd-niva');
+        if (!el) return;
+        el.classList.remove('is-ny');
+        void el.offsetWidth; /* en klass som läggs tillbaka startar inte om av sig själv */
+        el.classList.add('is-ny');
+    };
+
+    const missa = (kort, knapp, rattText, ersattText, dittSvar) => {
+        if (besvarat || lage !== 'spel') return;
+        besvarat = true;
+        rensaTimers();
+
+        const foreDetta = comboFor(svit);
+        const brutenCombo = svit >= 5;
+        svit = 0;
+        liv--;
+
+        miss.push({
+            kort,
+            ditt: dittSvar || '(tomt)',
+            djup,
+            niva,
+            dodande: liv <= 0,
+        });
+
+        markeraRatt();
+        lasAlternativ(knapp);
+        visaSlag(liv <= 0);
+
+        if (ersattText) visaFlyt(ersattText, 'fel');
+        else if (brutenCombo) visaFlyt(`Combo bruten ×${enDecimal(foreDetta)}`, 'fel');
+        else visaFlyt('Fel', 'fel');
+
+        ritaHud();
+        visaAvslojning(kort, rattText);
+    };
+
+    /* Rätt svar är flyt, fel svar är stopp. Asymmetrin är hela poängen: det
+     * enda tillfälle man behöver läsa svaret är när man inte kunde det, och då
+     * ska spelet stå still tills man själv går vidare. */
+    const visaAvslojning = (kort, rattText) => {
+        const kropp = overlay.querySelector('.arena-body');
+        if (!kropp) return;
+        const slut = liv <= 0;
+        const block = document.createElement('div');
+        block.className = 'sd-avslojning arena-reveal';
+        block.innerHTML = `
+            <p class="micro">Rätt svar</p>
+            <div id="sd-ratt-svar" class="arena-answer">${safeParse(kort.back || rattText)}</div>
+            ${
+                kort.description
+                    ? `<div id="sd-fordjupning" class="sd-fordjupning">${safeParse(kort.description)}</div>`
+                    : ''
+            }
+            <div class="sd-avslojning-foot">
+                <button id="sd-vidare" class="btn primary">
+                    ${slut ? 'Se resultatet' : 'Nästa kort'} <span class="kbd">Space</span>
+                </button>
+                <span class="sd-avslojning-liv ${slut ? 'is-dod' : ''}">${
+                    slut ? 'Rundan är över' : liv === 1 ? 'Sista livet' : `${liv} liv kvar`
+                }</span>
+            </div>
+        `;
+        kropp.appendChild(block);
+
+        const svarEl = block.querySelector('#sd-ratt-svar');
+        if (svarEl) renderCardBackImages(svarEl, kort.backImages);
+        renderLatex(block);
+
+        const knapp = block.querySelector('#sd-vidare');
+        knapp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            vidare();
+        });
+        knapp.focus();
+    };
+
+    const vidare = () => {
+        if (lage !== 'spel') return;
+        rensaTimers();
+        if (liv <= 0) visaSlut();
+        else visaKort();
+    };
+
+    /* ------------------------------------------------------------------
+     * SLUTBILDEN
+     * ---------------------------------------------------------------- */
+
+    const visaSlut = () => {
+        rensaTimers();
+        lage = 'slut';
+        overlay.classList.remove('is-sista-livet', 'is-dod');
+
+        const gammaltRekord = rekord;
+        const gammaltDjup = rekordDjup;
+        const nyttRekord = poang > gammaltRekord;
+        if (nyttRekord) {
+            rekord = poang;
+            localStorage.setItem(pbKey, String(poang));
+        }
+        if (djup > rekordDjup) {
+            rekordDjup = djup;
+            localStorage.setItem(pbDjupKey, String(djup));
+        }
+
+        /* Spelhallens egen resultatvy läser poängen härifrån. */
+        S.playgroundSessionStats.correct = poang;
+        S.playgroundSessionStats.total = djup;
+
+        const tak = Math.max(poang, gammaltRekord, 1);
+        const bredd = (varde) => `${((varde / tak) * 100).toFixed(1)}%`;
+
+        let utfall;
+        let utfallKlass;
+        if (gammaltRekord <= 0) {
+            utfall = `Första rekordet är satt: ${poang} poäng att slå.`;
+            utfallKlass = 'is-rekord';
+        } else if (nyttRekord) {
+            utfall = `Nytt rekord — ${poang - gammaltRekord} poäng bättre än förra.`;
+            utfallKlass = 'is-rekord';
+        } else if (poang >= gammaltRekord * NARA_REKORD) {
+            utfall = `Bara ${gammaltRekord - poang} poäng från rekordet.`;
+            utfallKlass = 'is-nara';
+        } else {
+            utfall = `${gammaltRekord - poang} poäng kvar till rekordet.`;
+            utfallKlass = '';
+        }
+
+        const felPanel = miss.length
+            ? `
+            <section class="sd-panel">
+                <p class="micro">Det du missade</p>
+                <div class="sd-fel-lista">
+                    ${miss
+                        .map(
+                            (m, i) => `
+                        <article class="sd-fel ${m.dodande ? 'is-dodande' : ''}">
+                            <p class="sd-fel-marke">${m.dodande ? `Sista livet · kort ${m.djup}` : `Kort ${m.djup}`}</p>
+                            <div class="sd-fel-fraga">${safeParse(m.kort.front)}</div>
+                            <div class="sd-fel-par">
+                                <span class="sd-fel-etikett">Du svarade</span>
+                                <span class="sd-fel-ditt">${escapeHtml(m.ditt)}</span>
+                            </div>
+                            <div class="sd-fel-par">
+                                <span class="sd-fel-etikett">Rätt svar</span>
+                                <span class="sd-fel-ratt" data-svar="${i}">${safeParse(m.kort.back)}</span>
+                            </div>
+                        </article>`
+                        )
+                        .join('')}
+                </div>
+            </section>`
+            : '';
+
+        overlay.innerHTML = `
+            <div class="sd-slut ${miss.length ? 'har-fel' : ''}">
+                <section class="sd-panel">
+                    <p class="micro">Sudden Death · ${escapeHtml(pbTitle)}</p>
+                    <p class="sd-slutpoang num ${nyttRekord ? 'is-rekord' : ''}">${poang}</p>
+                    <p class="sd-slut-lead">Du föll på kort ${djup}, nivå ${niva}.</p>
+
+                    <div class="sd-jmf">
+                        <div class="sd-jmf-rad is-denna">
+                            <span class="sd-jmf-namn">Denna runda</span>
+                            <span class="progress"><i class="progress-fill" style="width:${bredd(poang)}"></i></span>
+                            <span class="sd-jmf-tal num">${poang}</span>
+                        </div>
+                        <div class="sd-jmf-rad">
+                            <span class="sd-jmf-namn">${nyttRekord ? 'Förra rekordet' : 'Ditt rekord'}</span>
+                            <span class="progress"><i class="progress-fill-soft" style="width:${bredd(gammaltRekord)}"></i></span>
+                            <span class="sd-jmf-tal num">${gammaltRekord}</span>
+                        </div>
+                    </div>
+
+                    <p class="sd-utfall ${utfallKlass}">${utfall}</p>
+
+                    <dl class="arena-stats">
+                        <div>
+                            <dt>Djup</dt>
+                            <dd class="num">${djup} kort${gammaltDjup ? ` · rekord ${rekordDjup}` : ''}</dd>
+                        </div>
+                        <div>
+                            <dt>Längsta combo</dt>
+                            <dd class="num">×${enDecimal(comboFor(langstaSvit))} · ${langstaSvit} i rad</dd>
+                        </div>
+                        <div>
+                            <dt>Högsta nivå</dt>
+                            <dd class="num">${niva}</dd>
+                        </div>
+                        <div>
+                            <dt>Klockan till sist</dt>
+                            <dd class="num">${enDecimal(klockaForNiva(niva) / 1000)} s</dd>
+                        </div>
+                        <div>
+                            <dt>Snabbaste svar</dt>
+                            <dd class="num">${snabbaste === null ? '—' : `${enDecimal(snabbaste / 1000)} s`}</dd>
+                        </div>
+                    </dl>
+
+                    <div class="arena-end-actions">
+                        <button id="sd-igen" class="btn primary lg">En gång till <span class="kbd">Enter</span></button>
+                        <button id="sd-avsluta" class="btn">Avsluta</button>
+                    </div>
+                </section>
+                ${felPanel}
+            </div>
+        `;
+
+        miss.forEach((m, i) => {
+            const svarEl = overlay.querySelector(`.sd-fel-ratt[data-svar="${i}"]`);
+            if (svarEl) renderCardBackImages(svarEl, m.kort.backImages);
+        });
+        renderLatex(overlay.querySelector('.sd-slut'));
+
+        overlay.querySelector('#sd-igen').addEventListener('click', startaRunda);
+        overlay.querySelector('#sd-avsluta').addEventListener('click', closeGame);
+        /* Fokus står på omstarten. Impulsen efter en död är att trycka igen,
+         * och den ska inte behöva leta efter en knapp. */
+        overlay.querySelector('#sd-igen').focus();
+    };
+
+    /* ------------------------------------------------------------------
+     * INGÅNGEN
+     * ---------------------------------------------------------------- */
+
+    const visaIntro = () => {
+        lage = 'intro';
+        overlay.innerHTML = `
+            <div class="sd-intro">
+                <p class="micro">Sudden Death</p>
+                <h1 class="sd-intro-rubrik">Tre liv. Ett fel för mycket och det är slut.</h1>
+
+                <div class="sd-rekordkort">
+                    <div class="sd-rekordkort-tal-rad">
+                        <span class="sd-rekordkort-tal num">${rekord}</span>
+                        <span class="sd-rekordkort-enhet">poäng</span>
+                    </div>
+                    <p class="sd-rekordkort-under">${
+                        rekord > 0
+                            ? `Ditt rekord i ${escapeHtml(pbTitle)}${rekordDjup ? `, satt på ${rekordDjup} kort` : ''}.`
+                            : `Inget rekord i ${escapeHtml(pbTitle)} än. Rundan sätter det.`
+                    }</p>
+                </div>
+
+                <dl class="arena-stats">
+                    <div>
+                        <dt>Klockan</dt>
+                        <dd class="num">${enDecimal(KLOCKA_START / 1000)} s, ner till ${enDecimal(KLOCKA_MIN / 1000)} s</dd>
+                    </div>
+                    <div>
+                        <dt>Ny nivå</dt>
+                        <dd>var ${NIVA_STEG}:e rätt, och kortet blir värt mer</dd>
+                    </div>
+                    <div>
+                        <dt>Rätt i rad</dt>
+                        <dd>upp till ×${COMBO_TAK} på poängen</dd>
+                    </div>
+                    <div>
+                        <dt>${COMBO_LIV} rätt i rad</dt>
+                        <dd>ett liv tillbaka</dd>
+                    </div>
+                </dl>
+
+                <div class="sd-intro-foot">
+                    <button id="sd-start" class="btn primary lg">Starta <span class="kbd">Space</span></button>
+                    <button id="sd-lamna" class="btn">Avbryt</button>
+                </div>
+            </div>
+        `;
+        overlay.querySelector('#sd-start').addEventListener('click', startaRunda);
+        overlay.querySelector('#sd-lamna').addEventListener('click', closeGame);
+        overlay.querySelector('#sd-start').focus();
+    };
+
+    visaIntro();
 };

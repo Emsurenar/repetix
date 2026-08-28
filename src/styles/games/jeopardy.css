@@ -5,4 +5,302 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Lägets bild är en spelbricka med ett tal på. Talet är det enda som får vara
+ * stort, och det växer med insatsen: ledtråden man vågar mest på bär också det
+ * största talet på skärmen. Ingen ny färg och ingen ny form behövs för att visa
+ * att det står mer på spel — bara en grad till på typskalan.
  */
+
+/* Spelplanen är högre än de andra lägenas: kassa, rutrad och ledtext i samma
+ * spalt. Rullningen läggs på lägets egen klass, aldrig på .cinema-overlay, som
+ * alla åtta delar. Med marginal i block-led står arenan mitt på skärmen så
+ * länge den ryms och överst så snart den inte gör det — ett centrerat
+ * flexbarn som blir för högt klipps annars av upptill. */
+.jp-overlay {
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+
+.jp-overlay > .arena {
+  margin-block: auto;
+}
+
+/* ======================================================================
+ * KASSAN
+ *
+ * Det tal spelet handlar om. Det står stort på insatsskärmen, där det är
+ * underlaget för beslutet, och tyst i toppslisten på de skärmar där man inte
+ * kan göra något åt det.
+ * ====================================================================== */
+
+.jp-bank {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.jp-sum {
+  margin: 0;
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+/* En minuskassa är ett tillstånd med konsekvens, inte ett fel i appen. Den
+ * bär därför varningstonen men samma grad — talet ska inte krympa för att
+ * det blivit obehagligt. */
+.jp-sum.is-neg {
+  color: var(--danger);
+}
+
+.jp-sum--end {
+  color: var(--accent);
+}
+
+.jp-sum--end.is-neg {
+  color: var(--danger);
+}
+
+/* Sviten och dubblingen: upplysningar om vad nästa rätt är värd. De hör till
+ * talet ovanför och sätts därför en bit under det, inte i en egen rad. */
+.jp-mult {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--accent);
+}
+
+.jp-note {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+/* ======================================================================
+ * RUTRADEN
+ *
+ * Tre brickor: kategori upptill, pott nedtill, tangentnumret i hörnet — samma
+ * hörnplacering som betygsknapparnas siffra i repetitionen.
+ * ====================================================================== */
+
+.jp-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+}
+
+.jp-board[data-antal='1'] {
+  grid-template-columns: 1fr;
+}
+
+.jp-board[data-antal='2'] {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.jp-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s5);
+  /* Höjden kommer ur kontrollhöjden, inte ur en pixel: med finger blir
+   * brickan automatiskt den träffyta ett tryck kräver. */
+  min-height: calc(var(--control-h) * 3);
+  padding: var(--s4);
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+.jp-cell:hover {
+  border-color: var(--text-3);
+}
+
+.jp-cell:active {
+  transform: scale(var(--press));
+  transition-duration: var(--dur-1);
+}
+
+.jp-cell-kat {
+  /* Plats för tangentmärket i hörnet, och en kategori som är för lång blir
+   * avhuggen i stället för att skjuta ner talet. */
+  padding-right: var(--s6);
+  overflow: hidden;
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+
+/* Potten. Accenten bär tal — det är precis vad det här är. */
+.jp-cell-varde {
+  font-size: var(--t-xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+}
+
+/* Insatsen syns i gradskillnaden. Tre steg på typskalan, inget annat: den
+ * som siktar högst ser det största talet på skärmen innan hen valt. */
+.jp-cell[data-niva='1'] .jp-cell-varde {
+  font-size: var(--t-2xl);
+}
+
+.jp-cell[data-niva='2'] .jp-cell-varde {
+  font-size: var(--t-3xl);
+}
+
+.jp-cell-key {
+  position: absolute;
+  top: var(--s3);
+  right: var(--s3);
+}
+
+/* ======================================================================
+ * LEDTRÅDEN
+ *
+ * Kategorin till vänster, potten till höger. Potten sjunker medan klockan går
+ * och är därför skärmens andra tal i storleksordning — man ska kunna se den
+ * falla i ögonvrån utan att släppa texten med blicken.
+ * ====================================================================== */
+
+.jp-clue-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.jp-pot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s1);
+}
+
+.jp-pot {
+  font-size: var(--t-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+}
+
+/* Klockan ritas om varje bildruta från spelmodulen. En övergång på fyllningen
+ * hade lagt sig ovanpå den rörelsen och gjort stapeln efterbliven. */
+.jp-timer-fill {
+  transition: none;
+}
+
+/* Det man riskerar står still medan potten faller. Varningstonen är hela
+ * poängen med raden: de två talen på skärmen drar åt olika håll. */
+.jp-risk {
+  color: var(--danger);
+}
+
+.jp-foot {
+  flex-wrap: wrap;
+}
+
+.jp-foot-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+/* ======================================================================
+ * FACIT
+ *
+ * Ledtråden står kvar, men tyst: paret svar och fråga är det man ska minnas,
+ * och utan ekot bedömer man ur minnet av något man såg för en sekund sedan.
+ * ====================================================================== */
+
+.jp-echo {
+  font-family: var(--font-content);
+  font-size: var(--t-lg);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+/* Fördjupningen ingår aldrig i bedömningen och ser därför ut som en
+ * anteckning: gränssnittets grotesk, en nivå tystare, som i repetitionen. */
+.jp-desc > * {
+  max-width: 60ch;
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.jp-desc > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Bedömningen är egen. Knapparna är därför lika tunga — det är talen på dem
+ * som skiljer utfallen åt, inte en färgad yta som pekar ut ett svar. */
+.jp-judge {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+
+.jp-judge .btn {
+  min-height: var(--control-h-lg);
+}
+
+.jp-judge-n {
+  font-weight: 500;
+}
+
+.jp-plus {
+  color: var(--accent);
+}
+
+.jp-minus {
+  color: var(--danger);
+}
+
+/* ======================================================================
+ * TELEFON
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .jp-board,
+  .jp-board[data-antal='2'] {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tre brickor under varandra måste rymmas med kassan ovanför. Höjden
+   * följer fortfarande kontrollhöjden. */
+  .jp-cell {
+    gap: var(--s3);
+    min-height: calc(var(--control-h) * 2);
+  }
+
+  .jp-sum {
+    font-size: var(--t-2xl);
+  }
+
+  .jp-judge {
+    grid-template-columns: 1fr;
+  }
+
+  .jp-echo {
+    font-size: var(--t-md);
+  }
+}

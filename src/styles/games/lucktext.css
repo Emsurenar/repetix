@@ -5,4 +5,776 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * Kompositionen är repetitionsvyns, inte en egen: en toppslist med vägen ut
+ * till vänster och läget till höger, och därunder en spalt man läser. Läget
+ * ritade tidigare ett centrerat kort med versala rubriker och en egen radie —
+ * en annan app inuti appen. Energin ska komma ur tempot i återkopplingen, inte
+ * ur att spelytan ser annorlunda ut.
  */
+
+/* ======================================================================
+ * SCENEN
+ * ====================================================================== */
+
+.lucktext-game-overlay {
+  background: var(--surface-0);
+}
+
+/* .cinema-content är centrerad text med fast luft runtom. Här behövs i
+ * stället en spalt som fyller höjden, så att slisten kan ligga still överst
+ * och kortet hitta mitten under den. */
+.lucktext-scen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  width: 100%;
+  max-width: 47.5rem;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: var(--s5);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+/* ======================================================================
+ * TOPPSLISTEN
+ *
+ * Vänster: det som ändras medan man spelar. Höger: det som ramar in passet.
+ * Samma ordning som i repetitionen, så att ögat vet var det ska titta.
+ * ====================================================================== */
+
+.lucktext-hud {
+  flex: 0 0 auto;
+  gap: var(--s4);
+  padding: 0 0 var(--s4);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lucktext-hud-vanster {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+/* Vägen ut. Samma mått och samma hörn som repetitionens pil — den är en liten
+ * detalj i en list, inte en knapp i ett formulär. */
+.lucktext-stang {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft);
+}
+
+.lucktext-stang:hover {
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.lucktext-poang {
+  display: inline-block;
+  font-size: var(--t-lg);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-1);
+  letter-spacing: var(--track-tight);
+}
+
+/* Poängen hoppar till när den växer. Fjädern används bara här och på combon:
+ * det är de två tal som är själva belöningen. */
+.lucktext-poang.is-okad {
+  animation: lucktext-puls var(--dur-2) var(--ease-spring);
+}
+
+/* Combon står alltid framme, inte bara när den är igång. En mätare som
+ * försvinner vid noll går inte att sakna, och det är rädslan att förlora den
+ * som gör att man skriver försiktigt. */
+.lucktext-combo {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(var(--control-h) - var(--s3));
+  padding: 0 var(--s2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  transition:
+    color var(--dur-1) var(--ease-soft),
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft);
+}
+
+.lucktext-combo.is-on {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+/* Över fem i rad byter den från yta till kant. Ingen ny färg, bara mer
+ * närvaro — det ska synas i ögonvrån att något står på spel. */
+.lucktext-combo.is-het {
+  border-color: var(--accent);
+}
+
+.lucktext-combo.is-bruten {
+  animation: lucktext-bruten var(--dur-4) var(--ease-out);
+}
+
+.lucktext-niva {
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+.lucktext-niva.is-ny {
+  animation: lucktext-niva-upp var(--dur-4) var(--ease-out);
+}
+
+/* ======================================================================
+ * KORTET
+ * ====================================================================== */
+
+/* Rullningen ligger på arenan och inte på kortet: poängkvittot reser sig
+ * ovanför luckan, och ett kort med egen overflow hade klippt det mot sin egen
+ * överkant. margin i stället för align-items centrerar utan att kapa toppen
+ * när innehållet är högre än ytan. */
+.lucktext-arena {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.lucktext-kort {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  width: 100%;
+  margin: auto 0;
+  padding: var(--s6);
+  text-align: left;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-sizing: border-box;
+  animation: lucktext-kort-in var(--dur-2) var(--ease-out) both;
+}
+
+/* Etikettraden. Namnet till vänster, talet som hör till fasen till höger —
+ * bonusen medan man memorerar, luckräknaren medan man fyller i. */
+.lucktext-rad {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.lucktext-etikett {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.lucktext-raknare {
+  font-size: var(--t-xs);
+  color: var(--text-2);
+}
+
+/* Frågan är prompten, inte huvudsaken. Serif som allt kortinnehåll, men ett
+ * steg tystare än svaret så att blicken vet vilken av dem som ska memoreras. */
+.lucktext-fraga {
+  margin: 0 0 var(--s2);
+  font-family: var(--font-content);
+  font-size: var(--t-lg);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  overflow-wrap: break-word;
+}
+
+/* Svaret. Loose radavstånd för att luckorna ska få stå på sin egen linje utan
+ * att raderna växer isär först när de fylls i. */
+.lucktext-svarstext {
+  font-family: var(--font-content);
+  font-size: var(--t-xl);
+  line-height: var(--lh-loose);
+  color: var(--text-1);
+  overflow-wrap: break-word;
+}
+
+/* Långa svar backar ett steg i skalan i stället för att få en egen storlek.
+ * Läget satte tidigare fyra olika rem-tal direkt i markupen. */
+.lucktext-svarstext.is-medel {
+  font-size: var(--t-lg);
+}
+
+.lucktext-svarstext.is-lang {
+  font-size: var(--t-md);
+}
+
+.lucktext-kort .katex,
+.lucktext-kort .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ======================================================================
+ * TIDEN OCH VADET
+ *
+ * Bonusen sjunker medan man läser och låses när man säger "Jag kan det". Att
+ * lämna tidigt ger mer poäng och sämre minne — valet är hela spänningen, och
+ * därför står talet större än allt annat på raden.
+ * ====================================================================== */
+
+.lucktext-bonus {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--accent);
+  transition: color var(--dur-1) var(--ease-soft);
+}
+
+/* Sista femtedelen. Färgen byter, inte storleken — ett hoppande tal mitt i
+ * det man försöker memorera stjäl den uppmärksamhet det ska påminna om. */
+.lucktext-bonus.is-slut {
+  color: var(--text-3);
+}
+
+.lucktext-tid,
+.lucktext-ifyllt {
+  margin: var(--s2) 0;
+}
+
+.lucktext-tid .progress-fill,
+.lucktext-ifyllt .progress-fill {
+  flex: 1 1 100%;
+  transform-origin: left;
+}
+
+/* Nedräkningen skrivs om varje bildruta från JS. En övergång ovanpå det hade
+ * lagt sig efter den och gjort stapeln till en eftersläpning. */
+.lucktext-tid .progress-fill {
+  transition: none;
+}
+
+.lucktext-tid.is-slut .progress-fill {
+  background: var(--mark-1);
+}
+
+/* Ifyllnaden hoppar ett steg i taget och ska glida dit i stället. */
+.lucktext-ifyllt .progress-fill {
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.lucktext-btn-bred {
+  width: 100%;
+  margin-top: var(--s2);
+}
+
+/* ======================================================================
+ * LUCKAN
+ *
+ * Lägets signaturelement. Ett nedsänkt spår i den löpande texten med ordets
+ * första bokstav som ledtråd framför. Ledtråden låg i fältets placeholder och
+ * försvann i samma stund man började skriva — luckan blev då märkbart svårare
+ * än läget var tänkt.
+ *
+ * Radien är --r-sm, inte --r-md: spåret är en detalj i en textrad i samma
+ * familj som listrader och tangentmärken, och sexton pixlar hade gjort det
+ * till en kapsel mitt i en mening. Nederkanten är rak — det är inte en andra
+ * radie utan linjen man skriver på, och en rundad underkant hade gjort spåret
+ * till en liten ruta i stället för en lucka.
+ * ====================================================================== */
+
+.lucktext-lucka {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  padding: 0 var(--s1);
+  background: var(--surface-2);
+  border-bottom: 2px solid var(--line-strong);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft);
+}
+
+.lucktext-ledtrad {
+  font-variant: small-caps;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+/* Fältet är genomskinligt och ramlöst: spåret runt om ÄR fältet. Den gamla
+ * versionen ritade en egen fylld ruta med egen radie inuti meningen, alltså
+ * två former ovanpå varandra. */
+.lucktext-inline-input,
+.lucktext-inline-input:focus {
+  min-width: 3ch;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: left;
+  color: var(--text-1);
+  background: transparent;
+  border: 0;
+  /* Ringen kan inte tonas från none till solid. Den ligger permanent som
+   * genomskinlig och byter bara färg. */
+  outline: 2px solid transparent;
+  outline-offset: var(--s1);
+  border-radius: var(--r-sm);
+  transition: outline-color var(--dur-1) var(--ease-soft);
+}
+
+.lucktext-lucka:focus-within {
+  background: var(--accent-soft);
+  border-bottom-color: var(--accent);
+}
+
+.lucktext-inline-input:focus-visible {
+  outline-color: var(--accent-line);
+}
+
+/* De tre utgångarna. Rätt bär accenten, nästan bär betygsskalans bärnsten —
+ * "Svårt" betyder redan halvvägs i den här appen — och fel bär danger. Ingen
+ * ny färg införs för att luckan ska kunna säga tre saker. */
+.lucktext-lucka.is-ratt {
+  background: var(--accent-soft);
+  border-bottom-color: var(--accent);
+}
+
+.lucktext-lucka.is-nastan {
+  background: var(--surface-2);
+  border-bottom-color: var(--rate-2);
+}
+
+.lucktext-lucka.is-fel {
+  background: var(--danger-soft);
+  border-bottom-color: var(--danger);
+}
+
+.lucktext-ord {
+  font-weight: 600;
+  animation: lucktext-ord-in var(--dur-2) var(--ease-out) both;
+}
+
+.lucktext-lucka.is-ratt .lucktext-ord {
+  color: var(--accent);
+}
+
+.lucktext-lucka.is-nastan .lucktext-ord {
+  color: var(--rate-2);
+}
+
+.lucktext-lucka.is-fel .lucktext-ord {
+  color: var(--danger);
+}
+
+/* Det man faktiskt skrev, överstruket bredvid facit. Ett stavfel man får se
+ * är ett stavfel man rättar; ett som bara försvinner lär man sig om igen. */
+.lucktext-mitt {
+  margin-left: var(--s1);
+  font-family: var(--font-ui);
+  font-size: var(--t-micro);
+  font-weight: 400;
+  color: var(--text-3);
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+/* Kvittot reser sig ur luckan man just fyllde. Ett tal i slisten hade krävt
+ * att man tittade bort från meningen; här ligger belöningen exakt där
+ * handlingen var. */
+.lucktext-kvitto {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  font-family: var(--font-data);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: lucktext-kvitto-upp var(--dur-4) var(--ease-out) both;
+}
+
+.lucktext-kvitto.is-ratt {
+  color: var(--accent);
+}
+
+.lucktext-kvitto.is-nastan {
+  color: var(--rate-2);
+}
+
+/* ======================================================================
+ * FACIT OCH BETYG
+ * ====================================================================== */
+
+.lucktext-utfall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  min-height: var(--control-h-lg);
+  margin-top: var(--s2);
+  padding: 0 var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  animation: lucktext-kort-in var(--dur-2) var(--ease-out) both;
+}
+
+.lucktext-utfall-ord {
+  font-size: var(--t-md);
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.lucktext-utfall-tal {
+  font-size: var(--t-xs);
+  color: var(--text-2);
+}
+
+.lucktext-utfall.is-perfekt {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.lucktext-utfall.is-perfekt .lucktext-utfall-ord,
+.lucktext-utfall.is-perfekt .lucktext-utfall-tal {
+  color: var(--accent);
+}
+
+.lucktext-utfall.is-delvis {
+  background: var(--surface-2);
+}
+
+.lucktext-utfall.is-svagt {
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+
+.lucktext-utfall.is-svagt .lucktext-utfall-ord {
+  color: var(--danger);
+}
+
+.lucktext-betyg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+/* Klonade betygsknappar från repetitionen. Regeln bor i games.css under
+ * .arena, och klonen ligger inte i en arena — den upprepas här i stället för
+ * att scopet ska luckras upp för alla åtta lägen. */
+.lucktext-betyg .study-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+  width: 100%;
+}
+
+.lucktext-betyg .btn-rate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: calc(var(--control-h) + var(--s5));
+  padding: 0 var(--s4);
+  font-family: inherit;
+  font-size: var(--t-md);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  text-align: left;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    transform var(--dur-1) var(--ease-spring);
+}
+
+.lucktext-betyg .btn-rate br {
+  display: none;
+}
+
+.lucktext-betyg .btn-rate small {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* Tangentnumret i hörnet, som i repetitionen. */
+.lucktext-betyg .btn-rate::after {
+  content: attr(data-rating);
+  position: absolute;
+  top: var(--s2);
+  right: 10px;
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  line-height: 1;
+  color: var(--text-3);
+}
+
+.lucktext-betyg .btn-rate:hover {
+  border-color: var(--text-3);
+}
+
+.lucktext-betyg .btn-rate:active {
+  transform: scale(var(--press));
+}
+
+.lucktext-betyg .btn-rate.rating-3 {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.lucktext-betyg .btn-rate.rating-3,
+.lucktext-betyg .btn-rate.rating-3 small,
+.lucktext-betyg .btn-rate.rating-3::after {
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Anledningen att trycka en gång till är avståndet till rekordet, inte
+ * poängen. Talet står stort, linjen under visar hur nära man kom, och raden
+ * däremellan säger det med ord.
+ * ====================================================================== */
+
+.lucktext-slut {
+  gap: var(--s4);
+}
+
+.lucktext-slutpoang {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.lucktext-slutpoang-tal {
+  font-size: var(--t-3xl);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  color: var(--text-1);
+  letter-spacing: var(--track-tight);
+}
+
+.lucktext-slutpoang-mot {
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.lucktext-rekordlinje .progress-fill {
+  flex: 0 0 auto;
+  background: var(--mark-1);
+  transition: none;
+}
+
+.lucktext-rekordlinje.is-slaget .progress-fill {
+  background: var(--accent);
+}
+
+.lucktext-tabell {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.lucktext-tabellrad {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lucktext-tabellrad:last-child {
+  border-bottom: 0;
+}
+
+.lucktext-tabellrad dt {
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.lucktext-tabellrad dd {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  text-align: right;
+}
+
+.lucktext-tabellrad.is-rekord dd {
+  color: var(--accent);
+}
+
+.lucktext-slutknappar {
+  display: flex;
+  gap: var(--s3);
+}
+
+.lucktext-slutknappar .btn {
+  flex: 1 1 0;
+}
+
+/* ======================================================================
+ * RÖRELSEN
+ *
+ * Varje varaktighet kommer ur tokens. Den som bett systemet om mindre rörelse
+ * får noll där, och behöver därför aldrig nämnas i en egen regel.
+ * ====================================================================== */
+
+@keyframes lucktext-kort-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lucktext-ord-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lucktext-kvitto-upp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(var(--s5) * -1));
+  }
+}
+
+@keyframes lucktext-puls {
+  from {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes lucktext-bruten {
+  from {
+    color: var(--danger);
+  }
+  50% {
+    color: var(--danger);
+  }
+  to {
+    color: var(--text-3);
+  }
+}
+
+@keyframes lucktext-niva-upp {
+  from {
+    color: var(--accent);
+  }
+  50% {
+    color: var(--accent);
+  }
+  to {
+    color: var(--text-2);
+  }
+}
+
+/* ======================================================================
+ * FINGER OCH SMAL SKÄRM
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .lucktext-scen {
+    gap: var(--s3);
+    padding: var(--s3);
+  }
+
+  .lucktext-hud {
+    gap: var(--s3);
+    padding-bottom: var(--s3);
+  }
+
+  .lucktext-kort {
+    padding: var(--s4);
+  }
+
+  .lucktext-fraga {
+    font-size: var(--t-md);
+  }
+
+  .lucktext-svarstext {
+    font-size: var(--t-lg);
+  }
+
+  .lucktext-svarstext.is-medel,
+  .lucktext-svarstext.is-lang {
+    font-size: var(--t-md);
+  }
+
+  /* Fyra betyg på en telefonbredd blir fyra oläsbara spalter. */
+  .lucktext-betyg .study-actions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s2);
+  }
+
+  .lucktext-slutpoang-tal {
+    font-size: var(--t-2xl);
+  }
+
+  .lucktext-slutknappar {
+    flex-direction: column;
+  }
+}

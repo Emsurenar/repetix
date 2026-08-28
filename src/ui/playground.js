@@ -629,60 +629,37 @@ export const renderPlayground = ({ tona = true } = {}) => {
     }
 };
 
-export const finishPlaygroundSession = (skipResults = false) => {
-    const mode = S.playgroundMode;
+/* Vägen ut ur ett spelläge.
+ *
+ * Här låg tidigare en generisk resultatvy med en egen textrad per läge. Den
+ * är borta: alla åtta lägen bygger numera sin egen slutbild med jämförelse
+ * mot personligt rekord, och den generiska visades OVANPÅ den — två
+ * sammanfattningar av samma runda, där den andra sa mindre.
+ *
+ * Den räknade dessutom fel. `S.playgroundSessionStats` bokförs på två
+ * ställen samtidigt: `processRating` i study.js skriver varje betyg, och
+ * flera lägen skrev därtill sina egna tal i samma fält. Ett läge räknade
+ * varje kort dubbelt, ett skrev poängsumman i fältet för antal rätt och
+ * påstod "340 kort sorterade", ett skrev aldrig alls och sa "0 av 0 rätt".
+ *
+ * Objektet finns kvar eftersom study.js skriver till det, men ingenting
+ * visar det längre. **Lita inte på dess innehåll** — betydelsen skiljer sig
+ * mellan lägen. Ett läge som vill visa tal äger sin egen slutbild.
+ *
+ * skipResults finns kvar i signaturen för de anropsställen som redan skickar
+ * true; den har ingen effekt längre, eftersom alla vägar ut går hit.
+ */
+export const finishPlaygroundSession = () => {
     S.playgroundMode = null;
     S.isPlaygroundSession = false;
-    const shouldSkip = skipResults || S.playgroundEscAbort;
     S.playgroundEscAbort = false;
     S.lastSessionWasPlayground = true;
 
-    if (shouldSkip) {
-        switchView('playground');
-        renderPlayground();
-        return;
-    }
+    // Rensar dagsräkningar äldre än 90 dagar. Argumenten används inte.
+    updatePersonalRecords();
 
-    const stats = S.playgroundSessionStats;
-    const elapsed = Math.round((Date.now() - stats.startTime) / 1000);
-    const answered = stats.correct + stats.again;
-
-    // Update personal records
-    updatePersonalRecords(answered, elapsed);
-
-    let resultTitle = '';
-    let resultDesc = '';
-
-    if (mode === 'jeopardy') {
-        resultTitle = `${stats.correct} av ${answered} rätt`;
-        resultDesc = `Du kände igen frågan från svaret ${stats.correct} gånger.`;
-    } else if (mode === 'suddendeath') {
-        resultTitle = `${stats.correct} poäng`;
-        resultDesc = stats.correct > 0 ? 'Grymt kört! Prova att slå det nästa gång.' : 'Kämpa på, övning ger färdighet!';
-    } else if (mode === 'transportbandet') {
-        resultTitle = `${stats.correct} kort sorterade`;
-        resultDesc = `${stats.again > 0 ? `${stats.again} hamnade i fel korg.` : 'Perfekt sortering!'}`;
-    } else if (mode === 'lucktext') {
-        resultTitle = `${stats.correct} luckor rätt`;
-        resultDesc = `${answered} kort avklarade på ${elapsed}s.`;
-    } else if (mode === 'dragkampen') {
-        const won = stats._dragkampenWon;
-        resultTitle = won ? 'Du vann!' : 'Datorn vann...';
-        resultDesc = `${stats.correct} rätt av ${answered} bedömningar.`;
-    } else if (mode === 'action') {
-        resultTitle = `${stats.correct} poäng`;
-        resultDesc = `${stats.total} kort avklarade på ${elapsed}s.`;
-    } else {
-        resultTitle = `${answered} kort klara`;
-        resultDesc = `${stats.correct} utan "Igen"${stats.again > 0 ? `, ${stats.again} omtag` : ''}.`;
-    }
-
-    // Use the existing complete view but update its text
-    const completeView = document.getElementById('view-study-complete');
-    completeView.querySelector('h1').textContent = resultTitle;
-    completeView.querySelector('p').textContent = resultDesc;
-    completeView.querySelector('#btn-complete-back').textContent = 'Tillbaka till Spelhallen';
-    switchView('complete');
+    switchView('playground');
+    renderPlayground();
 };
 
 export function initUiPlayground() {

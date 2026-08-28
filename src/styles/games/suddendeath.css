@@ -5,4 +5,711 @@
  *
  * Laddas sist av alla stilar, så en regel här vinner över den gamla
  * stilmallen utan !important.
+ *
+ * ALLT hänger under .sd-game, klassen läget sätter på sitt överlägg.
+ * Klassnamnen med sd-prefix delas nämligen med Action, Dragkampen och
+ * Transportbandet — utan scopet hade en regel här ritat om deras slutskärmar.
+ *
+ * Lägets idé i en mening: rundan tar slut när livet gör det, inte när korten
+ * gör det. Därför måste tre saker synas hela tiden — hur många liv som är kvar,
+ * hur djupt man kommit, och hur långt det är till rekordet. Det är de tre
+ * talen ytan är byggd runt.
  */
+
+/* ======================================================================
+ * YTAN
+ * ====================================================================== */
+
+/* Efter ett fel växer arenan med hela avslöjningen, och en centrerad flexspalt
+ * klipper då bort toppen i stället för att låta den rullas fram. Barnet
+ * centreras med auto-marginaler i stället, vilket är samma sak ända tills
+ * innehållet blir för högt — och då gör det rätt.
+ *
+ * Övergången upprepar överläggets egna opacitet och skala: skrivs bara
+ * bakgrunden här ersätter kortformen hela transition-egenskapen, och ytan
+ * skulle slås på i ett hugg i stället för att tona in. */
+.sd-game {
+  justify-content: flex-start;
+  align-items: stretch;
+  overflow-y: auto;
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    transform var(--dur-3) var(--ease-out),
+    background-color var(--dur-4) var(--ease-soft);
+}
+
+.sd-game .sd-arena,
+.sd-game .sd-intro,
+.sd-game .sd-slut {
+  margin: auto;
+}
+
+/* Beskeden hänger härifrån, se BESKEDEN längre ner. */
+.sd-game .sd-arena {
+  position: relative;
+}
+
+/* Sista livet färgar hela rummet svagt varmt, och det ligger kvar. En puls
+ * eller en skakning hade varit ett ryck man vänjer sig vid på tio sekunder;
+ * ett tillstånd som inte går över känns i hela kroppen så länge det varar. */
+.sd-game.is-sista-livet,
+.sd-game.is-dod {
+  background: var(--danger-soft);
+}
+
+/* Etiketten i games.css är scopad till .arena, och intron och slutbilden ligger
+ * utanför den. Samma deklaration, inte en ny sort. */
+.sd-game .micro {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * LIVEN
+ *
+ * Tre prickar i lägets enda röda. De byter klass, aldrig innerHTML: ett
+ * nyskapat element börjar i sitt slutläge, och då syns aldrig att ett liv
+ * slocknade.
+ * ====================================================================== */
+
+.sd-game .sd-liv-rad {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.sd-game .sd-pips {
+  display: inline-flex;
+  gap: var(--s1);
+}
+
+.sd-game .sd-pip {
+  width: 10px;
+  height: 10px;
+  background: var(--danger);
+  border-radius: var(--r-pill);
+  transition:
+    background var(--dur-2) var(--ease-soft),
+    transform var(--dur-2) var(--ease-out);
+}
+
+.sd-game .sd-pip.is-borta {
+  background: var(--mark-0);
+  transform: scale(0.55);
+}
+
+.sd-game .sd-liv-etikett {
+  font-size: var(--t-xs);
+  color: var(--text-2);
+  transition: color var(--dur-2) var(--ease-soft);
+}
+
+/* Från och med sista livet är etiketten inte längre en räknare utan ett
+ * larm: versalerna och monospacen skiljer den från allt annat i slisten. */
+.sd-game.is-sista-livet .sd-liv-etikett,
+.sd-game.is-dod .sd-liv-etikett {
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+/* ======================================================================
+ * NIVÅN
+ *
+ * Nivån byter var femte rätt och tar med sig både klockan och kortets värde.
+ * Skiftet får ett ögonblick i accent — annars hade den enda signalen varit att
+ * klockan plötsligt tog slut fortare, vilket läses som ett fel i spelet.
+ * ====================================================================== */
+
+@keyframes sd-niva-ny {
+  0%,
+  70% {
+    color: var(--accent);
+  }
+
+  100% {
+    color: var(--text-2);
+  }
+}
+
+.sd-game .sd-niva.is-ny {
+  animation: sd-niva-ny var(--dur-4) var(--ease-out);
+}
+
+/* ======================================================================
+ * REKORDJAKTEN
+ *
+ * Raden bär poängen, hur stor andel av rekordet den är, och avståndet kvar.
+ * Ett tal som står ensamt säger ingenting om vad som står på spel; det är
+ * avståndet som gör de sista kortet före rekordet outhärdliga.
+ * ====================================================================== */
+
+.sd-game .sd-rekord {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.sd-game .sd-poang {
+  min-width: 4rem;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+  transition: color var(--dur-2) var(--ease-soft);
+}
+
+.sd-game .sd-rekord .progress {
+  flex: 1 1 auto;
+}
+
+/* Neutral så länge rekordet är långt borta. Två accentfärgade staplar rakt
+ * ovanför varandra — klockan som krymper och rekordet som växer — hade lästs
+ * som samma mätare två gånger. Färgen kommer när avståndet börjar betyda
+ * något, och det är hela signalen. */
+.sd-game .sd-rekord .progress-fill {
+  flex: 0 0 auto;
+  width: 0;
+  background: var(--mark-1);
+  transition:
+    width var(--dur-2) var(--ease-out),
+    background var(--dur-2) var(--ease-soft);
+}
+
+.sd-game .sd-rekord-text {
+  min-width: 9rem;
+  font-size: var(--t-xs);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-3);
+  transition: color var(--dur-2) var(--ease-soft);
+}
+
+/* Inom räckhåll: bärnsten, samma ton som "Svårt" i betygsskalan. Rekordet är
+ * inte en fara och inte en seger ännu — det är det spända läget däremellan. */
+.sd-game .sd-rekord.is-nara .progress-fill {
+  background: var(--rate-2);
+}
+
+.sd-game .sd-rekord.is-nara .sd-rekord-text {
+  color: var(--rate-2);
+}
+
+.sd-game .sd-rekord.is-slaget .progress-fill {
+  background: var(--accent);
+}
+
+.sd-game .sd-rekord.is-slaget .sd-poang,
+.sd-game .sd-rekord.is-slaget .sd-rekord-text {
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * FOTEN
+ * ====================================================================== */
+
+/* Det extra livet är enda vägen tillbaka. Moroten tänds först när den är inom
+ * tre svar — dessförinnan är den en påminnelse om något man inte kan nå. */
+.sd-game .sd-status {
+  font-size: var(--t-xs);
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.sd-game .sd-status.is-on {
+  opacity: 1;
+}
+
+.sd-game .sd-combo {
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--text-1);
+  opacity: 0;
+  transition:
+    opacity var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-soft);
+}
+
+.sd-game .sd-combo.is-on {
+  opacity: 1;
+}
+
+/* Taket är nått. Ett tal som slutat växa ska sluta se ut som att det växer. */
+.sd-game .sd-combo.is-tak {
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * FRÅGAN OCH ALTERNATIVEN
+ * ====================================================================== */
+
+/* Kortbytet ska synas. Utan resan är den enda skillnaden att texten är en
+ * annan, och i ett läge där man svarar var fjärde sekund läses det som att
+ * ingenting hände. */
+.sd-game .arena-question.is-ny {
+  animation: arena-in var(--dur-2) var(--ease-out) both;
+}
+
+.sd-game .arena-options.is-avgjord .sd-option-btn {
+  pointer-events: none;
+}
+
+/* De alternativ som varken valdes eller var rätta drar sig tillbaka, så att
+ * paret man ska jämföra är det enda som står kvar i full ton. */
+.sd-game .sd-option-btn.is-tyst {
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.sd-game .sd-option-btn.is-tyst .sd-key-badge {
+  color: var(--text-3);
+  background: transparent;
+  border-color: var(--line);
+}
+
+/* ======================================================================
+ * AVSLÖJNINGEN
+ *
+ * Rätt svar är flyt, fel svar är stopp. Det enda tillfälle man behöver läsa
+ * svaret är när man inte kunde det, och då står spelet still tills man själv
+ * går vidare — med en riktig knapp, så att det går att göra med ett finger.
+ * ====================================================================== */
+
+/* Formen — spalt, luft och linjen ovanför — kommer ur .arena-reveal, som redan
+ * bär den för alla lägen. Här står bara det som är lägets eget. */
+.sd-game .sd-fordjupning {
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.sd-game .sd-avslojning-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+}
+
+.sd-game .sd-avslojning-liv {
+  font-family: var(--font-data);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.sd-game .sd-avslojning-liv.is-dod {
+  color: var(--danger);
+}
+
+/* ======================================================================
+ * BESKEDEN
+ *
+ * Beskedet är alltid en dubblett: poängen står i rekordraden, det extra livet
+ * i prickarna, nivån i slisten, rekordet i avståndstexten. Därför får det
+ * försvinna helt för den som bett om mindre rörelse — ingen information följer
+ * med när det gör det.
+ * ====================================================================== */
+
+@keyframes sd-flyt-upp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+
+  18%,
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(var(--rise) * -8));
+  }
+}
+
+/* Stiger ur slistens mitt och ut ur bild. Där står ingenting: liven ligger till
+ * vänster, nivån och djupet till höger, och frågan börjar långt under. */
+.sd-game .sd-flyt {
+  position: absolute;
+  top: var(--s4);
+  left: 50%;
+  z-index: 20;
+  font-family: var(--font-data);
+  font-size: var(--t-xl);
+  font-weight: 500;
+  letter-spacing: var(--track-tight);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, 0);
+  animation: sd-flyt-upp calc(var(--dur-4) * 2) var(--ease-out) both;
+}
+
+.sd-game .sd-flyt.is-ratt,
+.sd-game .sd-flyt.is-liv {
+  color: var(--accent);
+}
+
+.sd-game .sd-flyt.is-fel {
+  color: var(--danger);
+}
+
+.sd-game .sd-flyt.is-niva {
+  color: var(--rate-2);
+}
+
+/* Rekordet väger tyngst av alla besked och är det enda som får ta mer plats. */
+.sd-game .sd-flyt.is-rekord {
+  font-size: var(--t-2xl);
+  color: var(--accent);
+}
+
+/* Slaget. Lägets enda skarpa rörelse, och den enda platsen där danger täcker
+ * en hel yta. Det sista felet slår hårdare och håller längre — man ska inte
+ * behöva läsa en siffra för att veta att rundan är över. */
+@keyframes sd-slag-in {
+  0% {
+    opacity: 0;
+  }
+
+  22% {
+    opacity: 0.38;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sd-slag-tung {
+  0% {
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.sd-game .sd-slag {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: var(--danger);
+  opacity: 0;
+  pointer-events: none;
+  animation: sd-slag-in var(--dur-3) var(--ease-out) both;
+}
+
+.sd-game .sd-slag.is-tung {
+  animation: sd-slag-tung calc(var(--dur-4) * 1.5) var(--ease-out) both;
+}
+
+/* ======================================================================
+ * SLUTBILDEN
+ *
+ * Ett tal och en jämförelse, inte en rapport. Den gamla slutskärmen ledde med
+ * fyra utmärkelser varav en delades ut för att ha spelat — och drunknade
+ * därmed det enda som betyder något: hur nära rekordet man kom.
+ * ====================================================================== */
+
+.sd-game .sd-slut {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s4);
+  width: 100%;
+  max-width: 58rem;
+  padding: var(--s6) var(--s5);
+  animation: arena-in var(--dur-3) var(--ease-out) both;
+}
+
+@media (min-width: 62rem) {
+  .sd-game .sd-slut.har-fel {
+    grid-template-columns: 1.05fr 1fr;
+    align-items: start;
+  }
+}
+
+.sd-game .sd-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.sd-game .sd-slutpoang {
+  margin: 0;
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+.sd-game .sd-slutpoang.is-rekord {
+  color: var(--accent);
+}
+
+.sd-game .sd-slut-lead {
+  margin: 0;
+  font-size: var(--t-md);
+  color: var(--text-2);
+}
+
+/* Två staplar mot samma tak. Rundan i accent, rekordet i märkestonen: det är
+ * gapet mellan dem som är hela beskedet, och gapet går inte att läsa ur två
+ * tal bredvid varandra. */
+.sd-game .sd-jmf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin: var(--s2) 0;
+}
+
+.sd-game .sd-jmf-rad {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 4rem;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.sd-game .sd-jmf .progress {
+  height: 6px;
+  border-radius: var(--r-pill);
+}
+
+.sd-game .sd-jmf-namn {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.sd-game .sd-jmf-tal {
+  font-size: var(--t-sm);
+  text-align: right;
+  color: var(--text-2);
+}
+
+.sd-game .sd-jmf-rad.is-denna .sd-jmf-namn,
+.sd-game .sd-jmf-rad.is-denna .sd-jmf-tal {
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.sd-game .sd-utfall {
+  margin: 0;
+  font-size: var(--t-md);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.sd-game .sd-utfall.is-rekord {
+  color: var(--accent);
+}
+
+.sd-game .sd-utfall.is-nara {
+  color: var(--rate-2);
+}
+
+/* Talen i slutbilden och i introt är fakta, inte rubriker. Monospacen bär dem
+ * redan; grundgraden gör dem tunga. */
+.sd-game .arena-stats dd {
+  font-size: var(--t-sm);
+  font-weight: 500;
+}
+
+/* ----------------------------------------------------------------------
+ * DET DU MISSADE
+ *
+ * Högst tre kort per liv, alltså alltid en lista man ser i sin helhet. Den
+ * gamla dragspelsmenyn dolde tre rader bakom tre klick.
+ * -------------------------------------------------------------------- */
+
+.sd-game .sd-fel-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  max-height: 58vh;
+  overflow-y: auto;
+}
+
+.sd-game .sd-fel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s4);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* Kortet som tog sista livet står kvar i minnet efteråt. Det ska gå att hitta
+ * i listan utan att räkna. */
+.sd-game .sd-fel.is-dodande {
+  border-color: var(--danger);
+}
+
+.sd-game .sd-fel-marke {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.sd-game .sd-fel.is-dodande .sd-fel-marke {
+  color: var(--danger);
+}
+
+.sd-game .sd-fel-fraga {
+  font-family: var(--font-content);
+  font-size: var(--t-md);
+  line-height: var(--lh-normal);
+  color: var(--text-1);
+}
+
+.sd-game .sd-fel-par {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.sd-game .sd-fel-etikett {
+  flex: 0 0 5.5rem;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.sd-game .sd-fel-ditt {
+  font-size: var(--t-sm);
+  color: var(--danger);
+}
+
+.sd-game .sd-fel-ratt {
+  font-size: var(--t-sm);
+  color: var(--accent);
+}
+
+/* ======================================================================
+ * INGÅNGEN
+ *
+ * Rekordet är det första man ser, för det är det man kommit för. Reglerna står
+ * som fakta i samma lista som slutbildens tal — de beskriver vad som står på
+ * spel, inte hur man trycker på en knapp.
+ * ====================================================================== */
+
+.sd-game .sd-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  width: 100%;
+  max-width: 34rem;
+  padding: var(--s6) var(--s5);
+  animation: arena-in var(--dur-2) var(--ease-out) both;
+}
+
+.sd-game .sd-intro-rubrik {
+  margin: 0;
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--text-1);
+}
+
+.sd-game .sd-rekordkort {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s5);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.sd-game .sd-rekordkort-tal-rad {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.sd-game .sd-rekordkort-tal {
+  font-size: var(--t-3xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-tight);
+  color: var(--accent);
+}
+
+.sd-game .sd-rekordkort-enhet {
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+.sd-game .sd-rekordkort-under {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.sd-game .sd-intro-foot {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+
+/* ======================================================================
+ * FINGER
+ * ====================================================================== */
+
+@media (max-width: 600px) {
+  .sd-game .sd-slut,
+  .sd-game .sd-intro {
+    padding: var(--s5) var(--s3);
+  }
+
+  /* Poängen och avståndet delar första raden, stapeln får en egen: tre
+   * kolumner på en telefon gör avståndstexten till ett ord per rad. */
+  .sd-game .sd-rekord {
+    flex-wrap: wrap;
+  }
+
+  .sd-game .sd-rekord .progress {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .sd-game .sd-rekord-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .sd-game .sd-jmf-rad {
+    grid-template-columns: 6rem 1fr 3.5rem;
+  }
+
+  .sd-game .sd-fel-par {
+    flex-direction: column;
+    gap: var(--s1);
+  }
+
+  .sd-game .sd-avslojning-foot {
+    flex-wrap: wrap;
+  }
+}

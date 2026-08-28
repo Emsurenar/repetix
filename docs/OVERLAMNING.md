@@ -224,6 +224,29 @@ ska kännas som att den bryr sig om en.**
   sidopanelens fot. Kortleksraderna i trädet står kvar i normal vikt —
   viktskillnaden är det som skiljer appens egna vägar från innehållet
   användaren lagt in.
+
+### 4c. En kurvatur, och en bild per kortlek — klart (2026-08-28, sen kväll)
+
+- **`--r-md` och `--r-lg` är båda 16px.** Ägaren pekade ut hörnet på "Dagens
+  mapp" och sa att exakt alla knappar ska ha det. Knappar, fält, väljare,
+  ikonknappar, kort och paneler delar därmed hörn. `--r-sm` (10px) är kvar
+  enbart för listrader, menyval och tangentmärken — 16px hade gjort en 30px
+  hög rad till en kapsel. **Ändra aldrig det ena av md/lg utan det andra.**
+- **Trettio bilder i `public/wash/`**, nedskalade till 40 px breda. Uppskalade
+  till panelens bredd *är* de oskärpan — en gaussisk suddning av ett foto och
+  en uppskalning av dess miniatyr ger samma yta, och den senare väger 1,4 kB.
+  Hela basen är 120 kB. Fem av dem är ägarens egna bilder, resten hämtade
+  från Picsum (Unsplash-licens).
+- `src/ui/wash.js` väljer bild ur en FNV-hash av kortlekens id, så samma lek
+  får alltid samma bild. Spelhallens åtta kort använder samma maskineri med
+  nyckeln `spel:<id>`.
+- **Skärmen är inte dekor.** Den ligger mellan bild och innehåll, tyngst till
+  vänster där texten står. Utan den beror läsbarheten på vilken kortlek man
+  råkar ha öppnat — en skog i motljus hade lämnat rubriken oläslig.
+- Formulärets valrad (Bild / Stil / Mapp) talar ett språk: tre kontroller med
+  samma höjd, kant och hörn, och etiketter i samma stil som Fråga och Svar.
+  Långformat var en naken kryssruta mellan två ramade kontroller — radens
+  tydligaste skavank, och det ägaren kallade inkonsekvent.
 - Formulärvyerna (`#view-add-card`, `#view-add-note`) är centrerade spalter
   på 46 rem. Vyn heter "Nytt kort" som knappen som ledde dit, fälten heter
   Fråga och Svar utan parenteser, och fokus står redan i första fältet.
@@ -234,6 +257,72 @@ ska kännas som att den bryr sig om en.**
   står kvar.
 - `npm run dev` läser numera `$PORT` med 5173 som standard, så att två
   sessioner kan köra var sin server (`autoPort` i launch.json).
+
+### 4d. Spellägena byggda för att sugas in i — klart (2026-08-28, natt)
+
+Nio agenter parallellt: en per läge plus en för inställningssidan, var och en
+med **exakt två egna filer** som ingen annan fick röra. Uppdraget var ägarens
+ord: *"Spelen ska hooka en. Man ska VILJA spela."*
+
+Varje läge har nu en egen `src/styles/games/<namn>.css` som laddas sist och
+vinner över den gamla stilmallen utan `!important`.
+
+**Tre lägen hade fel som gjorde dem meningslösa:**
+
+- **Action mätte handleden, inte minnet.** Det var ett rytmspel påklistrat på
+  ett flashcard — svaret avslöjades ord för ord och man tryckte i takt med en
+  ring. Man kunde maxa ett kort man aldrig sett. Nu äger klockan skärmen,
+  betyget härleds ur hur lång tid återkallandet tog, och rundan kan förloras.
+- **Sudden Death slutade efter 20 kort** trots att det hette "tre liv". Liven
+  var pynt och det fanns inget rekord att jaga. Rundan tar nu slut när livet
+  gör det.
+- **Transportbandet stannade efter varje kort** tills man tryckte mellanslag —
+  en flervalsfråga med nedräkning. Nu driver två klockor spelet, och en
+  växande kö är rundans enda dödssätt.
+
+**Buggar som satt i det gamla och rättades:**
+
+| Läge | Fel |
+|---|---|
+| Dragkampen | `showEndScreen` letade `.cinema-content` men markupen har `.arena` — **varje avslutad match kastade TypeError**, slutskärmen renderades aldrig |
+| Dragkampen | Falska påståenden togs utan textjämförelse: två kort med samma svar gav ett "falskt" påstående som var sant. `Cmd+F` svarade "Falskt" |
+| Lucktext | Omstart bytte `S.currentStudyCards` mot en ny array medan spelet höll den gamla — **`processRating` skrev fel SRS-data** |
+| Dammiga | `rateKH` togs bara bort vid tangentbetyg. Klickade man låg den kvar och satte betyg på **nästa, olästa kort** |
+| Sudden Death | `showEndScreen` anropade `cleanup()` som tog bort tangentlyssnaren — Enter för att spela igen fungerade inte |
+| Transportbandet | `renderLives()` satte tom sträng för både fyllt och tomt liv — **liven var osynliga** |
+| Flera | Läckta `keydown`-lyssnare som svarade långt efter att ytan var borta |
+
+**Bokföringen var trasig i fyra riktningar samtidigt.** `processRating` bokför
+redan varje betyg i `S.playgroundSessionStats`; därtill skrev lägena sina egna
+tal i samma fält. Ett räknade varje kort dubbelt, ett skrev poängsumman i
+fältet för antal rätt och påstod "340 kort sorterade", ett skrev aldrig och sa
+"0 av 0 rätt".
+
+**Den generiska resultatvyn är pensionerad.** Alla åtta lägen bygger nu egna
+slutbilder med jämförelse mot personligt rekord, och den generiska visades
+*ovanpå* dem. `updatePersonalRecords` visade sig dessutom **ignorera båda sina
+argument** — statistiken hade alltså ingen annan konsument. Objektet finns kvar
+eftersom study.js skriver till det, men **lita inte på dess innehåll**:
+betydelsen skiljer sig mellan lägen.
+
+**Städat efteråt:**
+
+- `games-legacy.css` **1 900 → 813 rader** (den var 3 063 när ombyggnaden
+  började). 152 regelblock bort, hittade genom att pröva varje klass mot
+  faktisk användning i stället för att lita på radnummer.
+- Den gamla banderollen `.dagens-mapp-banner` / `.btn-dagens-action` — 21 block
+  död kod som dessutom innehöll `var(--in-oklch)`, en felskrivning av
+  gradient-syntaxen `in oklch`.
+- Segmentväljaren i `auth.css` och dess spår i `motion.css`.
+- Den sista instruerande meningen: `#backup-status` sa "klicka Exportera" bredvid
+  en knapp som redan heter Exportera.
+- **Noll odefinierade tokens** i hela kodbasen. Två lägen använde
+  `var(--radius-md)` som aldrig funnits — hörnen renderades fyrkantiga utan att
+  något klagade. Sådana fel är tysta: webbläsaren kastar hela deklarationen.
+
+**Kontrollerat i webbläsare:** alla åtta lägen öppnade och renderade, Action
+provspelat ett kort, inga nya konsolfel. Rörelsen i Transportbandet och
+Dragkampen är sedd men inte provspelad med finger.
 
 ### 5. Etapp 6 — publicering
 

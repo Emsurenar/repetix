@@ -236,10 +236,10 @@ function formateraTid(iso) {
   });
 }
 
-/* Leverantören är en segmenterad kontroll, inte en meny: fyra alternativ får
- * plats bredvid varandra, och det man valt går att jämföra med det man inte
- * valt. Läsning och skrivning går genom de tre hjälparna här, så att resten av
- * filen slipper veta att kontrollen är fyra radioknappar. */
+/* Leverantören är fyra brickor, inte en meny: alla alternativ syns samtidigt,
+ * och det man valt går att jämföra med det man inte valt. Läsning och skrivning
+ * går genom de tre hjälparna här, så att resten av filen slipper veta att
+ * kontrollen är fyra radioknappar. */
 function valdLeverantor() {
   return document.querySelector('#settings-provider input:checked')?.value ?? PROVIDERS[0].id;
 }
@@ -255,14 +255,54 @@ function sattLeverantorLast(last) {
   });
 }
 
+/**
+ * Leverantörernas märken, ritade som inline-SVG.
+ *
+ * De ligger här och inte i models.js, eftersom katalogen är delad med
+ * anropslagret och inte ska känna till hur något ser ut. Tre saker gör dem
+ * till märken och inte bilder: de är ritade i currentColor, så att en bricka
+ * kan färga sitt eget märke efter sitt tillstånd; de kostar inget nätverksanrop
+ * och kan därför inte utebli offline; och de bär samma streckspråk som resten
+ * av appens ikoner — samma tjocklek, samma runda ändar.
+ *
+ * En leverantör utan märke ritas som enbart sitt namn. Brickan faller alltså
+ * inte sönder den dag katalogen får en femte rad.
+ */
+const PROVIDER_MARKS = {
+  // Solstrålen: åtta ekrar ut från en öppen mitt.
+  anthropic: `<path d="M12 2.5V8M12 16v5.5M2.5 12H8M16 12h5.5M5.3 5.3l3.9 3.9M14.8 14.8l3.9 3.9M18.7 5.3l-3.9 3.9M5.3 18.7l3.9-3.9"/>`,
+  // Rosetten: tre kapslar vridna 60 grader ger sex flikar runt en sluten mitt.
+  openai: `<rect x="7.9" y="2.6" width="8.2" height="18.8" rx="4.1"/><rect x="7.9" y="2.6" width="8.2" height="18.8" rx="4.1" transform="rotate(60 12 12)"/><rect x="7.9" y="2.6" width="8.2" height="18.8" rx="4.1" transform="rotate(-60 12 12)"/>`,
+  // G:et: ringen bryts uppe till höger där tvärslån går in mot mitten.
+  google: `<path d="M18.96 7.12A8.5 8.5 0 1 0 20.5 12H12.8"/>`,
+  // Växeln: en väg in, flera vidare — vilket är hela tjänsten. Noderna är
+  // fyllda; en ring på fyra pixlar blir ändå bara en prick med ett hål i.
+  openrouter: `<path d="M2.5 12h6.9c2.2 0 2.4-5.4 5.3-5.4h2.3"/><path d="M2.5 12h6.9c2.2 0 2.4 5.4 5.3 5.4h2.3"/><circle cx="19.4" cy="6.6" r="2.4" fill="currentColor" stroke="none"/><circle cx="19.4" cy="17.4" r="2.4" fill="currentColor" stroke="none"/>`,
+};
+
+/**
+ * Märket som en färdig svg-tagg, eller tom sträng för en okänd leverantör.
+ *
+ * @param {string} id
+ * @returns {string}
+ */
+function providerMark(id) {
+  const mark = PROVIDER_MARKS[id];
+  if (!mark) return '';
+  return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${mark}</svg>`;
+}
+
 /** Fyller leverantörsväljaren. Görs en gång, listan är statisk. */
 function renderaLeverantorer() {
   const grupp = el('settings-provider');
   if (!grupp) return;
+  // Etiketten omsluter både radioknappen och namnet, så att namnet blir
+  // knappens tillgängliga namn. Ett eget aria-label ovanpå det hade bara gett
+  // skärmläsaren samma ord två gånger.
   grupp.innerHTML = PROVIDERS.map(
-    (p, i) => `<label class="seg-item">
-        <input type="radio" name="settings-provider" value="${p.id}" ${i === 0 ? 'checked' : ''} aria-label="${p.label}">
-        <span>${p.label}</span>
+    (p, i) => `<label class="provider-option">
+        <input type="radio" name="settings-provider" value="${p.id}" ${i === 0 ? 'checked' : ''}>
+        <span class="provider-face">${providerMark(p.id)}<span class="provider-name">${p.label}</span></span>
       </label>`
   ).join('');
 }
@@ -324,7 +364,9 @@ function renderaNyckelstatus() {
   const status = keyStatus.get(providerId);
 
   if (!getUserId()) {
-    statusNode.textContent = 'Logga in för att lägga in en nyckel.';
+    // Statusraden rapporterar läget. Vad man gör åt det står i notisen överst,
+    // där knappen som gör det också sitter.
+    statusNode.textContent = 'Ingen nyckel. Kräver ett konto.';
     statusNode.dataset.tone = 'info';
     ovrigaNode.hidden = true;
     deleteBtn.hidden = true;
@@ -371,11 +413,11 @@ function renderaInloggningslage() {
   if (noticeText && signInBtn) {
     if (!cloudConfigured) {
       noticeText.textContent =
-        'Den här installationen saknar molnkonfiguration, så AI-inställningarna går inte att använda. Appen fungerar i övrigt lokalt.';
+        'Installationen saknar molnkonfiguration. AI-inställningarna går inte att använda; appen fungerar i övrigt lokalt.';
       signInBtn.hidden = true;
     } else {
       noticeText.textContent =
-        'AI kräver ett konto. Nyckeln lagras krypterad på servern och knyts till kontot, så att den följer med mellan dina enheter.';
+        'AI kräver ett konto. Nyckeln knyts till kontot och följer med mellan dina enheter.';
       signInBtn.hidden = false;
     }
   }
