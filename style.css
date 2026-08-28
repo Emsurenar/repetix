@@ -4895,7 +4895,24 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 
 .auth-submit { margin-top: 0.25rem; width: 100%; justify-content: center; }
 
-.auth-google { width: 100%; justify-content: center; margin-top: 0.75rem; }
+.auth-google {
+    width: 100%;
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    /* Googles regler for inloggningsknappar: vit yta, gra kant, och marken
+       far inte skalas om eller fargas om. */
+    background: #FFFFFF;
+    color: #1F1F1F;
+    border: 1px solid #DADCE0;
+    font-weight: 500;
+}
+
+.auth-google:hover { background: #F8F9FA; }
+
+.auth-google-mark { flex: 0 0 auto; }
 
 .auth-error,
 .auth-notice {

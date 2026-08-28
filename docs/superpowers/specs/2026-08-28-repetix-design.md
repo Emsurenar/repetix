@@ -184,6 +184,9 @@ Riktning "Lugn precision", enbart ljust läge.
   betyg som 2×2 i tumzonen.
 - **Knappar:** de primära i mockupen är för blockiga. Knappformerna definieras
   en gång i designsystemet med lättare vikt, stramare höjd och mindre massa.
+- **Logotyp och favikon:** ett eget märke som fungerar i 16 pixlar i en flik
+  och som rubrik i appen. Byggt av samma primitiv som resten av gränssnittet —
+  linje, prick, fylld ruta — inte som en fristående illustration.
 - Alla tryckytor minst 44×44. Inga hover-beroende funktioner — varje åtgärd
   nåbar med ett finger.
 - WCAG AA för all brödtext. Dagens `--text-secondary` ger 3,4:1 och underkänns.
@@ -205,7 +208,10 @@ Riktning "Lugn precision", enbart ljust läge.
    testuppsättning. Noll funktionsändringar.
 2. **Molnet** — Supabase, auth, schema, RLS, migrering, offline-synk.
 3. **AI** — generiskt lager, adaptrar, serverproxy, inställningsvy.
-4. **Design** — hela gränssnittet enligt Lugn precision och Mobil 1.
+4. **Design** — hela gränssnittet enligt Lugn precision och Mobil 1, samt
+   appens visuella identitet: en egen logotyp och favikon. Appen har idag
+   webbläsarens standardikon, vilket är det första man ser i en flik och i
+   en bokmärkeslista.
 5. **Spelen** — åtta lägen ombyggda med touch och tangentbord.
 6. **Publicering** — README, licens, CI, säkerhetsgenomgång, Vercel-deploy.
 
