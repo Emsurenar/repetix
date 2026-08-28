@@ -1,0 +1,44 @@
+# Hemligheter — får aldrig committas
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Beroenden
+node_modules/
+.pnp
+.pnp.js
+
+# Byggresultat
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Test och täckning
+coverage/
+.nyc_output/
+
+# Loggar
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor och OS
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# Lokala användarbackuper av appdata
+*-backup-*.json
+
+# Claude Codes projektminne — personligt, hör inte hemma i ett publikt repo
+.claude/projects/
