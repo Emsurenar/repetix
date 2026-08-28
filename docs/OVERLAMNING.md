@@ -191,6 +191,63 @@ README, licens, CI, säkerhetsgenomgång, Vercel-deploy. Paketet är cirka 800 k
 och behöver kodsplittas — mest KaTeX. Tre inline-`onclick` finns kvar i
 `index.html`.
 
+## Interaktionen — rörelsesystemet
+
+Ägaren underkände appen som "inte inbjudande" och pekade på interaktionen, inte
+designen. Svaret blev ett rörelselager i `src/styles/motion.css` med fyra tempon
+och fyra kurvor i `tokens.css`.
+
+**Regeln som allt hänger på: ingen varaktighet skrivs i millisekunder utanför
+tokens.** Den som bett systemet om mindre rörelse får då noll, inte mindre, utan
+att varje enskild regel behöver komma ihåg att fråga.
+
+- Allt som kommer in bromsar in och reser sig sex pixlar; allt som lämnar
+  accelererar bort. Ögat vet vad som är på väg in utan att läsa något.
+- Kontroller ger efter under fingret. Kort lyfter ett hårstrå under pekaren —
+  bara med mus: på en pekskärm finns inget "över".
+- Listor lägger sig på plats med 30 ms mellan raderna, knutet till **navigering**
+  och inte till rendering. En sökning ritar om listan vid varje tangenttryck.
+- Vyer korsövertonar. Den utgående togs tidigare bort i samma bildruta som den
+  inkommande började på noll — en tom sida i ett par tiondelar vid varje byte.
+- Repetitionen är koreograferad: täckningen lyfts ett streck i taget, svaret
+  följer, betygen kommer efter. Betygsättningen bär kortet bort åt domens håll.
+- Spelytan tonar in och ut. In-toningen fanns aldrig: alla åtta lägen lade till
+  elementet och klassen i samma bildruta, vilket slår ihop start och slut.
+
+### Fallgropar som kostade tid
+
+- **`.stagger` som spelas om vid varje omritning** är en blinkning, inte en
+  välkomst. Klassen måste sättas av vybytet, aldrig av renderingen.
+- **`appendChild` + `requestAnimationFrame` i samma bildruta** hoppar över
+  övergången. Det krävs en framtvingad layoutläsning emellan.
+- **En animation startar inte om av att klassen läggs tillbaka.** Ta bort, läs
+  `offsetWidth`, lägg på.
+- **`outline: none` → `solid` går inte att tona.** Sätt `transparent` permanent
+  och tona `outline-color`.
+- **Ett nyskapat element börjar i sitt slutläge.** Tickskalan måste byta klass
+  på befintliga streck, inte skriva om raden.
+
+### Två fel som kunde kosta data eller tillgänglighet
+
+- **Betygsraden tar över samma pixlar som "Visa svar" låg på**, och
+  mittpunkten på den knappen hamnar inuti "Bra". En dubbelklick satte ett betyg
+  på ett kort ingen läst, och ett betyg går inte att ta tillbaka. Spärren ligger
+  i `src/ui/flashcard.js` (`nyssVand`); tangenterna 1–4 passerar den.
+- **Sidopanelen flyttas ut med transform** och låg därför kvar i tabbordningen:
+  tretton osynliga kontroller infälld, och mitt i ett pass tabbade man rakt in i
+  det osynliga biblioteket. Löst med `inert`, synkat från en observator på
+  `<body>` i `src/app/init.js`.
+
+### Kvar
+
+- Kortradens svar snäpper fram medan mappen bredvid glider. Ett försök att
+  fälla ut det över sin egen höjd gick inte att verifiera och backades.
+- Två förskjutningssystem gör samma sak: `.stagger` i `motion.css` och
+  spelhallens egna keyframes med `--i`. Bör slås ihop.
+- Radmenyerna är `<details>` utan `aria-expanded` och utan pilnavigering.
+- Sjutton dialoger, tre olika fotlösningar. Tre saknar Avbryt.
+- Skapa kortlek tar två dialoger.
+
 ## Öppna punkter som kräver användaren
 
 - **AI-rundturen är overifierad.** Användaren har inte lagt in någon API-nyckel
