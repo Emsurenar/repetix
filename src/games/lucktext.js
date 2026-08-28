@@ -459,7 +459,9 @@ export const lucktextReveal = () => {
      * LUCKORNA — den täta återkopplingen
      * ================================================================== */
 
-    const startBlankPhase = () => {
+    /* Asynkron enbart för KaTeX skull, se nedan. Båda anroparna struntar i
+     * returvärdet. */
+    const startBlankPhase = async () => {
         if (currentPhase !== 'memorize') return;
         if (!document.getElementById('cinema-overlay')) return;
         cancelAnimationFrame(memorizeRAF);
@@ -470,7 +472,13 @@ export const lucktextReveal = () => {
 
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = backHtml;
-        renderLatex(tempDiv);
+        /* Måste inväntas. Gåendet genom noderna nedan letar efter .katex för
+         * att hålla matematik utanför luckorna, och sedan KaTeX hämtas lat
+         * finns de noderna inte förrän biblioteket kommit. Utan await blev en
+         * renderad formel en lucka man ombads skriva av — men bara på första
+         * kortet med matematik, vilket är precis den sortens fel som inte
+         * syns förrän någon annan råkar på det. */
+        await renderLatex(tempDiv);
 
         const arMatte = (node) =>
             node.classList &&

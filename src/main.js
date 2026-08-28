@@ -33,8 +33,6 @@ import './styles/games/suddendeath.css';
 import './styles/games/transportbandet.css';
 import './styles/games/dragkampen.css';
 
-import './app/vendor.js';
-
 import { initCloud } from './app/cloud.js';
 import { loadReviewLog } from './core/sync.js';
 
