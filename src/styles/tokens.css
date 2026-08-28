@@ -109,6 +109,16 @@
   --s7: 3rem;
   --s8: 4rem;
 
+  /* Skalan gäller avstånd MELLAN saker: marginaler, mellanrum, spaltluft.
+   *
+   * Måtten inuti en enskild komponent är något annat och står kvar som de tal
+   * mockupen anger — kortets 20 px inre luft, inställningsradens 28, prickens
+   * 6, stapelns 3. Att avrunda dem till skalan hade ändrat facit, och att
+   * lägga in dem som tokens hade gjort skalan till en lista över allt som
+   * råkar förekomma. Ser du ett udda tal inuti en komponent kommer det
+   * härifrån; ser du ett mellan två komponenter är det ett fel.
+   */
+
   /* --- Form ------------------------------------------------------------- */
   --r-sm: 6px;
   --r-md: 8px;
