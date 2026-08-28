@@ -64,8 +64,10 @@ export const performGlobalSearch = () => {
 
     if (!query) {
         input.setAttribute('aria-expanded', 'false');
-        resultsContainer.innerHTML = `<p class="search-empty">Skriv för att söka i hela ditt bibliotek.</p>`;
-        countSpan.textContent = '0 resultat';
+        // Tomt, inte en uppmaning. Fältet ovanför säger redan "Sök i
+        // biblioteket"; en rad under som säger "Skriv för att söka" är samma
+        // mening en gång till. Panelen faller ihop till fält och fot.
+        countSpan.textContent = '';
         return;
     }
 

@@ -116,6 +116,12 @@
   overflow-y: auto;
 }
 
+/* Innan man skrivit något finns inga träffar och ingen text. Utan detta bär
+ * den tomma behållaren kvar sin luft och panelen gapar. */
+.search-results:empty {
+  display: none;
+}
+
 .search-result-group {
   padding: var(--s2) 0;
 }
