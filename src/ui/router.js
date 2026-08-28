@@ -5,6 +5,15 @@ import { renderSidebar } from './modals-wiring.js';
 import { renderPlayground } from './playground.js';
 
 
+// Lyssnare pa vybyte. Molnlagret anvander detta for att veta nar appen ar i
+// vila och en inkommande andring kan bytas in utan att avbryta anvandaren.
+const viewListeners = new Set();
+
+export function onViewChange(fn) {
+    viewListeners.add(fn);
+    return () => viewListeners.delete(fn);
+}
+
 // --- ROUTING / VIEW LOGIC ---
 export const switchView = (viewName, sectionId = null) => {
     S.currentViewName = viewName;
@@ -14,6 +23,7 @@ export const switchView = (viewName, sectionId = null) => {
         views[viewName].classList.remove('hidden');
     }, 10);
     window.scrollTo(0, 0);
+    for (const fn of viewListeners) fn(viewName);
 
     // Update breadcrumb
     const lib = { label: 'Bibliotek', action: "renderLibrary();switchView('library');renderSidebar();" };

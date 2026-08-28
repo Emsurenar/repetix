@@ -33,9 +33,12 @@ const BATCH = 200;
 const CURSOR_KEY = 'sync:cursor';
 
 const listeners = new Set();
+const remoteListeners = new Set();
 let state = { status: 'idle', pending: 0, lastSyncedAt: null, error: null };
 let running = null;
+let queued = false;
 let lastSnapshot = null;
+let debounce = null;
 
 export function onSyncChange(fn) {
   listeners.add(fn);
@@ -50,6 +53,18 @@ function setState(patch) {
 
 export function getSyncState() {
   return state;
+}
+
+/**
+ * Prenumerera pa att servern hade nya rader at oss.
+ *
+ * Sarskild fran onSyncChange eftersom mottagaren maste bygga om biblioteket
+ * och rendera om — och det far inte ske mitt i en repetition. Beslutet om NAR
+ * det ar lampligt hor hemma i granssnittslagret, inte har.
+ */
+export function onRemoteChange(fn) {
+  remoteListeners.add(fn);
+  return () => remoteListeners.delete(fn);
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +90,7 @@ export async function recordChanges(appData) {
 
   await enqueue(mutations);
   setState({ pending: await outboxSize() });
-  void sync();
+  scheduleSync();
   return mutations.length;
 }
 
@@ -97,7 +112,7 @@ export function primeSnapshot(appData) {
  */
 export async function recordReview(row) {
   await appendReviews([row]);
-  if (getUserId()) void sync();
+  if (getUserId()) scheduleSync();
 }
 
 async function pushOutbox() {
@@ -188,12 +203,29 @@ async function pull() {
 // ---------------------------------------------------------------------------
 
 /**
- * Kör en synkomgång. Flera samtidiga anrop delar samma körning, så att en
- * sparning under pågående synk inte startar en andra omgång.
+ * Skjuter upp synken en kort stund. Appen sparar efter varje mutation, och
+ * utan detta skulle varje tangenttryck i en kortredigering bli ett natanrop.
+ */
+export function scheduleSync({ delayMs = 1500 } = {}) {
+  if (debounce) clearTimeout(debounce);
+  debounce = setTimeout(() => {
+    debounce = null;
+    void sync();
+  }, delayMs);
+}
+
+/**
+ * Kor en synkomgang: skickar utkorgen, laddar upp repetitioner och hamtar
+ * serverns andringar. Flera samtidiga anrop delar samma korning.
  */
 export function sync() {
   if (!supabase || !getUserId()) return Promise.resolve(false);
-  if (running) return running;
+  // En synk som startas medan en annan pagar far inte tappas bort: den kan
+  // bara ha kommit efter att utkorgen fyllts pa. Vi kor en omgang till efterat.
+  if (running) {
+    queued = true;
+    return running;
+  }
 
   running = (async () => {
     setState({ status: 'syncing', error: null });
@@ -207,6 +239,7 @@ export function sync() {
         lastSyncedAt: Date.now(),
         error: null,
       });
+      if (changed) for (const fn of remoteListeners) fn();
       return changed;
     } catch (err) {
       // Ett misslyckande är normalt offline. Utkorgen ligger kvar och skickas
@@ -219,6 +252,10 @@ export function sync() {
       return false;
     } finally {
       running = null;
+      if (queued) {
+        queued = false;
+        scheduleSync({ delayMs: 0 });
+      }
     }
   })();
 

@@ -12,6 +12,7 @@ import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import {
   loadFromLocal,
+  onRemoteChange,
   onSyncChange,
   primeSnapshot,
   recordChanges,
@@ -23,6 +24,7 @@ import { hasSkippedAuth, initAuthUi, openAuth } from '../ui/auth.js';
 import { renderDecks } from '../ui/deck.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
 import { showConfirmModal } from '../ui/modals.js';
+import { onViewChange } from '../ui/router.js';
 import { showToast } from '../ui/toast.js';
 
 /** Säkerhetskopia av lokal data som inte migrerades. Raderas aldrig automatiskt. */
@@ -55,6 +57,10 @@ export async function initCloud() {
   });
 
   onSyncChange(renderSyncStatus);
+  onRemoteChange(() => void applyRemoteChanges());
+  // Nar anvandaren lamnar en repetition eller stanger en modal ar det tryggt
+  // att byta in andringar som skjutits upp.
+  onViewChange(() => flushPendingRemoteChanges());
 
   const accountBtn = document.getElementById('btn-account');
   if (accountBtn) {
@@ -136,6 +142,38 @@ function startBackground() {
   primeSnapshot(S.appData);
   stopAutoSync?.();
   stopAutoSync = startAutoSync();
+}
+
+/**
+ * Ar det lampligt att byta ut biblioteket under fotterna pa anvandaren just nu?
+ *
+ * Mitt i en repetition skulle en ombyggnad kasta bort sessionen, och med en
+ * oppen modal skulle det redigerade objektet bytas ut. I bada fallen vantar vi
+ * i stallet till nasta gang appen ar i vila.
+ */
+function safeToApplyRemote() {
+  if (S.currentViewName === 'study') return false;
+  if (document.querySelector('.modal:not(.hidden)')) return false;
+  return true;
+}
+
+let vantandeFjarrandring = false;
+
+async function applyRemoteChanges() {
+  if (!getUserId()) return;
+  if (!safeToApplyRemote()) {
+    vantandeFjarrandring = true;
+    return;
+  }
+  vantandeFjarrandring = false;
+  const remote = build(await loadFromLocal());
+  applyRemote(remote);
+  showToast('Uppdaterad med andringar fran en annan enhet.');
+}
+
+/** Anropas nar appen atervander till vila, sa att uppskjutna andringar landar. */
+export function flushPendingRemoteChanges() {
+  if (vantandeFjarrandring) void applyRemoteChanges();
 }
 
 /**
