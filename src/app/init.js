@@ -2,6 +2,7 @@ import { filterBookshelf } from '../ui/modals-wiring.js';
 import { deleteSection } from '../ai/client.js';
 import { exportBackup, importBackupFromFile, maybeAutoBackup, renderBackupStatus } from '../core/backup.js';
 import { S } from '../core/state.js';
+import { showToast } from '../ui/toast.js';
 import { loadData, saveData } from '../core/storage.js';
 import { renderDagensMapp } from '../ui/dagens-mapp.js';
 import { openDeck, openNotebook, renderDecks, studyDagensMapp } from '../ui/deck.js';
@@ -16,6 +17,26 @@ import { handleBackgroundBack } from '../ui/wiring/navigation.js';
 
 // --- INITIALIZATION ---
 const initApp = () => {
+    /* Vägen ut ur trasig data kopplas FÖRE datan läses.
+     *
+     * loadData() låg tidigare först i try-blocket. En importfil som gjorde
+     * appdatan otolkbar fick den att kasta, och då kopplades ingenting efter
+     * den — inte heller importknappen, som är enda sättet att lägga in en
+     * frisk backup. Användaren satt med en app som varken startade eller gick
+     * att laga. Knapparna nedan behöver ingen laddad data för att fungera. */
+    document.getElementById('btn-export-backup')?.addEventListener('click', () => {
+        exportBackup();
+        renderBackupStatus();
+    });
+    document.getElementById('btn-import-backup')?.addEventListener('click', () => {
+        document.getElementById('import-backup-input')?.click();
+    });
+    document.getElementById('import-backup-input')?.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (file) await importBackupFromFile(file);
+    });
+
     try {
         loadData();
         renderDecks();
@@ -26,21 +47,9 @@ const initApp = () => {
         if (e.key === 'Escape' && S.isPlaygroundSession) S.playgroundEscAbort = true;
     }, true);
 
-        // Backup: run auto-backup once conditions are met, show status, wire buttons
+        // Knapparna är redan kopplade ovanför; här behövs bara tillståndet.
         maybeAutoBackup();
         renderBackupStatus();
-        document.getElementById('btn-export-backup')?.addEventListener('click', () => {
-            exportBackup();
-            renderBackupStatus();
-        });
-        document.getElementById('btn-import-backup')?.addEventListener('click', () => {
-            document.getElementById('import-backup-input')?.click();
-        });
-        document.getElementById('import-backup-input')?.addEventListener('change', async (e) => {
-            const file = e.target.files && e.target.files[0];
-            e.target.value = '';
-            if (file) await importBackupFromFile(file);
-        });
 
     // Global click handler for closing modals
         document.addEventListener('click', (e) => {
@@ -236,8 +245,19 @@ const initApp = () => {
             }
         });
     } catch (err) {
-        console.error("Initial load failed", err);
-        if (typeof renderLibrary === 'function') renderLibrary();
+        console.error('Initial load failed', err);
+        /* Spärren måste sättas här. Utan den skriver nästa sparning över den
+         * data som inte gick att läsa — alltså raderas ett bibliotek som
+         * kanske bara var otolkbart för att en importfil var trasig. */
+        S.dataLoadBlocked = true;
+        /* Och renderingen får inte kasta en gång till på samma data: gör den
+         * det försvinner även importknappens vy. */
+        try {
+            renderLibrary();
+        } catch (renderFel) {
+            console.error('Kunde inte rita biblioteket efter misslyckad laddning', renderFel);
+        }
+        showToast('Kunde inte läsa dina data. Importera en backup för att återställa.');
     }
 };
 
