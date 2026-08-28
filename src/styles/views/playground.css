@@ -1,0 +1,519 @@
+/* Spelhallen — "Lugn precision".
+ *
+ * Hallen är en översikt, inte ett kasino. Den gamla vyn hade en egen palett
+ * per läge, fem dekorativa typsnitt och en aktivitetskarta i Googles blå
+ * hårdkodad direkt i markupen; resultatet var att spelhallen såg ut som en
+ * annan app än den man just kom ifrån.
+ *
+ * Allt som visar mängd — inlärningsläget, aktiviteten, lägena — ritas med
+ * samma tre primitiv som resten av appen: en linje, en prick, en fylld ruta.
+ *
+ * Filen laddas EFTER games-legacy.css och är scopad till #view-playground, så
+ * att den vinner över den gamla stilmallens .pg-regler utan ett enda
+ * !important. Spelens egna ytor rör den inte.
+ */
+
+#view-playground .arcade-title {
+  font-size: var(--t-xl);
+}
+
+/* ======================================================================
+ * ÖVERSIKTEN
+ *
+ * Inlärningsläget till vänster, aktiviteten till höger. Kartan har en fast
+ * bredd eftersom den är ett rutnät med räknebara rutor — den ska inte sträckas
+ * ut till oigenkännlighet när fönstret växer.
+ * ====================================================================== */
+
+#view-playground .arcade-top {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--s7);
+  align-items: start;
+  margin-bottom: var(--s7);
+}
+
+#view-playground .arcade-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+}
+
+#view-playground .arcade-stats > div {
+  padding: var(--s4) var(--s4) var(--s4) 0;
+}
+
+#view-playground .arcade-stats .n {
+  font-size: var(--t-xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  color: var(--text-1);
+}
+
+/* Accent bara på det som är färdigt. Nytt och Lär är lägen på vägen, inte
+ * resultat. */
+#view-playground .arcade-stats .n.is-accent {
+  color: var(--accent);
+}
+
+#view-playground .arcade-stats .l {
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-playground .arcade-bar {
+  margin-top: var(--s2);
+}
+
+#view-playground .arcade-total {
+  margin: var(--s3) 0 0;
+}
+
+/* ======================================================================
+ * AKTIVITETSKARTAN
+ *
+ * Tolv veckor i kolumner, måndag överst. Fyra steg i accentens egen ramp i
+ * stället för en genomskinlighet per tal: en ruta ska gå att placera i skalan
+ * med ögat.
+ * ====================================================================== */
+
+#view-playground .heat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+#view-playground .heat-months {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 22px;
+}
+
+#view-playground .heat-months span {
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+#view-playground .heat-grid {
+  display: flex;
+  gap: var(--s2);
+}
+
+#view-playground .heat-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 18px;
+}
+
+#view-playground .heat-days span {
+  height: 19px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  line-height: 19px;
+  color: var(--text-3);
+}
+
+#view-playground .heat-cols {
+  display: flex;
+  gap: 5px;
+}
+
+#view-playground .heat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#view-playground .heat-cell {
+  display: block;
+  width: 19px;
+  height: 19px;
+  border-radius: 3px;
+  background: var(--heat-0);
+}
+
+#view-playground .heat-cell.is-1 {
+  background: var(--heat-1);
+}
+#view-playground .heat-cell.is-2 {
+  background: var(--heat-2);
+}
+#view-playground .heat-cell.is-3 {
+  background: var(--heat-3);
+}
+#view-playground .heat-cell.is-4 {
+  background: var(--heat-4);
+}
+
+#view-playground .heat-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding-left: 22px;
+}
+
+#view-playground .heat-legend span {
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+#view-playground .heat-legend .heat-cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* ======================================================================
+ * LÄGENA
+ *
+ * Åtta rutor med samma vikt. Märket uppe, namnet och beskrivningen nere —
+ * en auto-marginal håller isär dem, så att korten blir lika höga utan att
+ * namnen hoppar.
+ *
+ * Knappar, inte länkar. Lägena var <a> utan href: de gick inte att nå med
+ * tangentbord alls, och ett avstängt läge gick inte att stänga av på riktigt.
+ * ====================================================================== */
+
+#view-playground .arcade-modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s4);
+  margin-bottom: var(--s7);
+}
+
+#view-playground .arcade-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 128px;
+  padding: 20px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+#view-playground .arcade-mode-mark {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+#view-playground .arcade-mode-mark svg {
+  width: 26px;
+  height: 26px;
+}
+
+#view-playground .arcade-mode-name {
+  margin-top: auto;
+  font-size: var(--t-md);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+#view-playground .arcade-mode-desc {
+  margin-top: -4px;
+  font-size: var(--t-sm);
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+/* Märket fylls när läget är valt. Det är hela markeringen som behövs — en
+ * ram som byter färg räcker inte för att peka ut ett av åtta lika kort. */
+#view-playground .arcade-mode:hover:not(:disabled),
+#view-playground .arcade-mode:focus-visible:not(:disabled) {
+  border-color: var(--accent-line);
+}
+
+#view-playground .arcade-mode:hover:not(:disabled) .arcade-mode-mark,
+#view-playground .arcade-mode:focus-visible:not(:disabled) .arcade-mode-mark {
+  color: var(--text-inverse);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Stängt läge sjunker tillbaka mot bottenytan och säger i beskrivningen vad
+ * som saknas. Ett avstängt kort ska gå att läsa, inte bara att inte trycka på. */
+#view-playground .arcade-mode:disabled {
+  cursor: not-allowed;
+  background: var(--surface-0);
+}
+
+#view-playground .arcade-mode:disabled .arcade-mode-name {
+  color: var(--text-3);
+}
+
+#view-playground .arcade-mode:disabled .arcade-mode-mark {
+  color: var(--text-3);
+  background: var(--surface-0);
+}
+
+/* ======================================================================
+ * PRESTATIONER OCH REKORD
+ * ====================================================================== */
+
+#view-playground .arcade-section {
+  margin-bottom: var(--s7);
+}
+
+#view-playground .arcade-heading {
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s2);
+  font-size: var(--t-md);
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+}
+
+#view-playground .arcade-ach-group {
+  margin-bottom: var(--s5);
+}
+
+#view-playground .arcade-ach-title {
+  margin-bottom: var(--s3);
+}
+
+#view-playground .arcade-ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--s3);
+}
+
+#view-playground .arcade-ach {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s3) var(--s4);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* Låst är ett tillstånd, inte ett fel: samma form, tystare ton. Halvtonen
+ * kommer av färgerna och inte av opacity, så att texten behåller sin kontrast
+ * mot ytan. */
+#view-playground .arcade-ach.is-locked {
+  background: var(--surface-0);
+  border-style: dashed;
+}
+
+#view-playground .arcade-ach-name {
+  font-size: var(--t-sm);
+  font-weight: 500;
+}
+
+#view-playground .arcade-ach.is-locked .arcade-ach-name {
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+#view-playground .arcade-ach-desc {
+  font-size: var(--t-xs);
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+#view-playground .arcade-records {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  border-top: 1px solid var(--line);
+}
+
+#view-playground .arcade-record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s4) var(--s4) var(--s4) 0;
+}
+
+#view-playground .arcade-record-n {
+  font-size: var(--t-xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+}
+
+#view-playground .arcade-record-l {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * VÄLJAREN "SPELA FRÅN"
+ *
+ * Vilka kortlekar och mappar lägena hämtar ur. En vanlig knapp med en panel
+ * under, inte en egen kontrolltyp.
+ * ====================================================================== */
+
+#view-playground .pg-custom-dropdown {
+  position: relative;
+}
+
+#view-playground .arcade-focus-label {
+  color: var(--text-3);
+}
+
+#view-playground #pg-dropdown-trigger svg {
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+#view-playground #pg-dropdown-trigger[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+#view-playground .pg-tree-menu {
+  position: absolute;
+  top: calc(100% + var(--s2));
+  right: 0;
+  z-index: 50;
+  width: 22rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: var(--s2);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+#view-playground .pg-tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--row-h);
+  padding: 0 var(--s2);
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+#view-playground .pg-tree-row:hover {
+  background: var(--surface-2);
+}
+
+#view-playground .pg-tree-root {
+  margin-bottom: var(--s1);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  font-weight: 500;
+}
+
+#view-playground .pg-tree-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#view-playground .pg-tree-shelf-text {
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+#view-playground .pg-tree-unsorted {
+  color: var(--text-3);
+}
+
+#view-playground .pg-tree-count {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-playground .pg-tree-toggle,
+#view-playground .pg-tree-toggle-spacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 14px;
+  font-size: 9px;
+  color: var(--text-3);
+}
+
+#view-playground .pg-tree-level-1 {
+  padding-left: var(--s4);
+}
+
+#view-playground .pg-tree-children.hidden {
+  display: none;
+}
+
+#view-playground .pg-tree-menu input[type='checkbox'] {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* ======================================================================
+ * SMALARE SKÄRMAR
+ *
+ * Kartan är det första som får vika: den behöver 380 fasta pixlar för att gå
+ * att räkna, och under den bredden säger den mindre än den tar.
+ * ====================================================================== */
+
+@media (max-width: 1100px) {
+  #view-playground .arcade-top {
+    grid-template-columns: 1fr;
+    gap: var(--s5);
+  }
+
+  #view-playground .arcade-modes {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  #view-playground .arcade-modes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  #view-playground .heat {
+    overflow-x: auto;
+  }
+
+  #view-playground .arcade-modes {
+    grid-template-columns: 1fr;
+    gap: var(--s3);
+  }
+
+  #view-playground .arcade-mode {
+    min-height: 0;
+    padding: var(--s4);
+  }
+
+  #view-playground .pg-tree-menu {
+    width: min(22rem, calc(100vw - var(--s5)));
+  }
+}

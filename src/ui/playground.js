@@ -11,7 +11,6 @@ import { jeopardyReveal } from '../games/jeopardy.js';
 import { lucktextReveal } from '../games/lucktext.js';
 import { suddenDeathReveal } from '../games/suddendeath.js';
 import { transportbandetReveal } from '../games/transportbandet.js';
-import { safeParse } from './images.js';
 import { renderLatex } from './latex.js';
 import { switchView } from './router.js';
 import { renderStudyCard } from './study.js';
@@ -37,24 +36,18 @@ export const renderPlayground = () => {
         });
     }
     const now = Date.now();
-    const DAY = 1000 * 60 * 60 * 24;
     const records = loadRecords();
-    const parseCreated = (c) => Math.min(parseInt(c.id, 10), now);
 
     // --- Core stats ---
     const totalCards = allCards.length;
     const newCards = allCards.filter(c => c.repetition === 0).length;
     const learningCards = allCards.filter(c => c.repetition > 0 && c.interval < 21).length;
     const masteredCards = allCards.filter(c => c.interval >= 21).length;
-    const newPct = totalCards > 0 ? (newCards / totalCards * 100) : 0;
     const learningPct = totalCards > 0 ? (learningCards / totalCards * 100) : 0;
     const masteredPct = totalCards > 0 ? (masteredCards / totalCards * 100) : 0;
 
     const dueNow = allCards.filter(c => c.nextReviewDate <= now).length;
     const todayStr = getLocalDateString();
-    const todayCount = records.dailyCounts?.[todayStr] || 0;
-    const totalTodayTasks = todayCount + dueNow;
-    const completionPct = totalTodayTasks > 0 ? Math.round((todayCount / totalTodayTasks) * 100) : 100;
 
     // --- Streak ---
     // Raknas ur repetitionsloggen, inte ur card.lastReviewed. Det gamla sattet
@@ -72,20 +65,11 @@ export const renderPlayground = () => {
     }
 
     // --- Extended records ---
-    const totalReviewed = allCards.filter(c => c.lastReviewed).length;
     const longestInterval = Math.ceil(Math.max(0, ...allCards.map(c => c.interval || 0)));
     const dailyCountValues = Object.values(records.dailyCounts || {});
     const activeDays = dailyCountValues.filter(v => v > 0).length;
     const totalReviews = dailyCountValues.reduce((s, v) => s + v, 0);
     const avgPerDay = activeDays > 0 ? Math.round(totalReviews / activeDays) : 0;
-
-    // --- Hardest card (most lapses, or shortest interval) ---
-    let hardestCard = null;
-    let worstScore = -1;
-    allCards.forEach(c => {
-        const score = (c.lapses || 0) * 10 + (c.repetition > 0 ? (1 / Math.max(0.1, c.interval)) : 0);
-        if (score > worstScore && c.repetition > 0) { worstScore = score; hardestCard = c; }
-    });
 
     // --- Heatmap (12 weeks, aligned to Mon-Sun) ---
     const heatmapDays = 84;
@@ -115,315 +99,244 @@ export const renderPlayground = () => {
     }
     const heatmapMax = Math.max(1, ...heatmapData.map(cell => cell.count));
 
-    // --- Yesterday count for "beat yesterday" ---
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = getLocalDateString(yesterday);
-    const yesterdayCount = records.dailyCounts?.[yesterdayStr] || 0;
-
-    // --- Insight (deterministic per day, not random) ---
-    let insightText = '';
-    if (totalCards === 0) {
-        insightText = 'Tomt bibliotek. Skapa en kortlek för att börja.';
-    } else {
-        const seed = new Date().getDate();
-        const pool = [];
-        if (yesterdayCount > 0) pool.push(`Du repeterade ${yesterdayCount} kort igår.`);
-        if (streak > 7) pool.push(`${streak} dagar i rad.`);
-        else if (streak > 2) pool.push(`${streak} dagar i rad. Varje dag räknas.`);
-        if (dueNow === 0 && totalCards > 5) pool.push('Allt klart för idag.');
-        else if (dueNow > 20) pool.push(`${dueNow} kort väntar.`);
-        if (masteredCards > totalCards * 0.5) pool.push(`Över hälften av dina kort är mästrade.`);
-        if (pool.length > 0) insightText = pool[seed % pool.length];
-    }
-
     // --- Achievements ---
     const achievementCats = getAchievements(allCards, streak, records);
 
-    // --- Mode availability ---
-    const reviewedCards = allCards.filter(c => c.repetition > 0);
-    const unStudied = allCards.filter(c => !c.lastReviewed || c.repetition <= 1);
-    const monthAgo = now - 30 * DAY;
-    const timeTravel = allCards.filter(c => { const cr = parseCreated(c); return cr >= monthAgo - 7*DAY && cr <= monthAgo; });
 
+
+    /* Lägena. Namn, beskrivning och märke kommer ur mockupen; id:t är det
+     * appen redan känner. Ordningen är mockupens.
+     *
+     * Märkena är streckteckningar i samma penna som resten av gränssnittet —
+     * en linje, en fylld ruta, en prick. De gamla lägena hade var sin färg och
+     * var sitt dekorativa typsnitt, vilket gjorde spelhallen till en annan app
+     * än den man just kom ifrån. */
     const modes = [
         {
-            id: 'suddendeath',
-            title: 'Sudden Death',
-            desc: 'Tre hjärtan. Tidtagen flerval. Slå ditt rekord.',
-            arrow: 'Kör',
-            count: Math.min(20, totalCards),
-            min: 4,
-            themeClass: 'pg-mode-suddendeath',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`
-        },
-        {
-            id: 'transportbandet',
-            title: 'Transport-<br>bandet',
-            desc: 'Sortera fallande kort i rätt mapp innan de kraschar.',
-            arrow: 'Spela',
-            count: Math.min(20, totalCards),
-            min: 4,
-            themeClass: 'pg-mode-transportbandet',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
-        },
-        {
-            id: 'dragkampen',
-            title: 'Dragkampen',
-            desc: 'Binära val. Dra markören till din sida.',
-            arrow: 'Fightas',
-            count: Math.min(20, totalCards),
-            min: 4,
-            themeClass: 'pg-mode-dragkampen',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`
-        },
-        { 
-            id: 'jeopardy', 
-            title: 'Jeopardy', 
-            desc: 'Se svaret — gissa frågan.', 
-            arrow: 'Spela', 
-            count: Math.min(15, totalCards), 
-            min: 2,
-            themeClass: 'pg-mode-jeopardy',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
-        },
-        { 
-            id: 'dammiga', 
-            title: 'Dammiga kort', 
-            desc: 'Längst tid utan repetition.', 
-            arrow: 'Starta', 
-            count: Math.min(20, totalCards), 
+            id: 'action',
+            name: 'Action',
+            desc: 'Tidspress och combo. Svara snabbt.',
             min: 1,
-            themeClass: 'pg-mode-dammiga',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 2h14M5 22h14M19 2l-7 7-7-7M5 22l7-7 7 7"/></svg>`
-        },
-        { 
-            id: 'action', 
-            title: 'Action-<br>repetition', 
-            desc: 'Slammande ord under tidspress. Genuin action.', 
-            arrow: 'Kör', 
-            count: Math.min(10, totalCards), 
-            min: 1,
-            themeClass: 'pg-mode-action',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`
+            count: Math.min(10, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="square" aria-hidden="true"><path d="M3 15L6 5"/><path d="M9 15L12 5"/><path d="M16 15L19 5"/></svg>`,
         },
         {
             id: 'lucktext',
-            title: 'Lucktext',
-            desc: 'Memorera svaret, fyll sedan i nyckelorden.',
-            arrow: 'Starta',
-            count: Math.min(15, totalCards),
+            name: 'Lucktext',
+            desc: 'Memorera svaret, fyll i nyckelorden.',
             min: 1,
-            themeClass: 'pg-mode-lucktext',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="17" y2="7"/><line x1="7" y1="12" x2="11" y2="12"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="17" x2="17" y2="17"/></svg>`
+            count: Math.min(15, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="8" width="4" height="4" fill="currentColor" stroke="none"/><rect x="7.6" y="7.6" width="4.8" height="4.8"/><rect x="14" y="8" width="4" height="4" fill="currentColor" stroke="none"/></svg>`,
         },
         {
             id: 'fritext',
-            title: 'Fritext',
-            desc: 'Skriv svaret ur minnet. Se hur mycket du kom ihåg.',
-            arrow: 'Starta',
-            count: Math.min(10, totalCards),
+            name: 'Fritext',
+            desc: 'Skriv svaret ur minnet.',
             min: 1,
-            themeClass: 'pg-mode-fritext',
-            iconSvg: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`
+            count: Math.min(10, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M2.5 16.5h15"/><path d="M3.5 12.5c1.8-5.5 3.4-6 4.6-1.6c1-4.4 2.4-4.6 3.4-1.2"/><path d="M15.5 5v8.5"/></svg>`,
+        },
+        {
+            id: 'jeopardy',
+            name: 'Jeopardy',
+            desc: 'Du ser svaret. Gissa frågan.',
+            min: 2,
+            count: Math.min(15, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="12.6" y="4.5" width="5.4" height="11" fill="currentColor" stroke="none"/><path d="M10.5 6.5L6.5 10L10.5 13.5"/><path d="M2 4.5v11"/></svg>`,
+        },
+        {
+            id: 'dammiga',
+            name: 'Dammiga kort',
+            desc: 'De tjugo kort du inte rört på längst tid.',
+            min: 1,
+            count: Math.min(20, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="6.5" width="10" height="11" opacity="0.45"/><rect x="5" y="4.5" width="10" height="11" opacity="0.72"/><rect x="8.5" y="2.5" width="10" height="11"/></svg>`,
+        },
+        {
+            id: 'suddendeath',
+            name: 'Sudden Death',
+            desc: 'Tre liv. Ett fel för mycket och det är slut.',
+            min: 4,
+            count: Math.min(20, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="4" cy="10" r="2.1" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="2.1" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="2.1"/><path d="M13.4 7.4L18.6 12.6" stroke-width="1.6"/><path d="M18.6 7.4L13.4 12.6" stroke-width="1.6"/></svg>`,
+        },
+        {
+            id: 'transportbandet',
+            name: 'Transportbandet',
+            desc: 'Sortera fallande kort i rätt mapp.',
+            min: 4,
+            count: Math.min(20, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1.5 16.5h17"/><rect x="3" y="10.5" width="5.5" height="5"/><rect x="11.5" y="10.5" width="5.5" height="5"/><rect x="4.6" y="2" width="4.4" height="4.4" fill="currentColor" stroke="none"/><path d="M6.8 7.2v2.4" stroke-dasharray="1.2 1.2"/></svg>`,
+        },
+        {
+            id: 'dragkampen',
+            name: 'Dragkampen',
+            desc: 'Sant eller falskt. Dra mätaren till din sida.',
+            min: 4,
+            count: Math.min(20, totalCards),
+            mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M2 10h16"/><path d="M2 6.5v7"/><path d="M18 6.5v7"/><path d="M12.5 4.5v11" stroke-width="2.4"/></svg>`,
         },
     ];
 
-    // Build achievements HTML dynamically by category
-    let achievementsHtml = '';
-    Object.entries(achievementCats).forEach(([catName, list]) => {
-        achievementsHtml += `
-            <div class="pg-ach-category" style="margin-bottom: 2rem;">
-                <h3 style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem; letter-spacing: 0.03em;">${catName}</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem;">
-                    ${list.map(a => `
-                        <div class="pg-achievement" style="padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--surface-color); ${a.unlocked ? '' : 'opacity: 0.45;'}">
-                            <span style="display: block; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.2rem;">${a.title}</span>
-                            <span style="display: block; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.3;">${a.desc}</span>
-                        </div>
-                    `).join('')}
+    /* Aktivitetskartan ritas i veckokolumner, inte som ett band av 84 rutor.
+     * heatmapData börjar på en måndag och slutar på veckans söndag, så sju i
+     * taget blir exakt en vecka per kolumn. */
+    const weeks = [];
+    for (let i = 0; i < heatmapData.length; i += 7) weeks.push(heatmapData.slice(i, i + 7));
+
+    // Fyra steg, inte en genomskinlighet per tal: en ruta ska gå att placera i
+    // en skala med ögat, inte jamforas pixel mot pixel.
+    const heatLevel = (count) => {
+        if (count <= 0) return '';
+        const del = count / heatmapMax;
+        if (del > 0.75) return ' is-4';
+        if (del > 0.5) return ' is-3';
+        if (del > 0.25) return ' is-2';
+        return ' is-1';
+    };
+
+    const MANADER = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+    const manadFor = (vecka) => MANADER[vecka[0].date.getMonth()];
+    const manadsrad = weeks.length
+        ? [manadFor(weeks[0]), manadFor(weeks[Math.floor(weeks.length / 2)]), manadFor(weeks[weeks.length - 1])]
+        : [];
+
+    const heatCell = (cell) => {
+        const d = cell.date;
+        const titel = cell.isFuture
+            ? `${d.getDate()}/${d.getMonth() + 1} — kommande`
+            : `${d.getDate()}/${d.getMonth() + 1}: ${cell.count} repetitioner`;
+        return `<i class="heat-cell${heatLevel(cell.count)}" title="${titel}"></i>`;
+    };
+
+    // Prestationerna. Kategori för kategori, låsta i halvton — de visar vad
+    // som finns kvar att göra och ska därför inte gömmas.
+    const achievementsHtml = Object.entries(achievementCats)
+        .map(([kategori, lista]) => `
+            <div class="arcade-ach-group">
+                <h3 class="label arcade-ach-title">${escapeHtml(kategori)}</h3>
+                <div class="arcade-ach-grid">
+                    ${lista.map((a) => `
+                        <div class="arcade-ach${a.unlocked ? '' : ' is-locked'}">
+                            <span class="arcade-ach-name">${escapeHtml(a.title)}</span>
+                            <span class="arcade-ach-desc">${escapeHtml(a.desc)}</span>
+                        </div>`).join('')}
                 </div>
-            </div>
-        `;
-    });
+            </div>`)
+        .join('');
+
+    const rekord = [
+        records.bestDayCount
+            ? { n: records.bestDayCount, l: 'kort på en dag' }
+            : null,
+        (records.bestStreak || streak) > 0
+            ? { n: records.bestStreak || streak, l: 'dagars längsta streak' }
+            : null,
+        longestInterval >= 7 ? { n: longestInterval, l: 'dagars längsta intervall' } : null,
+        avgPerDay > 0 ? { n: avgPerDay, l: 'snitt per aktiv dag' } : null,
+        totalReviews > 0 ? { n: totalReviews, l: 'repetitioner totalt' } : null,
+    ].filter(Boolean);
+
+    const fmt = (n) => n.toLocaleString('sv-SE');
 
     // --- Render ---
-    let html = `
-        <article class="pg-article">
-            <header class="pg-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem; position: relative;">
-                <div>
-                    <h1 class="pg-title" style="margin-bottom: 0.25rem;">Spelhallen</h1>
-                    ${insightText ? `<p class="pg-insight" style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">${insightText}</p>` : ''}
+    const html = `
+        <div class="view-header">
+            <h1 class="arcade-title">Spelhallen</h1>
+            <div class="pg-custom-dropdown">
+                <button id="pg-dropdown-trigger" type="button" class="btn" aria-expanded="${S.playgroundDropdownOpen}">
+                    <span class="arcade-focus-label">Spela från</span>
+                    <span id="pg-dropdown-selected-label">${S.playgroundFilterAll ? 'hela biblioteket' : (S.playgroundFilterSource.size === 0 ? 'inget valt' : `${S.playgroundFilterSource.size} val`)}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div id="pg-dropdown-menu" class="pg-tree-menu ${S.playgroundDropdownOpen ? '' : 'hidden'}">
+                    <div id="pg-tree-content"></div>
                 </div>
-                
-                <!-- Focus Tree Dropdown -->
-                <div class="pg-custom-dropdown" style="position: relative; z-index: 100;">
-                    <button id="pg-dropdown-trigger" class="pg-focus-trigger">
-                        <span class="pg-focus-label">Fokusera:</span>
-                        <span id="pg-dropdown-selected-label">${S.playgroundFilterAll ? 'Hela biblioteket' : (S.playgroundFilterSource.size === 0 ? 'Inget valt' : `${S.playgroundFilterSource.size} val`)}</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity: 0.7; margin-left: 0.25rem; transform: ${S.playgroundDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s ease;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                    <div id="pg-dropdown-menu" class="pg-tree-menu ${S.playgroundDropdownOpen ? '' : 'hidden'}">
-                        <div id="pg-tree-content"></div>
+            </div>
+        </div>
+
+        <div class="arcade-top">
+            <div class="arcade-mastery">
+                <div class="arcade-stats">
+                    <div>
+                        <div class="n num">${fmt(newCards)}</div>
+                        <div class="l">Nytt</div>
+                    </div>
+                    <div>
+                        <div class="n num">${fmt(learningCards)}</div>
+                        <div class="l">Lär</div>
+                    </div>
+                    <div>
+                        <div class="n num is-accent">${fmt(masteredCards)}</div>
+                        <div class="l">Mästrat</div>
                     </div>
                 </div>
-            </header>
+                <div class="progress arcade-bar" aria-hidden="true">
+                    <i class="progress-fill" style="width:${masteredPct}%"></i>
+                    <i class="progress-fill-soft" style="width:${learningPct}%"></i>
+                </div>
+                <p class="label arcade-total">${fmt(totalCards)} kort totalt${dueNow > 0 ? ` · ${fmt(dueNow)} förfallna` : ''}</p>
+            </div>
 
-            <!-- Unified Premium Dashboard Widget -->
-            <section class="pg-section" style="margin-bottom: 2.5rem;">
-                <div class="pg-dashboard-card">
-                    <div class="pg-db-streak">
-                        <div class="pg-db-streak-badge ${streak > 0 ? 'active' : ''}">
-                            <svg class="pg-flame-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-                            </svg>
-                        </div>
-                        <div class="pg-db-streak-info">
-                            <span class="pg-db-streak-title">Streak</span>
-                            <span class="pg-db-streak-val"><span data-target="${streak}">${streak}</span> ${streak === 1 ? 'dag' : 'dagar'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="pg-db-divider"></div>
-                    
-                    <div class="pg-db-mastery">
-                        <div class="pg-db-mastery-header">
-                            <span class="pg-db-mastery-title">Inlärningsstatus</span>
-                            <span class="pg-db-health-badge" title="Du har repeterat ${todayCount} av dagens ${totalTodayTasks} schemalagda kort.">${completionPct}% avklarat idag</span>
-                        </div>
-                        <div class="pg-mastery-bar">
-                            <div class="pg-mastery-seg pg-mastery-new" style="width:${newPct}%" title="${newCards} ostuderade"></div>
-                            <div class="pg-mastery-seg pg-mastery-learning" style="width:${learningPct}%" title="${learningCards} i korttidsminnet"></div>
-                            <div class="pg-mastery-seg pg-mastery-mastered" style="width:${masteredPct}%" title="${masteredCards} mästrade"></div>
-                        </div>
-                        <div class="pg-mastery-legend">
-                            <span><span class="pg-dot pg-dot-new"></span>${newCards} Ostuderade</span>
-                            <span><span class="pg-dot pg-dot-learning"></span>${learningCards} Korttidsminne</span>
-                            <span><span class="pg-dot pg-dot-mastered"></span>${masteredCards} Långtidsminne</span>
-                            <span style="margin-left:auto;font-weight:600;">${totalCards} totalt</span>
-                        </div>
+            <div class="heat">
+                <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
+                <div class="heat-grid">
+                    <div class="heat-days"><span>må</span><span></span><span>on</span><span></span><span>fr</span><span></span><span></span></div>
+                    <div class="heat-cols">
+                        ${weeks.map((v) => `<div class="heat-col">${v.map(heatCell).join('')}</div>`).join('')}
                     </div>
                 </div>
-            </section>
-
-            ${hardestCard ? `
-            <section class="pg-section">
-                <h2 class="pg-heading">Hjärnsläpp</h2>
-                <div class="pg-wall-card" onclick="startPlaygroundStudy('suddendeath')" style="cursor:pointer; border: 1px dashed var(--rate-1); background: rgba(234,67,53,0.01);">
-                    <div class="pg-wall-front">${safeParse(hardestCard.front)}</div>
-                    <div class="pg-wall-action" style="color: var(--rate-1);">Utmana dig i Sudden Death &rarr;</div>
+                <div class="heat-legend">
+                    <span>mindre</span>
+                    <i class="heat-cell"></i><i class="heat-cell is-1"></i><i class="heat-cell is-2"></i><i class="heat-cell is-3"></i><i class="heat-cell is-4"></i>
+                    <span>mer</span>
                 </div>
-            </section>` : ''}
+            </div>
+        </div>
 
-            <section class="pg-section">
-                <h2 class="pg-heading">Lägen</h2>
-                <div class="pg-modes">
-                    ${modes.map((m, idx) => {
-                        const disabled = m.count < m.min;
-                        return `<a class="pg-mode ${m.themeClass || ''}${disabled ? ' pg-mode-disabled' : ''}" data-mode-idx="${idx}" ${disabled ? '' : `onclick="startPlaygroundStudy('${m.id}')"`}>
-                            <div class="pg-mode-header">
-                                <span class="pg-mode-icon">${m.iconSvg || ''}</span>
-                                <span class="pg-mode-title">${m.title}</span>
-                            </div>
-                            <p class="pg-mode-desc">${m.desc}</p>
-                            <span class="pg-mode-footer">
-                                <span class="pg-mode-count">${disabled ? m.min + '+ kort krävs' : m.count + ' kort'}</span>
-                                ${disabled ? '' : `<span class="pg-mode-arrow">${m.arrow} &rarr;</span>`}
-                            </span>
-                        </a>`;
-                    }).join('')}
-                </div>
-            </section>
+        <div class="arcade-modes">
+            ${modes.map((m) => {
+                const stangt = m.count < m.min;
+                /* Knapp, inte länk. Lägena var <a> utan href: de gick inte att
+                 * nå med tangentbord alls, och skärmläsaren läste dem som
+                 * text. */
+                return `<button type="button" class="arcade-mode${stangt ? ' is-closed' : ''}" data-mode="${m.id}" ${stangt ? 'disabled' : ''}>
+                    <span class="arcade-mode-mark" aria-hidden="true">${m.mark}</span>
+                    <span class="arcade-mode-name">${m.name}</span>
+                    <span class="arcade-mode-desc">${stangt ? `Kräver minst ${m.min} kort.` : m.desc}</span>
+                </button>`;
+            }).join('')}
+        </div>
 
-            <section class="pg-section">
-                <h2 class="pg-heading">Aktivitet</h2>
-                <div class="pg-heatmap-card">
-                    <div style="display: flex; gap: 0.6rem; align-items: flex-start; justify-content: center; width: 100%;">
-                        <div class="pg-heatmap-labels" style="display: grid; grid-template-rows: repeat(7, 18px); gap: 4px; font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; line-height: 18px; text-align: right; padding-right: 6px;">
-                            <span>Mån</span>
-                            <span></span>
-                            <span>Ons</span>
-                            <span></span>
-                            <span>Fre</span>
-                            <span></span>
-                            <span>Sön</span>
-                        </div>
-                        <div class="pg-heatmap">
-                            ${heatmapData.map((cell) => {
-                                const count = cell.count;
-                                const opacity = count === 0 ? 0 : Math.max(0.2, count / heatmapMax);
-                                const d = cell.date;
-                                const label = cell.isFuture 
-                                    ? `${d.getDate()}/${d.getMonth()+1} (Kommande)`
-                                    : `${d.getDate()}/${d.getMonth()+1}: ${count} repetitioner`;
-                                return `<div class="pg-heatmap-cell" ${count === 0 ? '' : `style="background:rgba(26,115,232,${opacity})"`} title="${label}"></div>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 0.35rem; font-size: 0.75rem; color: var(--text-secondary); align-items: center; justify-content: center; width: 100%; border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.25rem;">
-                        <span>Mindre aktiv</span>
-                        <div style="width: 10px; height: 10px; background: var(--heatmap-empty, #e2e8f0); border-radius: 2px;"></div>
-                        <div style="width: 10px; height: 10px; background: rgba(26,115,232,0.3); border-radius: 2px;"></div>
-                        <div style="width: 10px; height: 10px; background: rgba(26,115,232,0.6); border-radius: 2px;"></div>
-                        <div style="width: 10px; height: 10px; background: rgba(26,115,232,1); border-radius: 2px;"></div>
-                        <span>Mer aktiv</span>
-                    </div>
-                </div>
-            </section>
+        <section class="arcade-section">
+            <h2 class="arcade-heading">Prestationer</h2>
+            ${achievementsHtml}
+        </section>
 
-            <section class="pg-section">
-                <h2 class="pg-heading">Prestationer</h2>
-                ${achievementsHtml}
-            </section>
-
-            ${(records.bestDayCount || totalReviewed > 0) ? `
-            <section class="pg-section">
-                <h2 class="pg-heading">Rekord</h2>
-                <div class="pg-records">
-                    ${records.bestDayCount ? `<div class="pg-record">
-                        <span class="pg-record-value">${records.bestDayCount}</span>
-                        <span class="pg-record-label">kort på en dag</span>
-                        ${records.bestDay ? `<span class="pg-record-date">${new Date(records.bestDay).toLocaleDateString('sv-SE', {day: 'numeric', month: 'short'})}</span>` : ''}
-                    </div>` : ''}
-                    ${(records.bestStreak || streak) > 0 ? `<div class="pg-record">
-                        <span class="pg-record-value">${records.bestStreak || streak}</span>
-                        <span class="pg-record-label">längsta streak</span>
-                        ${streak > 0 && streak < (records.bestStreak || 0) ? `<span class="pg-record-date">Nu: ${streak}d</span>` : ''}
-                    </div>` : ''}
-                    ${longestInterval >= 7 ? `<div class="pg-record">
-                        <span class="pg-record-value">${longestInterval}</span>
-                        <span class="pg-record-label">dagars längsta intervall</span>
-                    </div>` : ''}
-                    ${avgPerDay > 0 ? `<div class="pg-record">
-                        <span class="pg-record-value">${avgPerDay}</span>
-                        <span class="pg-record-label">snitt per aktiv dag</span>
-                    </div>` : ''}
-                    ${totalReviews > 0 ? `<div class="pg-record">
-                        <span class="pg-record-value">${totalReviews}</span>
-                        <span class="pg-record-label">repetitioner totalt</span>
-                    </div>` : ''}
-                </div>
-            </section>` : ''}
-        </article>
+        ${rekord.length ? `
+        <section class="arcade-section">
+            <h2 class="arcade-heading">Rekord</h2>
+            <div class="arcade-records">
+                ${rekord.map((r) => `
+                    <div class="arcade-record">
+                        <span class="arcade-record-n num">${fmt(r.n)}</span>
+                        <span class="arcade-record-l">${r.l}</span>
+                    </div>`).join('')}
+            </div>
+        </section>` : ''}
     `;
 
     container.innerHTML = html;
     renderLatex(container);
 
-    // Animate numbers
-    container.querySelectorAll('[data-target]').forEach(el => {
-        const target = parseInt(el.dataset.target);
-        if (target <= 0) return;
-        el.textContent = '0';
-        const duration = 400;
-        const start = performance.now();
-        const tick = (time) => {
-            const progress = Math.min((time - start) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            el.textContent = Math.round(target * eased);
-            if (progress < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
+    container.querySelectorAll('.arcade-mode[data-mode]').forEach((knapp) => {
+        knapp.addEventListener('click', () => window.startPlaygroundStudy(knapp.dataset.mode));
     });
+
+    /* Sifferanimeringen ar borttagen. Den raknade upp streaken fran noll vid
+     * varje rendering, och den enda kvarvarande [data-target] i vyn ar tradets
+     * expandera-pilar — samma selektor hade skrivit NaN i dem. Ett tal som
+     * andras nar man tittar bort ar inte lugn precision. */
 
     // Focus tree dropdown
     const dropdownTrigger = document.getElementById('pg-dropdown-trigger');
@@ -768,7 +681,6 @@ export function initUiPlayground() {
 
   window.startPlaygroundStudy = (mode) => {
       const now = Date.now();
-      const DAY = 1000 * 60 * 60 * 24;
       const safeCreated = (c) => Math.min(parseInt(c.id, 10), now);
 
       let allCards = S.appData.decks.flatMap(d => {

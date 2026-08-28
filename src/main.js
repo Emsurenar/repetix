@@ -16,6 +16,10 @@ import './styles/views/forms.css';
 import './styles/views/auth.css';
 import './styles/views/search.css';
 import './styles/games-legacy.css';
+// Spelhallen laddas sist och ar scopad till #view-playground: den ska vinna
+// over den gamla stilmallens .pg-regler utan !important.
+import './styles/views/playground.css';
+import './styles/views/games.css';
 
 import './app/vendor.js';
 
