@@ -47,6 +47,30 @@ export function onAuthChange(fn) {
   return () => listeners.delete(fn);
 }
 
+/* Återställningslänken.
+ *
+ * Med detectSessionInUrl konsumerar klienten återställningstoken och skapar en
+ * session — användaren blir alltså inloggad av att klicka länken. Utan det här
+ * lyssnaren stannade det där: "Glömt lösenordet" var i praktiken en
+ * inloggningslänk, och den vars lösenord läckt trodde sig ha bytt det medan
+ * det gamla fortfarande gällde. */
+const recoveryListeners = new Set();
+let recoveryPending = false;
+
+export function onPasswordRecovery(fn) {
+  recoveryListeners.add(fn);
+  // Händelsen kan ha passerat innan gränssnittet hann koppla sig.
+  if (recoveryPending) fn();
+  return () => recoveryListeners.delete(fn);
+}
+
+export async function updatePassword(password) {
+  if (!supabase) return { error: 'Molnlagring är inte konfigurerad.' };
+  const { error } = await supabase.auth.updateUser({ password });
+  if (!error) recoveryPending = false;
+  return { error: error ? translateAuthError(error) : null };
+}
+
 function setUser(user) {
   const changed = currentUser?.id !== user?.id;
   currentUser = user ?? null;
@@ -61,7 +85,13 @@ export async function initAuth() {
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   setUser(data.session?.user ?? null);
-  supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+  supabase.auth.onAuthStateChange((event, session) => {
+    setUser(session?.user ?? null);
+    if (event === 'PASSWORD_RECOVERY') {
+      recoveryPending = true;
+      for (const fn of recoveryListeners) fn();
+    }
+  });
   return currentUser;
 }
 

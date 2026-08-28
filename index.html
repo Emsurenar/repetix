@@ -1062,6 +1062,19 @@
                     <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
                 </label>
 
+                <!-- Återställningsläget. Fälten bor i samma formulär som
+                     inloggningen i stället för i en egen vy: man kommer hit
+                     genom att klicka en länk i sin e-post, och då ska sidan
+                     visa vad som ska göras direkt, inte navigera vidare. -->
+                <label class="auth-field" id="auth-new-field" hidden>
+                    <span>Nytt lösenord</span>
+                    <input type="password" id="auth-new-password" autocomplete="new-password" minlength="8">
+                </label>
+                <label class="auth-field" id="auth-new-again-field" hidden>
+                    <span>Upprepa lösenordet</span>
+                    <input type="password" id="auth-new-password-again" autocomplete="new-password" minlength="8">
+                </label>
+
                 <p id="auth-error" class="auth-error" role="alert" hidden></p>
                 <p id="auth-notice" class="auth-notice" role="status" hidden></p>
 
@@ -1084,7 +1097,7 @@
                 <span>Fortsätt med Google</span>
             </button>
 
-            <div class="auth-links">
+            <div class="auth-links" id="auth-links">
                 <button type="button" class="btn text" id="auth-toggle">Skapa konto</button>
                 <button type="button" class="btn text" id="auth-forgot">Glömt lösenordet</button>
             </div>

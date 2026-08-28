@@ -8,10 +8,12 @@ import {
   cloudConfigured,
   enabledProviders,
   onAuthChange,
+  onPasswordRecovery,
   sendPasswordReset,
   signIn,
   signInWithGoogle,
   signUp,
+  updatePassword,
 } from '../core/supabase.js';
 
 /** Sätts när användaren aktivt valt att köra lokalt, så att vi inte frågar igen. */
@@ -26,19 +28,44 @@ const show = (node, visible) => {
   if (node) node.hidden = !visible;
 };
 
+/* Åtta tecken, inte sex. Sex gäller för inloggning eftersom befintliga konton
+ * kan ha kortare lösenord sedan tidigare — men den som just nu sätter ett nytt
+ * ska inte få sätta ett sämre än förra. */
+const MIN_NYTT_LOSENORD = 8;
+
 function setMode(next) {
   mode = next;
   const isSignUp = mode === 'signup';
-  el('auth-submit').textContent = isSignUp ? 'Skapa konto' : 'Logga in';
-  el('auth-toggle').textContent = isSignUp ? 'Jag har redan ett konto' : 'Skapa konto';
-  el('auth-lead').textContent = isSignUp
-    ? 'Skapa ett konto så följer dina kort med mellan dator och telefon.'
-    : 'Logga in för att nå dina kort från alla enheter.';
+  const isRecovery = mode === 'recovery';
+
+  el('auth-submit').textContent = isRecovery
+    ? 'Spara nytt lösenord'
+    : isSignUp ? 'Skapa konto' : 'Logga in';
+  el('auth-lead').textContent = isRecovery
+    ? 'Välj ett nytt lösenord. Det gamla slutar gälla när du sparar.'
+    : isSignUp
+      ? 'Skapa ett konto så följer dina kort med mellan dator och telefon.'
+      : 'Logga in för att nå dina kort från alla enheter.';
+
+  /* I återställningsläget döljs allt som hör till inloggningen. Länken har
+   * redan bevisat vem användaren är; att fråga efter det gamla lösenordet nu
+   * vore att fråga efter det hen glömt. */
   show(el('auth-name-field'), isSignUp);
-  el('auth-password').setAttribute(
-    'autocomplete',
-    isSignUp ? 'new-password' : 'current-password'
-  );
+  show(el('auth-email').closest('.auth-field'), !isRecovery);
+  show(el('auth-password').closest('.auth-field'), !isRecovery);
+  show(el('auth-new-field'), isRecovery);
+  show(el('auth-new-again-field'), isRecovery);
+  show(el('auth-links'), !isRecovery);
+  show(el('auth-google'), !isRecovery && el('auth-google')?.dataset.pa === '1');
+  show(el('auth-sep'), !isRecovery && el('auth-google')?.dataset.pa === '1');
+
+  if (!isRecovery) {
+    el('auth-toggle').textContent = isSignUp ? 'Jag har redan ett konto' : 'Skapa konto';
+    el('auth-password').setAttribute(
+      'autocomplete',
+      isSignUp ? 'new-password' : 'current-password'
+    );
+  }
   clearMessages();
 }
 
@@ -112,6 +139,32 @@ export function initAuthUi({ onSignedIn: signedInCallback } = {}) {
     event.preventDefault();
     clearMessages();
 
+    if (mode === 'recovery') {
+      const nytt = el('auth-new-password').value;
+      const igen = el('auth-new-password-again').value;
+      if (nytt.length < MIN_NYTT_LOSENORD) {
+        showError(`Lösenordet måste vara minst ${MIN_NYTT_LOSENORD} tecken.`);
+        return;
+      }
+      if (nytt !== igen) {
+        showError('De två lösenorden är inte lika.');
+        return;
+      }
+      setBusy(true);
+      const { error: fel } = await updatePassword(nytt);
+      setBusy(false);
+      if (fel) {
+        showError(fel);
+        return;
+      }
+      el('auth-new-password').value = '';
+      el('auth-new-password-again').value = '';
+      setMode('signin');
+      showNotice('Lösenordet är bytt. Du är inloggad.');
+      closeAuth();
+      return;
+    }
+
     const email = el('auth-email').value.trim();
     const password = el('auth-password').value;
     const name = el('auth-name').value.trim();
@@ -178,11 +231,24 @@ export function initAuthUi({ onSignedIn: signedInCallback } = {}) {
   // Avdelaren foljer med: ett "eller" utan nagot att valja mellan ar brus.
   void enabledProviders().then((providers) => {
     const pa = Boolean(providers.google);
-    show(el('auth-google'), pa);
-    show(el('auth-sep'), pa);
+    // Sparas på elementet så att setMode kan visa knappen igen när
+    // återställningsläget lämnas, utan att fråga servern en gång till.
+    el('auth-google').dataset.pa = pa ? '1' : '0';
+    show(el('auth-google'), pa && mode !== 'recovery');
+    show(el('auth-sep'), pa && mode !== 'recovery');
+  });
+
+  /* Klickad återställningslänk. Överlägget öppnas oavsett om användaren redan
+   * räknas som inloggad — det är hela poängen: token loggade in hen, men
+   * lösenordet är fortfarande det gamla tills det här formuläret sparats. */
+  onPasswordRecovery(() => {
+    setMode('recovery');
+    openAuth();
+    el('auth-new-password')?.focus();
   });
 
   onAuthChange((user) => {
+    if (mode === 'recovery') return;
     if (user) {
       closeAuth();
       onSignedIn(user);
