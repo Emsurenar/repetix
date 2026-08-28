@@ -3,6 +3,9 @@ import { saveData } from '../core/storage.js';
 import { fisherYatesShuffle } from '../core/utils.js';
 import { getLocalDateString, loadRecords, saveRecords } from '../domain/stats.js';
 import { RATING, nextReviewAt, schedule, withScheduleDefaults } from '../domain/srs.js';
+import { reviewRow, stripTransientFields } from '../domain/model.js';
+import { recordReview } from '../core/sync.js';
+import { getUserId } from '../core/supabase.js';
 import { renderDecks } from './deck.js';
 import { renderCardBackImages, safeParse } from './images.js';
 import { renderLatex } from './latex.js';
@@ -210,7 +213,8 @@ export const processRating = (rating) => {
         // withScheduleDefaults skyddar mot gammal eller importerad data där
         // fälten saknas; utan det ger räkningen NaN som sedan sparas till disk.
         const now = Date.now();
-        const next = schedule(withScheduleDefaults(card, now), rating);
+        const before = withScheduleDefaults(card, now);
+        const next = schedule(before, rating);
         card.repetition = next.repetition;
         card.interval = next.interval;
         card.easeFactor = next.easeFactor;
@@ -224,13 +228,34 @@ export const processRating = (rating) => {
 
         // Update main deck references and save (skip for jeopardy — cards are swapped copies)
         if (!card._jeopardy) {
+            let ownerDeckId = null;
             for (const d of S.appData.decks) {
                 const idx = d.cards.findIndex(c => c.id === card.id);
                 if (idx > -1) {
-                    d.cards[idx] = card;
+                    // Spellägena arbetar på ytliga kopior som bär transienta fält
+                    // som originalDeckId och _sectionTitle. Utan tvätten här
+                    // hamnar de permanent i sparad data.
+                    d.cards[idx] = stripTransientFields(card);
+                    ownerDeckId = d.id;
                     break;
                 }
             }
+
+            // Repetitionsloggen. Append-only, så att streak och heatmap kan
+            // härledas ur faktisk historik i stället för ur card.lastReviewed,
+            // som skrivs över vid varje ny repetition.
+            void recordReview(
+                reviewRow({
+                    card,
+                    deckId: ownerDeckId,
+                    userId: getUserId(),
+                    rating,
+                    before,
+                    after: next,
+                    mode: S.isPlaygroundSession ? (S.playgroundMode ?? 'playground') : 'study',
+                    at: now,
+                })
+            );
             // Log review to daily counts
             const r = loadRecords();
             const todayStr = getLocalDateString();

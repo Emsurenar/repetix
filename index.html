@@ -25,7 +25,10 @@
         <nav id="sidebar-tree" class="sidebar-tree">
             <!-- Rendered by JS -->
         </nav>
-        <!-- Removed bottom action per request -->
+        <div class="sidebar-account">
+            <span id="sync-status" class="sync-status" data-state="local" role="status">Lokalt läge</span>
+            <button type="button" id="btn-account" class="btn text sidebar-account-btn" hidden>Konto</button>
+        </div>
     </aside>
 
     <!-- Mobile sidebar toggle -->
@@ -865,6 +868,49 @@
                     <span id="global-search-count">0 resultat</span>
                 </div>
             </div>
+        </div>
+    </div>
+
+
+    <!-- Inloggning. Visas som overlagg nar ingen ar inloggad och molnlagring
+         ar konfigurerad. Skarmen ar avsiktligt spartansk; den far sin riktiga
+         design i etapp 4. -->
+    <div id="auth-overlay" class="auth-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <div class="auth-panel">
+            <h1 id="auth-title" class="auth-title">Repetix</h1>
+            <p class="auth-lead" id="auth-lead">Logga in för att nå dina kort från alla enheter.</p>
+
+            <form id="auth-form" class="auth-form" novalidate>
+                <label class="auth-field" id="auth-name-field" hidden>
+                    <span>Namn</span>
+                    <input type="text" id="auth-name" autocomplete="name">
+                </label>
+                <label class="auth-field">
+                    <span>E-post</span>
+                    <input type="email" id="auth-email" autocomplete="email" required>
+                </label>
+                <label class="auth-field">
+                    <span>Lösenord</span>
+                    <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
+                </label>
+
+                <p id="auth-error" class="auth-error" role="alert" hidden></p>
+                <p id="auth-notice" class="auth-notice" role="status" hidden></p>
+
+                <button type="submit" class="btn primary auth-submit" id="auth-submit">Logga in</button>
+            </form>
+
+            <button type="button" class="btn text auth-google" id="auth-google" hidden>Fortsätt med Google</button>
+
+            <div class="auth-links">
+                <button type="button" class="btn text" id="auth-toggle">Skapa konto</button>
+                <button type="button" class="btn text" id="auth-forgot">Glömt lösenordet</button>
+            </div>
+
+            <p class="auth-offline">
+                <button type="button" class="btn text" id="auth-skip">Fortsätt utan konto</button>
+                <span class="auth-offline-hint">Data sparas bara på den här enheten.</span>
+            </p>
         </div>
     </div>
 

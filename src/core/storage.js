@@ -4,6 +4,7 @@ import { renderDecks } from '../ui/deck.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
 import { showConfirmModal } from '../ui/modals.js';
 import { showToast } from '../ui/toast.js';
+import { recordChanges } from './sync.js';
 
 
 // --- DATA & STORAGE ---
@@ -109,6 +110,10 @@ export const saveData = () => {
                 throw e;
             }
         }
+        // Molnsynk. Diffen mot förra ögonblicksbilden avgör vad som ändrats, så
+        // att appens fyrtiotal mutationsställen slipper rapportera sin avsikt
+        // var för sig. Är ingen inloggad är detta en tom operation.
+        void recordChanges(S.appData);
     }, 50);
 };
 

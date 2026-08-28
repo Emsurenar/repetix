@@ -4,6 +4,8 @@
 
 import './app/vendor.js';
 
+import { initCloud } from './app/cloud.js';
+
 import { initCoreState } from './core/state.js';
 import { initCoreStorage } from './core/storage.js';
 import { initUiImages } from './ui/images.js';
@@ -55,3 +57,7 @@ export function start() {
 }
 
 start();
+
+// Molnlagret startas efter att appen renderat sin lokala data, sa att en
+// langsam uppkoppling aldrig fordrojer forsta malningen.
+void initCloud();
