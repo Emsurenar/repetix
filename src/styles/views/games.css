@@ -19,6 +19,30 @@
   margin: 0 auto;
   padding: var(--s6) var(--s5);
   text-align: left;
+  animation: arena-in var(--dur-2) var(--ease-out) both;
+}
+
+/* Ett nytt kort lägger sig på plats i stället för att bytas i ett hugg. Lägena
+ * ritar om hela arenan mellan korten, och utan resan såg bytet ut som ett
+ * fel i ritningen: texten var en annan men ingenting hade rört sig.
+ *
+ * Sex pixlar och en intoning räcker. Mer, och varje kort blir en händelse. */
+@keyframes arena-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Det som avslöjas efter svaret kommer in på samma sätt, fast för sig: här
+ * står arenan redan kvar och bara svaret är nytt. Elementet göms och visas
+ * igen mellan omgångarna, vilket startar om animeringen av sig självt. */
+.arena-reveal {
+  animation: arena-in var(--dur-2) var(--ease-out) both;
 }
 
 /* ======================================================================
@@ -146,7 +170,7 @@
 
 .arena-combo {
   opacity: 0;
-  transition: opacity var(--dur) var(--ease);
+  transition: opacity var(--dur-2) var(--ease-out);
 }
 
 .arena-combo.is-on {
@@ -180,19 +204,38 @@
   cursor: pointer;
   word-break: break-word;
   transition:
-    background var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    color var(--dur-1) var(--ease-soft),
+    transform var(--dur-1) var(--ease-spring);
 }
 
 .arena .sd-option-btn:hover {
   border-color: var(--text-3);
-  transform: none;
+}
+
+/* Knappen ger efter under fingret. Fjädern har en knapp översläng på vägen
+ * tillbaka, vilket är skillnaden mellan en yta som svarar och en som bara
+ * byter färg. Samma tryck sätts av tangentbordet via .pressed. */
+.arena .sd-option-btn:active {
+  transform: scale(var(--press));
 }
 
 /* Rampen och gradienten i hörnet är borta: en fylld yta som glider in över
  * knappen sa fort musen passerar sade ingenting om svaret. */
 .arena .sd-option-btn::after {
   content: none;
+}
+
+/* Beskedet tonar in i stället för att slås på. Det är inte ett hovertillstånd
+ * utan ett svar på en fråga, och får därför det längre tempot — regeln läses
+ * ur knappens NYA tillstånd, så bara markeringen går långsamt. */
+.arena .sd-option-btn.sd-correct,
+.arena .sd-option-btn.sd-wrong {
+  transition:
+    background var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
 }
 
 .arena .sd-option-btn.sd-correct {
@@ -384,8 +427,19 @@
   color: var(--text-3);
 }
 
+.arena .btn-rate {
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft),
+    transform var(--dur-1) var(--ease-spring);
+}
+
 .arena .btn-rate:hover {
   border-color: var(--text-3);
+}
+
+.arena .btn-rate:active {
+  transform: scale(var(--press));
 }
 
 .arena .btn-rate.rating-3 {
@@ -541,7 +595,7 @@
 .dk-drift {
   color: var(--danger);
   opacity: 0;
-  transition: opacity var(--dur) var(--ease);
+  transition: opacity var(--dur-2) var(--ease-out);
 }
 
 .dk-drift.is-on {
@@ -576,7 +630,7 @@
   font-size: var(--t-xs);
   color: var(--accent);
   opacity: 0;
-  transition: opacity var(--dur) var(--ease);
+  transition: opacity var(--dur-2) var(--ease-out);
 }
 
 .tb-streak.is-on {
@@ -614,4 +668,24 @@
     grid-template-columns: repeat(2, 1fr);
     gap: var(--s2);
   }
+}
+
+/* ======================================================================
+ * LUCKAN I LUCKTEXT
+ *
+ * Ordets första bokstav är lägets ledtråd. Den satt i fältets platshållare
+ * och försvann därför när appens platshållare rensades — luckan blev
+ * märkbart svårare än läget var tänkt. Som eget märke står den kvar även
+ * medan man skriver, i stället för att bytas mot det man skrivit.
+ * ====================================================================== */
+
+.lucktext-lucka {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.lucktext-ledtrad {
+  color: var(--text-3);
+  font-variant: small-caps;
 }

@@ -4,6 +4,7 @@ import { fisherYatesShuffle } from '../core/utils.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 import { processRating } from '../ui/study.js';
 
 
@@ -110,7 +111,6 @@ import { processRating } from '../ui/study.js';
 
         overlay.innerHTML = `
             <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-flash"></div>
             <button class="lucktext-close-btn" id="lt-close-btn" title="Avsluta (Esc)">&times;</button>
             <div class="cinema-content" style="width:95%; max-width:800px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; padding: 12vh 0 10vh; position:relative; z-index:5; align-self:center; margin:0 auto;">
                 <div class="arena-top lucktext-hud">
@@ -129,8 +129,7 @@ import { processRating } from '../ui/study.js';
             <div class="cinema-bar cinema-bar-bottom"></div>
         `;
 
-        document.body.appendChild(overlay);
-        requestAnimationFrame(() => overlay.classList.add('active'));
+        oppnaSpelyta(overlay);
 
         overlay.querySelector('#lt-close-btn').onclick = (e) => { e.stopPropagation(); closeGame(); };
 
@@ -150,29 +149,6 @@ import { processRating } from '../ui/study.js';
                 comboHUD.classList.remove('is-on');
             }
             progressHUD.textContent = `${cardIdx + 1} av ${cards.length}`;
-        };
-
-        const triggerFlash = () => {
-            const flash = overlay.querySelector('.cinema-flash');
-            if (flash) {
-                flash.classList.add('flash-active');
-                setTimeout(() => flash.classList.remove('flash-active'), 120);
-            }
-        };
-
-        const triggerConfetti = () => {
-            const colors = ['var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
-            for (let j = 0; j < 60; j++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'sd-confetti';
-                confetti.style.left = `${Math.random() * 100}vw`;
-                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-                confetti.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
-                confetti.style.animationDelay = `${Math.random() * 2}s`;
-                confetti.style.animationDuration = `${2 + Math.random() * 2}s`;
-                overlay.appendChild(confetti);
-                setTimeout(() => confetti.remove(), 4000);
-            }
         };
 
         let currentPhase = 'intro';
@@ -210,8 +186,7 @@ import { processRating } from '../ui/study.js';
             if (isClosed) return;
             isClosed = true;
             cleanup();
-            overlay.remove();
-            finishPlaygroundSession();
+            stangSpelyta(overlay, finishPlaygroundSession);
         };
 
         const restartGame = () => {
@@ -381,12 +356,26 @@ import { processRating } from '../ui/study.js';
                             const chosenIdx = chosen.findIndex(c => !c._placed && c.clean.toLowerCase() === cleanW);
                             if (chosenIdx !== -1) {
                                 chosen[chosenIdx]._placed = true;
-                                const hint = chosen[chosenIdx].clean[0];
+                                /* Forsta bokstaven ar spelets ledtrad, inte en
+                                 * platshallare. Den lag tidigare i attributet
+                                 * placeholder och forsvann nar appens
+                                 * platshallare rensades bort — luckan blev da
+                                 * markbart svarare an laget var tankt.
+                                 *
+                                 * Nu ar den ett eget marke framfor faltet:
+                                 * den star kvar aven medan man skriver, och
+                                 * den kan inte forvaxlas med ett svar man
+                                 * redan gett. */
+                                const ledtrad = document.createElement('span');
+                                ledtrad.className = 'lucktext-ledtrad';
+                                ledtrad.setAttribute('aria-hidden', 'true');
+                                ledtrad.textContent = chosen[chosenIdx].clean[0];
+
                                 const input = document.createElement('input');
                                 input.type = 'text';
                                 input.className = 'lucktext-inline-input';
                                 input.dataset.idx = String(chosenIdx);
-                                input.placeholder = hint + '…';
+                                input.setAttribute('aria-label', `Lucka, borjar pa ${chosen[chosenIdx].clean[0]}`);
                                 input.autocomplete = 'off';
                                 input.spellcheck = false;
                                 input.style.width = `${Math.max(4, cleanW.length) * 0.72}em`;
@@ -399,7 +388,10 @@ import { processRating } from '../ui/study.js';
                                         if (next) next.focus();
                                     }
                                 });
-                                fragment.appendChild(input);
+                                const lucka = document.createElement('span');
+                                lucka.className = 'lucktext-lucka';
+                                lucka.append(ledtrad, input);
+                                fragment.appendChild(lucka);
                             } else {
                                 fragment.appendChild(document.createTextNode(w));
                             }
@@ -446,8 +438,6 @@ import { processRating } from '../ui/study.js';
                 totalCorrectBlanks += correctCount;
                 if (correctCount === chosen.length) totalPerfectCards++;
                 updateHUD();
-
-                if (correctCount === chosen.length) triggerFlash();
 
                 startReviewPhase(correctCount, chosen.length);
             };
@@ -590,8 +580,6 @@ import { processRating } from '../ui/study.js';
                 if (e.currentTarget) e.currentTarget.blur();
                 closeGame();
             };
-
-            triggerConfetti();
         };
 
         overlay.addEventListener('mousedown', (e) => {

@@ -2,6 +2,7 @@ import { S } from '../core/state.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 import { processRating } from '../ui/study.js';
 
 
@@ -15,11 +16,10 @@ export const dammigaReveal = () => {
     overlay.id = 'cinema-overlay';
     overlay.className = 'cinema-overlay';
 
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('active'));
+    oppnaSpelyta(overlay);
 
     const cleanup = () => { document.removeEventListener('keydown', globalKH); };
-    const closeGame = () => { cleanup(); overlay.remove(); finishPlaygroundSession(); };
+    const closeGame = () => { cleanup(); stangSpelyta(overlay, finishPlaygroundSession); };
 
     const timeSince = (ts) => {
         if (!ts) return 'Aldrig repeterad';

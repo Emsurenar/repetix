@@ -2,6 +2,7 @@ import { S } from '../core/state.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 
 
 // --- DRAGKAMPEN OVERLAY ---
@@ -55,8 +56,7 @@ export const dragkampenReveal = (allCards) => {
         </div>
     `;
 
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('active'));
+    oppnaSpelyta(overlay);
 
     const updateMeter = () => {
         const pct = (meterValue + 100) / 200;
@@ -83,8 +83,7 @@ export const dragkampenReveal = (allCards) => {
 
     const closeGame = () => {
         cleanup();
-        overlay.remove();
-        finishPlaygroundSession();
+        stangSpelyta(overlay, finishPlaygroundSession);
     };
 
     const showEndScreen = (won) => {
@@ -197,7 +196,7 @@ export const dragkampenReveal = (allCards) => {
     };
 
     const globalKeyHandler = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); cleanup(); overlay.remove(); finishPlaygroundSession(); }
+        if (e.key === 'Escape') { e.preventDefault(); closeGame(); }
     };
     document.addEventListener('keydown', globalKeyHandler);
 

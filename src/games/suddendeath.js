@@ -3,6 +3,7 @@ import { fisherYatesShuffle } from '../core/utils.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 
 
 // --- SUDDEN DEATH OVERLAY ---
@@ -68,8 +69,7 @@ export const suddenDeathReveal = (allCards) => {
     overlay.style.height = '100vh';
     overlay.style.zIndex = '9999';
 
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('active'));
+    oppnaSpelyta(overlay);
 
     const cleanup = () => {
         clearTimeout(timerHandle);
@@ -78,13 +78,21 @@ export const suddenDeathReveal = (allCards) => {
         document.removeEventListener('keydown', keyHandler);
         document.removeEventListener('keydown', pressKeyHandler);
         document.removeEventListener('keyup', releaseKeyHandler);
-        overlay.classList.remove('sd-urgent-pulse');
     };
 
     const closeGame = () => {
         cleanup();
-        overlay.remove();
-        finishPlaygroundSession();
+        stangSpelyta(overlay, finishPlaygroundSession);
+    };
+
+    /* Ett fel färgar ytan ett ögonblick. Den lades tidigare på och togs bort i
+     * ett hugg efter 300 ms, och skärmen skakade till på köpet — ett ryck mitt
+     * i det man just svarat fel på hjälper ingen att läsa rätt svar. */
+    const visaMissflash = () => {
+        const flash = document.createElement('div');
+        flash.className = 'arena-miss-flash';
+        overlay.appendChild(flash);
+        flash.addEventListener('animationend', () => flash.remove(), { once: true });
     };
 
     const showFloatingFeedback = (text, type) => {
@@ -93,21 +101,6 @@ export const suddenDeathReveal = (allCards) => {
         floatEl.textContent = text;
         overlay.appendChild(floatEl);
         setTimeout(() => floatEl.remove(), 1100);
-    };
-
-    const triggerConfetti = () => {
-        const colors = ['var(--accent)', 'var(--danger)', 'var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
-        for (let i = 0; i < 60; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'sd-confetti';
-            confetti.style.left = `${Math.random() * 100}vw`;
-            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
-            confetti.style.animationDelay = `${Math.random() * 1.5}s`;
-            confetti.style.animationDuration = `${2 + Math.random() * 2}s`;
-            overlay.appendChild(confetti);
-            setTimeout(() => confetti.remove(), 3500);
-        }
     };
 
     // Keyboard shortcut handler
@@ -530,10 +523,6 @@ export const suddenDeathReveal = (allCards) => {
 
         overlay.querySelector('#sd-btn-restart').onclick = restartGame;
         overlay.querySelector('#sd-btn-exit').onclick = closeGame;
-        
-        if (isNewPB || isVictory) {
-            triggerConfetti();
-        }
     };
 
     const showCard = () => {
@@ -545,7 +534,6 @@ export const suddenDeathReveal = (allCards) => {
         clearTimeout(timerHandle);
         clearTimeout(advanceTimeout);
         cancelAnimationFrame(timerRAF);
-        overlay.classList.remove('sd-urgent-pulse');
 
         answered = false;
         const card = cards[cardIdx];
@@ -648,7 +636,9 @@ export const suddenDeathReveal = (allCards) => {
         options.forEach((opt, optIdx) => {
             const btn = document.createElement('button');
             btn.className = 'sd-option-btn sd-option-entry';
-            btn.style.animationDelay = `${optIdx * 50}ms`;
+            /* Bara platsen i raden. Själva förskjutningen räknas i CSS ur
+             * rörelsetokens, så att den nollas med resten vid mindre rörelse. */
+            btn.style.setProperty('--i', String(optIdx));
             btn.innerHTML = `<span class="sd-key-badge">${optIdx + 1}</span><span class="sd-opt-text"></span>`;
             btn.querySelector('.sd-opt-text').innerHTML = typeof safeParse === 'function' ? safeParse(opt.text) : opt.text;
             renderLatex(btn);
@@ -660,7 +650,6 @@ export const suddenDeathReveal = (allCards) => {
                 
                 clearTimeout(timerHandle);
                 cancelAnimationFrame(timerRAF);
-                overlay.classList.remove('sd-urgent-pulse');
 
                 const responseTime = performance.now() - startTime;
                 const remainingTimePct = Math.max(0, 1 - (performance.now() - startTime) / duration);
@@ -692,15 +681,15 @@ export const suddenDeathReveal = (allCards) => {
                     if (streak === 10) {
                         if (lives < 3) {
                             lives++;
-                            showFloatingFeedback('EXTRA LIV! 🛡️', 'streak');
+                            showFloatingFeedback('Extra liv', 'streak');
                             renderLives();
                         } else {
-                            showFloatingFeedback('COMBO x10! 🔥', 'streak');
+                            showFloatingFeedback('Combo x10', 'streak');
                         }
                     } else if (streak >= 3) {
-                        showFloatingFeedback(`COMBO x${streak}! 🔥`, 'streak');
+                        showFloatingFeedback(`Combo x${streak}`, 'streak');
                     } else {
-                        showFloatingFeedback(isSpeedBonus ? `BLIXTSNABB! +${gainedPoints}` : `+${gainedPoints}`, 'correct');
+                        showFloatingFeedback(isSpeedBonus ? `Blixtsnabbt +${gainedPoints}` : `+${gainedPoints}`, 'correct');
                     }
                     
                     if (scoreHudEl) scoreHudEl.textContent = `Poäng ${score}`;
@@ -724,23 +713,10 @@ export const suddenDeathReveal = (allCards) => {
                         correctAnswer: correctAnswer
                     });
                     
-                    showFloatingFeedback('FEL! -1 💔', 'wrong');
+                    showFloatingFeedback('Fel', 'wrong');
                     renderLives();
 
-                    // Flash screen & shake
-                    overlay.classList.add('shake-active');
-                    const flashOverlay = document.createElement('div');
-                    flashOverlay.style.position = 'absolute';
-                    flashOverlay.style.inset = '0';
-                    flashOverlay.style.background = 'var(--danger-soft)';
-                    flashOverlay.style.pointerEvents = 'none';
-                    flashOverlay.style.zIndex = '99';
-                    overlay.appendChild(flashOverlay);
-                    
-                    setTimeout(() => {
-                        overlay.classList.remove('shake-active');
-                        flashOverlay.remove();
-                    }, 300);
+                    visaMissflash();
 
                     showFullAnswer();
                 }
@@ -789,7 +765,6 @@ export const suddenDeathReveal = (allCards) => {
             if (answered) return;
             answered = true;
             cancelAnimationFrame(timerRAF);
-            overlay.classList.remove('sd-urgent-pulse');
             
             lives--;
             streak = 0;
@@ -801,7 +776,7 @@ export const suddenDeathReveal = (allCards) => {
                 correctAnswer: correctAnswer
             });
             
-            showFloatingFeedback('TIDEN UTE! -1 💔', 'wrong');
+            showFloatingFeedback('Tiden ute', 'wrong');
             renderLives();
 
             optContainer.querySelectorAll('.sd-option-btn').forEach(b => {
@@ -811,20 +786,7 @@ export const suddenDeathReveal = (allCards) => {
             
             showFullAnswer();
             
-            // Shake and red flash
-            overlay.classList.add('shake-active');
-            const flashOverlay = document.createElement('div');
-            flashOverlay.style.position = 'absolute';
-            flashOverlay.style.inset = '0';
-            flashOverlay.style.background = 'var(--danger-soft)';
-            flashOverlay.style.pointerEvents = 'none';
-            flashOverlay.style.zIndex = '99';
-            overlay.appendChild(flashOverlay);
-
-            setTimeout(() => {
-                overlay.classList.remove('shake-active');
-                flashOverlay.remove();
-            }, 300);
+            visaMissflash();
         }, duration);
     };
 

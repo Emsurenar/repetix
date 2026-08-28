@@ -149,6 +149,27 @@
   background: var(--heat-4);
 }
 
+/* Kartan ritas upp vecka för vecka när den visas: tolv kolumner med en knapp
+ * förskjutning emellan, så att blicken dras vänsterifrån mot idag i stället
+ * för att möta åttiofyra rutor på en gång. Bara intoning — en ruta som också
+ * reser sig hade fått rutnätet att se ostadigt ut.
+ *
+ * Förskjutningen sätts per kolumn och inte per ruta: 84 steg hade tagit över
+ * två sekunder, och kartan är en bakgrundsuppgift, inte en föreställning. */
+@keyframes heat-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#view-playground .heat-cols.is-entering .heat-col {
+  animation: heat-in var(--dur-2) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-1) / 6);
+}
+
 #view-playground .heat-legend {
   display: flex;
   align-items: center;
@@ -200,8 +221,39 @@
   border-radius: var(--r-md);
   cursor: pointer;
   transition:
-    border-color var(--dur) var(--ease),
-    background var(--dur) var(--ease);
+    border-color var(--dur-1) var(--ease-soft),
+    background var(--dur-1) var(--ease-soft),
+    transform var(--dur-1) var(--ease-spring);
+}
+
+/* Kortet ger efter under fingret och kommer tillbaka med en knapp översläng.
+ * Det är enda kvittensen på att trycket gick fram innan spelytan hinner
+ * byggas — och den byggs inte på en bildruta. */
+#view-playground .arcade-mode:active:not(:disabled) {
+  transform: scale(var(--press));
+}
+
+/* De åtta lägena lägger sig på plats i tur och ordning i stället för att
+ * finnas där när vyn slås på. Ordningen är rutnätets, alltså radvis, och
+ * steget är en fjärdedel av det snabbaste tempot — tillräckligt för att ögat
+ * ska läsa en riktning, för litet för att man ska hinna vänta.
+ *
+ * --i sätts av vyn på varje knapp, och klassen bara när hallen öppnas: ett
+ * omritat filter ska inte spela upp inflyttningen en gång till. */
+@keyframes arcade-mode-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+#view-playground .arcade-modes.is-entering .arcade-mode {
+  animation: arcade-mode-in var(--dur-2) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--dur-1) / 4);
 }
 
 #view-playground .arcade-mode-mark {
@@ -215,10 +267,13 @@
   background: var(--surface-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
+  /* Märket fylls med accent när kortet pekas ut. Det är den största färgytan
+   * som byts i vyn och får därför det längre tempot: på 120 ms klipptes den
+   * fram och lyste till, i stället för att tona. */
   transition:
-    background var(--dur) var(--ease),
-    border-color var(--dur) var(--ease),
-    color var(--dur) var(--ease);
+    background var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out);
 }
 
 #view-playground .arcade-mode-mark svg {
@@ -375,7 +430,7 @@
 
 #view-playground #pg-dropdown-trigger svg {
   color: var(--text-3);
-  transition: transform var(--dur) var(--ease);
+  transition: transform var(--dur-2) var(--ease-out);
 }
 
 #view-playground #pg-dropdown-trigger[aria-expanded='true'] svg {

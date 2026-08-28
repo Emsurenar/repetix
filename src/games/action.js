@@ -4,6 +4,7 @@ import { fisherYatesShuffle } from '../core/utils.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 import { processRating } from '../ui/study.js';
 
 
@@ -51,8 +52,6 @@ import { processRating } from '../ui/study.js';
         
         overlay.innerHTML = `
             <div class="cinema-bar cinema-bar-top"></div>
-            <div class="cinema-particles"></div>
-            <div class="cinema-flash"></div>
             <div class="cinema-content" id="action-game-container" style="width:95%; max-width:800px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; padding: 12vh 0 10vh; position:relative; z-index:5;">
                 <!-- HUD -->
                 <div class="arena-top action-hud">
@@ -73,62 +72,13 @@ import { processRating } from '../ui/study.js';
             <div class="cinema-bar cinema-bar-bottom"></div>
         `;
         
-        document.body.appendChild(overlay);
-        requestAnimationFrame(() => overlay.classList.add('active'));
+        oppnaSpelyta(overlay);
         
-        // Spawn glowing embers in background
-        const particlesContainer = overlay.querySelector('.cinema-particles');
-        const spawnEmber = () => {
-            if (!document.getElementById('cinema-overlay')) return;
-            const ember = document.createElement('div');
-            ember.className = 'action-ember';
-            ember.style.left = Math.random() * 100 + 'vw';
-            const size = 3 + Math.random() * 8;
-            ember.style.width = size + 'px';
-            ember.style.height = size + 'px';
-            const drift = -80 + Math.random() * 160;
-            ember.style.setProperty('--drift', drift + 'px');
-            ember.style.animationDuration = (3 + Math.random() * 4) + 's';
-            particlesContainer.appendChild(ember);
-            setTimeout(() => ember.remove(), 7000);
-            
-            // Spawn next after delay
-            setTimeout(spawnEmber, 350);
-        };
-        spawnEmber();
-
-        // Helper to trigger confetti
-        const triggerConfetti = () => {
-            const colors = ['var(--rate-2)', 'var(--danger)', 'var(--rate-2)', 'var(--rate-2)', 'var(--danger)'];
-            for (let j = 0; j < 60; j++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'sd-confetti';
-                confetti.style.left = `${Math.random() * 100}vw`;
-                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-                confetti.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
-                confetti.style.animationDelay = `${Math.random() * 2}s`;
-                confetti.style.animationDuration = `${2 + Math.random() * 2}s`;
-                overlay.appendChild(confetti);
-                setTimeout(() => confetti.remove(), 4000);
-            }
-        };
-
-        // Helper to spawn hit sparks
-        const spawnSparks = (x, y, count = 15) => {
-            for (let j = 0; j < count; j++) {
-                const spark = document.createElement('div');
-                spark.className = 'action-spark';
-                spark.style.left = x + 'px';
-                spark.style.top = y + 'px';
-                spark.style.background = 'radial-gradient(circle, var(--rate-2), var(--danger))';
-                const tx = (Math.random() - 0.5) * 160;
-                const ty = (Math.random() - 0.5) * 160;
-                spark.style.setProperty('--tx', tx + 'px');
-                spark.style.setProperty('--ty', ty + 'px');
-                overlay.appendChild(spark);
-                setTimeout(() => spark.remove(), 500);
-            }
-        };
+        /* Här föddes glöd som steg från botten, gnistor vid varje träff och
+         * konfetti på slutskärmen. Alla tre var glödande gradienter mot en mörk
+         * fond och blev plumpar mot varmvitt — och glödslingan satte igång sig
+         * själv var 350:e millisekund så länge läget levde. Beskedet står i
+         * texten och i talen i stället. */
 
         // UI state variables
         let currentPhase = 'intro'; // 'intro', 'think', 'slam', 'review', 'end'
@@ -171,8 +121,7 @@ import { processRating } from '../ui/study.js';
             if (isClosed) return;
             isClosed = true;
             cleanup();
-            overlay.remove();
-            finishPlaygroundSession();
+            stangSpelyta(overlay, finishPlaygroundSession);
         };
 
         // --- KEYDOWN DISPATCHER ---
@@ -236,12 +185,6 @@ import { processRating } from '../ui/study.js';
             if (!feedbackContainer) return;
             feedbackContainer.innerHTML = '';
             
-            // Get center coordinates of word wrapper to spawn sparks
-            const wordWrapper = overlay.querySelector('.action-word-wrapper');
-            const rect = wordWrapper ? wordWrapper.getBoundingClientRect() : { left: window.innerWidth/2, top: window.innerHeight/2, width: 0, height: 0 };
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-
             if (diff <= 80) {
                 // PERFECT
                 totalPerfects++;
@@ -256,17 +199,6 @@ import { processRating } from '../ui/study.js';
                 msg.className = 'action-feedback-txt perfect';
                 msg.textContent = `PERFECT! +${gained}`;
                 feedbackContainer.appendChild(msg);
-                
-                spawnSparks(cx, cy, 20);
-                
-                // Shockwave flash
-                const flash = overlay.querySelector('.cinema-flash');
-                flash.classList.add('flash-active');
-                overlay.classList.add('shake-active');
-                setTimeout(() => {
-                    flash.classList.remove('flash-active');
-                    overlay.classList.remove('shake-active');
-                }, 100);
             } else if (diff <= 160) {
                 // GREAT
                 totalHits++;
@@ -280,8 +212,6 @@ import { processRating } from '../ui/study.js';
                 msg.className = 'action-feedback-txt great';
                 msg.textContent = `GREAT! +${gained}`;
                 feedbackContainer.appendChild(msg);
-                
-                spawnSparks(cx, cy, 10);
             } else {
                 // MISS
                 combo = 0;
@@ -430,7 +360,7 @@ import { processRating } from '../ui/study.js';
                         <div id="action-timing-ring" class="action-timing-ring"></div>
                     </div>
                     <div id="action-timing-feedback" class="action-timing-feedback"></div>
-                    <button id="action-btn-skip" class="btn-skip">Visa hela svaret [Enter]</button>
+                    <button id="action-btn-skip" type="button" class="btn">Visa hela svaret [Enter]</button>
                 </div>
             `;
             
@@ -502,15 +432,7 @@ import { processRating } from '../ui/study.js';
                 if (hasSentenceEnding) {
                     activeWordDuration += 800; // Extra pause for punctuation
                 }
-                
-                // Trigger camera shake/flash automatically on sentence end or long words for ambient feedback
-                const isMajorWord = cleanText.length > 7;
-                if (hasSentenceEnding || isMajorWord || node.type === 'math') {
-                    // Subtle automatic pulse feedback
-                    overlay.classList.add('shake-active');
-                    setTimeout(() => overlay.classList.remove('shake-active'), 180);
-                }
-                
+
                 wordIdx++;
                 slamTimeoutHandle = setTimeout(showNextSlam, activeWordDuration);
             };
@@ -527,15 +449,6 @@ import { processRating } from '../ui/study.js';
             updateHUD();
             
             const card = cards[cardIdx];
-            
-            // Zoom-in final impact flash
-            const flash = overlay.querySelector('.cinema-flash');
-            flash.classList.add('flash-active');
-            overlay.classList.add('shake-active');
-            setTimeout(() => {
-                flash.classList.remove('flash-active');
-                overlay.classList.remove('shake-active');
-            }, 180);
             
             arena.innerHTML = `
                 <div class="action-card" style="max-width: 650px;">
@@ -673,8 +586,6 @@ import { processRating } from '../ui/study.js';
                 if (e.currentTarget) e.currentTarget.blur();
                 closeGame();
             };
-            
-            triggerConfetti();
         };
 
         const restartGame = () => {

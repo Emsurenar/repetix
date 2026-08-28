@@ -4,6 +4,7 @@ import { escapeHtml } from '../core/utils.js';
 import { renderCardBackImages, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 
 
 // --- FRITEXT SESSION OVERLAY ---
@@ -18,11 +19,10 @@ export const fritextSessionReveal = () => {
     overlay.id = 'cinema-overlay';
     overlay.className = 'cinema-overlay';
 
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('active'));
+    oppnaSpelyta(overlay);
 
     const cleanup = () => { document.removeEventListener('keydown', globalKH); };
-    const closeGame = () => { cleanup(); overlay.remove(); finishPlaygroundSession(); };
+    const closeGame = () => { cleanup(); stangSpelyta(overlay, finishPlaygroundSession); };
 
     const extractKeywords = (text) => {
         const stopWords = new Set(['och','i','på','av','en','ett','den','det','de','är','var','som','med','för','till','att','har','kan','ska','inte','om','vid','från','eller','men','denna','dessa','sin','sitt','sina','han','hon','vi','ni','dem','sig','alla','andra','efter','under','över','mellan','utan','bara','mer','så','också','redan','genom','sedan','dock','även','mot','hos','ur','bland','inom','samt','vars','där','här','hur','när','vad','vem','vilken','vilket','vilka']);
@@ -68,7 +68,7 @@ export const fritextSessionReveal = () => {
                     <p class="micro">Fråga</p>
                     <div id="ft-question" class="arena-question">${typeof safeParse === 'function' ? safeParse(card.front) : card.front}</div>
                     <p class="arena-hint">${hintText}</p>
-                    <textarea id="ft-textarea" class="arena-input" placeholder="Skriv ditt svar ur minnet" spellcheck="false"></textarea>
+                    <textarea id="ft-textarea" class="arena-input" spellcheck="false"></textarea>
                 </div>
                 <div class="arena-foot arena-foot--center">
                     <button id="ft-submit" class="btn primary lg">Rätta <span class="kbd">⌘↵</span></button>

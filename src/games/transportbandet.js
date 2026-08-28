@@ -3,6 +3,7 @@ import { fisherYatesShuffle } from '../core/utils.js';
 import { safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
 import { finishPlaygroundSession } from '../ui/playground.js';
+import { oppnaSpelyta, stangSpelyta } from './spelyta.js';
 
 
 // --- TRANSPORTBANDET OVERLAY ---
@@ -104,8 +105,7 @@ export const transportbandetReveal = () => {
         <div class="cinema-bar cinema-bar-bottom"></div>
     `;
 
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('active'));
+    oppnaSpelyta(overlay);
 
     let arena = null;
     let fallingCard = null;
@@ -134,21 +134,6 @@ export const transportbandetReveal = () => {
         floatEl.textContent = text;
         overlay.appendChild(floatEl);
         setTimeout(() => floatEl.remove(), 1000);
-    };
-
-    const triggerConfetti = () => {
-        const colors = ['var(--accent)', 'var(--danger)', 'var(--accent)', 'var(--accent)', 'var(--accent)', 'var(--accent)'];
-        for (let i = 0; i < 60; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'sd-confetti';
-            confetti.style.left = `${Math.random() * 100}vw`;
-            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
-            confetti.style.animationDelay = `${Math.random() * 2}s`;
-            confetti.style.animationDuration = `${2 + Math.random() * 2}s`;
-            overlay.appendChild(confetti);
-            setTimeout(() => confetti.remove(), 4000);
-        }
     };
 
     const showEndScreen = () => {
@@ -224,10 +209,6 @@ export const transportbandetReveal = () => {
         
         overlay.querySelector('#tb-btn-restart').onclick = restartGame;
         overlay.querySelector('#tb-btn-exit').onclick = closeGame;
-        
-        if (isNewPB || isVictory) {
-            triggerConfetti();
-        }
     };
 
     const restartGame = () => {
@@ -258,8 +239,7 @@ export const transportbandetReveal = () => {
     
     const closeGame = () => {
         cleanup();
-        overlay.remove();
-        finishPlaygroundSession();
+        stangSpelyta(overlay, finishPlaygroundSession);
     };
 
     const introKeyHandler = (e) => {
@@ -442,20 +422,13 @@ export const transportbandetReveal = () => {
                 showFloatingFeedback(isTimeout ? 'MISSAD! -1 ' : '-1 ', 'wrong');
                 renderLives();
 
-                // Arena screen shake
-                overlay.classList.add('shake-active');
-                const flashOverlay = document.createElement('div');
-                flashOverlay.style.position = 'absolute';
-                flashOverlay.style.inset = '0';
-                flashOverlay.style.background = 'var(--danger-soft)';
-                flashOverlay.style.pointerEvents = 'none';
-                flashOverlay.style.zIndex = '99';
-                overlay.appendChild(flashOverlay);
-                
-                setTimeout(() => {
-                    overlay.classList.remove('shake-active');
-                    flashOverlay.remove();
-                }, 300);
+                /* Arenan färgas ett ögonblick. Ytan lades tidigare på och togs
+                 * bort i ett hugg, alltså två klipp, och skärmen skakade till på
+                 * köpet. Nu tonar den in och ut och städar sig själv. */
+                const missFlash = document.createElement('div');
+                missFlash.className = 'arena-miss-flash';
+                overlay.appendChild(missFlash);
+                missFlash.addEventListener('animationend', () => missFlash.remove(), { once: true });
             }
 
             // Show correct category and wait for click/space to advance

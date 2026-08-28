@@ -17,7 +17,13 @@ import { renderStudyCard } from './study.js';
 import { showToast } from './toast.js';
 
 
-export const renderPlayground = () => {
+/* `tona` styr om lägena och aktivitetskartan ska läggas på plats med en
+ * förskjuten intoning. Den är på när hallen öppnas och av när vyn ritas om av
+ * ett annat skäl — ett ibockat filter får inte spela upp inflyttningen en gång
+ * till, för då far åtta kort och tolv veckor förbi varje gång man kryssar i en
+ * kortlek. Ett anrop utan argument tonar, så router och navigering behöver inte
+ * veta om detta. */
+export const renderPlayground = ({ tona = true } = {}) => {
     const container = document.getElementById('playground-content');
     if (!container) return;
 
@@ -282,8 +288,8 @@ export const renderPlayground = () => {
                 <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
                 <div class="heat-grid">
                     <div class="heat-days"><span>må</span><span></span><span>on</span><span></span><span>fr</span><span></span><span></span></div>
-                    <div class="heat-cols">
-                        ${weeks.map((v) => `<div class="heat-col">${v.map(heatCell).join('')}</div>`).join('')}
+                    <div class="heat-cols${tona ? ' is-entering' : ''}">
+                        ${weeks.map((v, i) => `<div class="heat-col" style="--i:${i}">${v.map(heatCell).join('')}</div>`).join('')}
                     </div>
                 </div>
                 <div class="heat-legend">
@@ -294,13 +300,13 @@ export const renderPlayground = () => {
             </div>
         </div>
 
-        <div class="arcade-modes">
-            ${modes.map((m) => {
+        <div class="arcade-modes${tona ? ' is-entering' : ''}">
+            ${modes.map((m, i) => {
                 const stangt = m.count < m.min;
                 /* Knapp, inte länk. Lägena var <a> utan href: de gick inte att
                  * nå med tangentbord alls, och skärmläsaren läste dem som
                  * text. */
-                return `<button type="button" class="arcade-mode${stangt ? ' is-closed' : ''}" data-mode="${m.id}" ${stangt ? 'disabled' : ''}>
+                return `<button type="button" class="arcade-mode${stangt ? ' is-closed' : ''}" data-mode="${m.id}" style="--i:${i}" ${stangt ? 'disabled' : ''}>
                     <span class="arcade-mode-mark" aria-hidden="true">${m.mark}</span>
                     <span class="arcade-mode-name">${m.name}</span>
                     <span class="arcade-mode-desc">${stangt ? `Kräver minst ${m.min} kort.` : m.desc}</span>
@@ -510,7 +516,7 @@ export const renderPlayground = () => {
                 }
                 buildTree();
                 updateLabel();
-                renderPlayground();
+                renderPlayground({ tona: false });
                 return;
             }
 
@@ -543,7 +549,7 @@ export const renderPlayground = () => {
 
             buildTree();
             updateLabel();
-            renderPlayground();
+            renderPlayground({ tona: false });
         });
 
         // Toggle expand/collapse
