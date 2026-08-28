@@ -20,6 +20,7 @@ const KOLUMNER = {
     'back',
     'content',
     'is_long_form',
+    'description',
     'position',
     'repetition',
     'interval_days',
@@ -574,5 +575,42 @@ describe('reviewRow', () => {
     expect(rad.interval_after).toBeNull();
     expect(rad.ease_after).toBeNull();
     expect(rad.mode).toBe('study');
+  });
+});
+
+
+describe('beskrivningsfaltet', () => {
+  // Ett kort har fram, bak och en fordjupning. Fordjupningen halls skild fran
+  // svaret eftersom svaret ar det som ska kunna aterkallas; ett svar som
+  // svaller gar inte att prova sig sjalv pa.
+  const medBeskrivning = () => ({
+    ...vanligtKort(),
+    description: 'Foljer direkt ur definitionen.',
+  });
+
+  it('foljer med till databasraden', () => {
+    expect(cardToRow(medBeskrivning(), 'd1', ANVANDARE).description).toBe(
+      'Foljer direkt ur definitionen.'
+    );
+  });
+
+  it('blir null pa raden nar kortet saknar den', () => {
+    expect(cardToRow(vanligtKort(), 'd1', ANVANDARE).description).toBeNull();
+  });
+
+  it('overlever rundturen till databas och tillbaka', () => {
+    const rad = cardToRow(medBeskrivning(), 'd1', ANVANDARE);
+    expect(rowToCard(rad).description).toBe('Foljer direkt ur definitionen.');
+  });
+
+  it('satts inte alls pa kort utan fordjupning', () => {
+    // Ett tomt falt skulle annars baras genom bade lagring och synk i onodan.
+    const kort = rowToCard(cardToRow(vanligtKort(), 'd1', ANVANDARE));
+    expect(kort).not.toHaveProperty('description');
+  });
+
+  it('notiskort far ingen beskrivning', () => {
+    const rad = { id: 'n1', type: 'note', content: 'Text', description: 'skrap' };
+    expect(rowToCard(rad)).not.toHaveProperty('description');
   });
 });

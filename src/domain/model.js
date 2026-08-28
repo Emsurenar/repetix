@@ -146,6 +146,10 @@ export function cardToRow(card, deckId, userId, position = 0) {
     type: card.type === 'note' ? 'note' : 'card',
     front: card.front ?? null,
     back: card.back ?? null,
+    // Fordjupningen som visas efter svaret. Skild fran back eftersom svaret
+    // ska vara det man kan aterkalla — ett svar som svaller gar inte att
+    // prova sig sjalv pa.
+    description: card.description ?? null,
     content: card.content ?? null,
     is_long_form: Boolean(card.isLongForm),
     position,
@@ -179,6 +183,7 @@ export function rowToCard(row) {
   }
   card.front = row.front ?? '';
   card.back = row.back ?? '';
+  if (row.description) card.description = row.description;
   card.isLongForm = Boolean(row.is_long_form);
   card.backImages = [];
   card.repetition = row.repetition ?? 0;
