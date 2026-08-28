@@ -161,26 +161,45 @@ const initApp = () => {
         };
         syncSidebarExpanded(true);
 
-        // Sidebar collapse (desktop)
+        // Läget bärs av två klasser på <body>, eftersom både panelen, dess
+        // överlägg och innehållsytans marginal måste ändras samtidigt.
+        // Knapparna satte tidigare klasser på panelen och innehållsytan som
+        // stilmallen inte längre kände till, och gjorde därför ingenting alls.
+        const isOverlay = () => window.matchMedia('(max-width: 900px)').matches;
+
         sidebarCollapse?.addEventListener('click', () => {
-            document.getElementById('sidebar').classList.add('collapsed');
-            document.getElementById('app-container').classList.add('expanded');
-            sidebarToggle.classList.add('visible');
-            document.getElementById('sidebar').classList.remove('open');
+            if (isOverlay()) {
+                document.body.classList.remove('sidebar-open');
+            } else {
+                document.body.classList.add('sidebar-collapsed');
+            }
             syncSidebarExpanded(false);
         });
 
-        // Sidebar expand (desktop/mobile)
         sidebarToggle?.addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('collapsed');
-            document.getElementById('app-container').classList.remove('expanded');
-            sidebarToggle.classList.remove('visible');
-            if (window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.toggle('open');
+            if (isOverlay()) {
+                const open = document.body.classList.toggle('sidebar-open');
+                syncSidebarExpanded(open);
+            } else {
+                document.body.classList.remove('sidebar-collapsed');
+                syncSidebarExpanded(true);
             }
-            syncSidebarExpanded(
-                !document.getElementById('sidebar').classList.contains('collapsed')
-            );
+        });
+
+        // Överlägget stängs av ett tryck vid sidan om, annars är den lilla
+        // infällningsknappen enda vägen ut på telefon.
+        document.addEventListener('click', (e) => {
+            if (!document.body.classList.contains('sidebar-open')) return;
+            if (e.target.closest('#sidebar') || e.target.closest('#sidebar-toggle')) return;
+            document.body.classList.remove('sidebar-open');
+            syncSidebarExpanded(false);
+        });
+
+        // Märket är vägen hem. Knappen fanns i markupen men var aldrig
+        // kopplad: ett tryck gjorde ingenting.
+        document.getElementById('btn-sidebar-home')?.addEventListener('click', () => {
+            filterBookshelf(null);
+            if (isOverlay()) document.body.classList.remove('sidebar-open');
         });
 
         document.getElementById('note-content')?.addEventListener('keydown', (e) => {

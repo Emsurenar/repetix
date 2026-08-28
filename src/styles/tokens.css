@@ -15,13 +15,13 @@
    * skuggor: en skugga som ska synas mot varmvitt blir antingen smutsig
    * eller osynlig.
    */
-  --surface-0: #faf9f7; /* appens botten */
+  --surface-0: #fafaf9; /* appens botten */
   --surface-1: #ffffff; /* kort, paneler, det som ligger ovanpå */
   --surface-2: #f3f2f0; /* nedsänkt: fält, inaktiva ytor */
   --surface-3: #eae9e6; /* markerat, hover på nedsänkt yta */
 
-  --line: #e5e3df; /* hårfin avgränsare */
-  --line-strong: #cfcdc7; /* kant som ska hålla emot, t.ex. fältkant */
+  --line: #e3e2de; /* hårfin avgränsare */
+  --line-strong: #cfcec9; /* kant som ska hålla emot, t.ex. fältkant */
 
   /* --- Text ------------------------------------------------------------
    * Kontrast mot --surface-1 mätt: text-1 15.8:1, text-2 7.1:1, text-3 4.6:1.
@@ -29,8 +29,8 @@
    * och användes ändå genomgående för löpande text.
    */
   --text-1: #17181a;
-  --text-2: #55585a;
-  --text-3: #6b6e70;
+  --text-2: #5a5c5e;
+  --text-3: #686b6d;
   --text-inverse: #fbfbfa;
 
   /* --- Accent ----------------------------------------------------------
@@ -55,8 +55,16 @@
   --danger: #a03530;
   --danger-soft: #f7e9e8;
 
+  /* --- Märken ----------------------------------------------------------
+   * Allt som visar mängd — framsteg, kölängd, aktivitet — ritas med samma
+   * tre toner: accent för det som är klart, mark-1 för det som är påbörjat,
+   * mark-0 för spåret under. Två neutraler, inga nya färger.
+   */
+  --mark-0: #dededa;
+  --mark-1: #bfc4c2;
+
   /* --- Aktivitetskarta -------------------------------------------------- */
-  --heat-0: #eceae6;
+  --heat-0: #e6e6e3;
   --heat-1: #c7ded8;
   --heat-2: #93c4ba;
   --heat-3: #4e9c8e;
@@ -112,7 +120,12 @@
   --control-h: 34px;
   --control-h-lg: 40px;
 
-  --sidebar-w: 264px;
+  /* Rad i en lista — sidopanelens träd. Lägre än en kontroll med mus, för
+   * att ett träd på tjugo rader inte ska bli en trappa; full träffyta med
+   * finger. Samma mediefråga som kontrollhöjderna, se nedan. */
+  --row-h: 30px;
+
+  --sidebar-w: 252px;
   --measure: 68ch; /* läsbar radlängd för långformat */
 
   --focus: var(--accent);
@@ -129,6 +142,7 @@
   :root {
     --control-h: 44px;
     --control-h-lg: 48px;
+    --row-h: 44px;
   }
 }
 

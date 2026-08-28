@@ -227,17 +227,10 @@
  * KONTORADEN I SIDOPANELEN
  * ====================================================================== */
 
-.sidebar-account {
-  flex-wrap: wrap;
-  row-gap: var(--s1);
-}
-
-/* Statusen får en egen rad, så att knapparna kan hålla full träffyta utan att
- * texten kläms ihop till ett streck. */
-.sidebar-account .sync-status {
-  flex: 1 1 100%;
-}
-
+/* Foten är en kolumn av rader — se layout.css. Här bara knappens mått.
+ * Regeln satte tidigare flex-wrap på foten, ett arv från när den var en rad;
+ * med kolumnriktning fick den i stället statusen att bryta ut i en andra
+ * spalt och hamna utanför panelen. */
 .sidebar-account-btn {
   min-height: var(--control-h);
   padding: 0 var(--s2);

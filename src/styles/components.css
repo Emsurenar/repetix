@@ -28,7 +28,10 @@
   color: var(--text-1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-md);
+  /* Liten radie. Åtta pixlar på en 34 hög knapp läses som en kapsel; sex
+   * håller kvar formen som en knapp. Den stora knappen får den större radien,
+   * eftersom proportionen mellan hörn och höjd ska vara densamma. */
+  border-radius: var(--r-sm);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -101,6 +104,15 @@
   width: 100%;
 }
 
+/* Stor knapp. Bara den handling en hel panel finns för — dagens repetition.
+ * Höjden kommer ur tokens, aldrig ur en pixel här. */
+.btn.lg {
+  min-height: var(--control-h-lg);
+  padding: 0 var(--s5);
+  font-size: var(--t-md);
+  border-radius: var(--r-md);
+}
+
 /* Ikonknapp. Kvadratisk och exakt så stor som pekdonet kräver. */
 .btn-icon {
   display: inline-flex;
@@ -112,13 +124,26 @@
   color: var(--text-2);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
   cursor: pointer;
 }
 
 .btn-icon:hover {
   background: var(--surface-2);
   color: var(--text-1);
+}
+
+/* Tangentmärke. En genväg skriven som den ser ut på tangentbordet. */
+.kbd {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--text-3);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
 }
 
 /* Chip: en liten handling i en rad av flera. */
@@ -410,10 +435,14 @@ textarea:disabled {
  * FRAMSTEGSSTAPEL
  * ====================================================================== */
 
+/* Stapeln har tre toner, inte två: moget kunnande i accent, påbörjat i den
+ * neutrala märkestonen, och spåret under för det man ännu inte sett. En enda
+ * fylld andel hade inte kunnat skilja "kan utantill" från "sett en gång". */
 .progress {
+  display: flex;
   height: 3px;
-  background: var(--surface-3);
-  border-radius: var(--r-pill);
+  background: var(--mark-0);
+  border-radius: 2px;
   overflow: hidden;
 }
 
@@ -421,4 +450,45 @@ textarea:disabled {
   height: 100%;
   background: var(--accent);
   transition: width var(--dur) var(--ease);
+}
+
+.progress-fill-soft {
+  height: 100%;
+  background: var(--mark-1);
+  transition: width var(--dur) var(--ease);
+}
+
+/* ======================================================================
+ * TICKSKALA
+ *
+ * Kölängd ritad som en rad streck i stället för en sammanhängande stapel: man
+ * ska kunna läsa "så här många kort kvar", inte bara en procent. Strecken
+ * krymper när de blir många, så att ett långt pass ryms utan att raden växer.
+ * ====================================================================== */
+
+.ticks {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ticks > i {
+  display: block;
+  flex: 1 1 0;
+  min-width: 2px;
+  max-width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--mark-0);
+}
+
+.ticks > i.is-on {
+  background: var(--accent);
+}
+
+/* Var man står just nu. Mörk i stället för accent, eftersom det är en
+ * lägesmarkör och inte ett utfört kort. */
+.ticks > i.is-now {
+  background: var(--text-1);
 }

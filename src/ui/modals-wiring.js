@@ -1,64 +1,113 @@
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
+import { openDeck, openNotebook } from './deck.js';
 import { renderLibrary } from './library.js';
 import { initModalA11y } from './modals.js';
 import { switchView } from './router.js';
 
-export const openColorModal = (deck) => {
-    S.currentColorEditItem = deck;
-    document.querySelectorAll('#change-color-picker .color-dot').forEach(dot => {
-        dot.classList.toggle('selected', dot.dataset.color === deck.color);
-    });
-    document.getElementById('modal-change-color').classList.remove('hidden');
-};
-
 /**
  * Ritar sidopanelens träd.
  *
- * Raderna var tidigare div-element med onclick. De gick alltså inte att nå med
- * tangentbord alls, och skärmläsaren fick höra en namnlös grupp text i stället
- * för en navigering. Nu är varje rad en riktig knapp, och den rad som visas
- * bär aria-current="page" så att man hör var man står.
+ * Bokhyllan är rubriken över sina kortlekar, inte en egen rad man går till.
+ * Panelen listade tidigare bara hyllnamnen, vilket gjorde den till en meny med
+ * tre ord i — hela biblioteket låg gömt ett klick bort. Nu står lekarna under
+ * sin hylla med antalet förfallna kort högerställt, så att man ser var arbetet
+ * finns utan att öppna något.
+ *
+ * Raderna är knappar sedan tillgänglighetsgenomgången — som div med onclick
+ * gick de inte att nå med tangentbord alls — och den rad som visas bär
+ * aria-current="page" så att man hör var man står.
  */
 export const renderSidebar = () => {
     const tree = document.getElementById('sidebar-tree');
     if (!tree) return;
     const filter = (document.getElementById('sidebar-search')?.value || '').toLowerCase();
+    const now = Date.now();
 
     // aria-current sätts bara på den rad som faktiskt visas, aldrig på flera.
     const current = (aktiv) => (aktiv ? ' aria-current="page"' : '');
+    const matches = (title) => !filter || title.toLowerCase().includes(filter);
+
+    const emptyGroup = (labelHtml) =>
+        `<div class="sidebar-group">${labelHtml}<p class="sidebar-empty">Tom</p></div>`;
+
+    const dueCount = (deck) =>
+        deck.cards.filter((c) => c.type !== 'note' && c.nextReviewDate <= now).length;
+
+    const deckRow = (deck) => {
+        const aktiv = S.currentViewName === 'deck' && S.currentDeckId === deck.id;
+        const due = dueCount(deck);
+        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-deck-id="${deck.id}">
+            <span class="sidebar-chip" aria-hidden="true"></span>
+            <span class="sidebar-item-name">${escapeHtml(deck.title)}</span>
+            <span class="sidebar-count num ${due === 0 ? 'is-zero' : ''}"><span class="sr-only">förfallna: </span>${due}</span>
+        </button>`;
+    };
+
+    const notebookRow = (nb) => {
+        const aktiv = S.currentViewName === 'notebook' && S.currentNotebookId === nb.id;
+        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-notebook-id="${nb.id}">
+            <span class="sidebar-chip" aria-hidden="true"></span>
+            <span class="sidebar-item-name">${escapeHtml(nb.title)}</span>
+            <span class="sidebar-count num is-zero"><span class="sr-only">anteckningar: </span>${nb.notes.length}</span>
+        </button>`;
+    };
+
+    /* En hylla visas om den själv matchar sökningen, eller om någon av dess
+     * lekar gör det. Matchar hyllan visas allt den innehåller — annars vore
+     * en träff på hyllnamnet en tom grupp. */
+    const groupHtml = (shelfId, shelfMatches, labelHtml) => {
+        const decks = S.appData.decks.filter(
+            (d) => d.bookshelfId === shelfId && (shelfMatches || matches(d.title))
+        );
+        const notebooks = S.appData.notebooks.filter(
+            (n) => n.bookshelfId === shelfId && (shelfMatches || matches(n.title))
+        );
+        // En tom hylla visas bara när den är det man sökt efter. Etiketten
+        // "Utan bokhylla" utan rader under sig är ingen upplysning.
+        if (!decks.length && !notebooks.length) return shelfMatches ? emptyGroup(labelHtml) : '';
+        return `<div class="sidebar-group" role="group" aria-labelledby="shelf-${shelfId ?? 'root'}">
+            ${labelHtml}
+            ${decks.map(deckRow).join('')}
+            ${notebooks.map(notebookRow).join('')}
+        </div>`;
+    };
+
     let html = '';
 
-    // "Hem" / "Bibliotek" Item
-    const hemAktiv = S.currentViewName === 'library' && !S.currentBookshelfFilterId;
-    html += `<button type="button" class="sidebar-item ${hemAktiv ? 'active' : ''}"${current(hemAktiv)} onclick="filterBookshelf(null)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-        <span class="sidebar-item-name">Hem</span>
-    </button>`;
+    S.appData.bookshelves.forEach((shelf, idx) => {
+        const aktiv = S.currentBookshelfFilterId === shelf.id && S.currentViewName === 'library';
+        const label = `<button type="button" class="sidebar-group-label sidebar-shelf-item ${aktiv ? 'active' : ''}"${current(aktiv)}
+                id="shelf-${shelf.id}" draggable="false" data-shelf-idx="${idx}" data-shelf-id="${shelf.id}"
+                onclick="filterBookshelf('${shelf.id}')">
+            <span class="sidebar-drag-handle" aria-hidden="true">&#10287;</span>
+            <span class="sidebar-item-name">${escapeHtml(shelf.title)}</span>
+        </button>`;
+        html += groupHtml(shelf.id, matches(shelf.title), label);
+    });
 
-    // "Spelhallen" Item
-    const spelAktiv = S.currentViewName === 'playground';
-    html += `<button type="button" class="sidebar-item ${spelAktiv ? 'active' : ''}"${current(spelAktiv)} onclick="openPlayground()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-        <span class="sidebar-item-name">Spelhallen</span>
-    </button>`;
+    /* Lösa lekar sist, under en egen etikett — men bara när det finns hyllor
+     * ovanför. Utan hyllor är "Utan bokhylla" en indelning i ett. */
+    const rootLabel = S.appData.bookshelves.length
+        ? `<div class="sidebar-group-label" id="shelf-root">
+            <span class="sidebar-item-name">Utan bokhylla</span>
+        </div>`
+        : '';
+    html += groupHtml(null, false, rootLabel);
 
-    if (S.appData.bookshelves.length > 0) {
-        html += `<div class="sidebar-group" role="group" aria-labelledby="sidebar-shelves-label">
-            <div class="sidebar-group-label" id="sidebar-shelves-label">Bokhyllor</div>`;
-        S.appData.bookshelves.forEach((shelf, idx) => {
-            if (filter && !shelf.title.toLowerCase().includes(filter)) return;
-            const aktiv = S.currentBookshelfFilterId === shelf.id && S.currentViewName === 'library';
-            html += `<button type="button" class="sidebar-item sidebar-shelf-item ${aktiv ? 'active' : ''}"${current(aktiv)} draggable="false" data-shelf-idx="${idx}" data-shelf-id="${shelf.id}" onclick="filterBookshelf('${shelf.id}')">
-                <span class="sidebar-drag-handle" aria-hidden="true">&#10287;</span>
-                <span class="sidebar-item-name">${escapeHtml(shelf.title)}</span>
-            </button>`;
-        });
-        html += `</div>`;
+    if (!html) {
+        html = `<p class="sidebar-empty">${filter ? 'Inget matchar sökningen.' : 'Inga kortlekar än.'}</p>`;
     }
 
     tree.innerHTML = html;
+
+    tree.querySelectorAll('[data-deck-id]').forEach((el) => {
+        el.addEventListener('click', () => openDeck(el.dataset.deckId));
+    });
+    tree.querySelectorAll('[data-notebook-id]').forEach((el) => {
+        el.addEventListener('click', () => openNotebook(el.dataset.notebookId));
+    });
 
     // Wire up drag-and-drop for shelf items
     const shelfItems = tree.querySelectorAll('.sidebar-shelf-item');
@@ -175,36 +224,10 @@ export function initUiModalsWiring() {
 
   // ===== MODAL EVENT LISTENERS =====
 
-  S.currentColorEditItem = null;
-
-  document.getElementById('btn-cancel-change-color')?.addEventListener('click', () => {
-      document.getElementById('modal-change-color').classList.add('hidden');
-  });
-
-  document.getElementById('btn-save-change-color')?.addEventListener('click', () => {
-      if (S.currentColorEditItem) {
-          const selectedDot = document.querySelector('#change-color-picker .color-dot.selected');
-          if (selectedDot) {
-              S.currentColorEditItem.color = selectedDot.dataset.color;
-              saveData();
-              renderLibrary();
-              renderSidebar();
-          }
-      }
-      document.getElementById('modal-change-color').classList.add('hidden');
-  });
-
-  document.querySelectorAll('#change-color-picker .color-dot').forEach(dot => {
-      dot.addEventListener('click', () => {
-          document.querySelectorAll('#change-color-picker .color-dot').forEach(d => d.classList.remove('selected'));
-          dot.classList.add('selected');
-      });
-  });
-
-  window.openBookshelfMenu = (id) => {
-      const shelf = S.appData.bookshelves.find(s => s.id === id);
-      if (shelf) openColorModal(shelf);
-  };
+  /* Fargvaljaren ar borttagen. Kortlekens och bokhyllans farg ritades ut pa
+   * rubrikrader som inte finns langre, och en palett utanfor tokens hor inte
+   * hemma i "Lugn precision" — kontrollen andrade ett varde ingen kunde se.
+   * Kolumnen finns kvar i databasen for aldre data. */
 
   window.filterBookshelf = filterBookshelf;
 }

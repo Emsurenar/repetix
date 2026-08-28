@@ -15,8 +15,28 @@
  * bara tala om var man är.
  * ====================================================================== */
 
+/* Rubriken och hyllans meny hör ihop och flyttar sig tillsammans när
+ * rubrikraden bryter. */
+.library-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+
 .library-title {
   font-size: var(--t-xl);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#library-shelf-menu:empty {
+  display: none;
+}
+
+#library-shelf-menu .row-menu-toggle {
+  color: var(--text-3);
 }
 
 /* Sista säkerhetskopian. En upplysning, inte ett meddelande — den ska gå att
@@ -34,32 +54,31 @@
 /* ======================================================================
  * NYCKELTAL
  *
- * Tre tal i rad, avgränsade av linjer i stället för av kort. Talen sätts i
- * monospace med tabellsiffror så att de står i kolumn i stället för att
- * dansa när de ändras, och etiketten går under talet: man läser siffran
- * först och får förklaringen efteråt.
+ * Tre tal i rad under en hårfin linje. Talen sätts i monospace med
+ * tabellsiffror så att de står i kolumn i stället för att dansa när de ändras,
+ * och etiketten går under talet: man läser siffran först och får förklaringen
+ * efteråt.
+ *
+ * Inga lodräta linjer mellan talen. De delade upp raden i tre rutor och gjorde
+ * nyckeltalen till en tabell, vilket är mer apparat än tre siffror tål.
+ * Avståndet räcker för att skilja dem åt.
  * ====================================================================== */
 
 .library-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  margin-bottom: var(--s6);
+  gap: var(--s5);
+  margin-bottom: var(--s7);
+  padding: 22px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
-.library-figure {
-  padding: var(--s5) var(--s5) var(--s5) 0;
-  border-right: 1px solid var(--line);
-}
-
-.library-figure:last-child {
-  border-right: 0;
-}
-
 .library-figure-n {
   display: block;
-  font-size: var(--t-2xl);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xl);
   font-weight: 500;
   line-height: var(--lh-tight);
   letter-spacing: var(--track-tight);
@@ -90,12 +109,12 @@
   display: flex;
   align-items: center;
   gap: var(--s5);
-  margin-bottom: var(--s6);
-  padding: var(--s4) var(--s5);
+  margin-bottom: var(--s7);
+  padding: 22px var(--s5);
   background: var(--surface-1);
   border: 1px solid var(--line);
   border-left: 2px solid var(--accent);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
 }
 
 /* Klart eller inget att rekommendera: samma form, tystare kant. Panelen ska
@@ -136,9 +155,14 @@
 }
 
 .today-folder-meta {
-  margin: var(--s2) 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: 6px 0 0;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
   font-size: var(--t-xs);
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .today-folder-due {
@@ -163,25 +187,40 @@
 /* ======================================================================
  * RUTNÄT
  *
- * auto-fill med ett golv i rem: kolumnerna följer textstorleken och inte en
- * fast pixelbredd, så rutnätet bryter på rätt ställe även när användaren
- * förstorat texten.
+ * Ett platt rutnät över hela biblioteket, inte en stapel av bokhyllor med var
+ * sin rubrikrad. Grupperingen bodde i två gränssnitt samtidigt — rubrikrader
+ * här och namn i sidopanelen — och rubrikraderna åt upp höjden utan att säga
+ * något panelen inte redan sade. Hyllan bor nu i panelen; här står lekarna.
+ *
+ * Tre kolumner när det finns plats, annars två, annars en. Fasta brytpunkter i
+ * stället för auto-fill, eftersom antalet kolumner är ett kompositionsbeslut
+ * och inte ett resultat av en minsta bredd.
  * ====================================================================== */
 
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: var(--s4);
-  align-items: start;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (min-width: 700px) {
+  .grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* Allt som inte är en kortlek löper över hela raden. Tidigare sattes detta
  * som inline-stil från JS, vilket gjorde layouten omöjlig att ändra härifrån. */
-.grid-container > .bookshelf-container,
 .grid-container > .library-filter-row,
 .grid-container > .library-group-label,
-.grid-container > .empty-state,
-.grid-container > .bookshelf-empty {
+.grid-container > .empty-state {
   grid-column: 1 / -1;
 }
 
@@ -196,20 +235,22 @@
 /* ======================================================================
  * KORTLEK I RUTNÄTET
  *
- * Identiteten uppe, talen nere. Framstegsstapeln sitter direkt ovanför sina
- * egna siffror i samma block, så att den läses som deras stapel och inte som
- * en dekoration någon annanstans på kortet.
+ * Identiteten uppe, talen nere, och luft emellan. Framstegsstapeln pressas ned
+ * mot sina egna siffror av en auto-marginal, så att titelraden får sitta högst
+ * upp oavsett hur många rader den tar — korten i en rad blir då lika höga utan
+ * att titlarna hoppar.
  * ====================================================================== */
 
 .deck-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--s4);
-  min-height: 8.5rem;
-  padding: var(--s4);
+  gap: var(--s3);
+  min-height: 118px;
+  padding: 20px;
   background: var(--surface-1);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   cursor: pointer;
   transition:
     border-color var(--dur) var(--ease),
@@ -234,21 +275,15 @@
   border-color: var(--accent);
 }
 
-.deck-card-top {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s2);
-}
-
 .deck-card-title {
-  /* Optisk linjering mot menyknappen, som är en hel kontrollhöjd hög. */
-  padding-top: var(--s1);
-  flex: 1 1 auto;
-  min-width: 0;
   font-size: var(--t-lg);
   font-weight: 500;
-  line-height: var(--lh-tight);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
   overflow-wrap: break-word;
+  /* Menyknappen ligger ovanpå kortets hörn; utan reservatet skulle en lång
+   * titel löpa in under den. */
+  padding-right: var(--s5);
   /* Två rader räcker; en lång kurstitel får inte trycka ned talen. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -259,14 +294,15 @@
 .deck-card-foot {
   display: flex;
   flex-direction: column;
-  gap: var(--s2);
+  gap: var(--s3);
   margin-top: auto;
 }
 
+/* Talen står bredvid varandra vid vänsterkanten, inte utspridda mot var sitt
+ * hörn: de hör ihop och läses som en mening. */
 .deck-card-nums {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: var(--s3);
 }
 
@@ -287,44 +323,26 @@
   color: var(--text-3);
 }
 
+/* Menyknappen. Mockupens kort har ingen — men namnbyte, flytt och radering
+ * måste nås någonstans, och kortet är det enda stället kortleken finns i
+ * biblioteket. Den läggs därför ovanpå hörnet i stället för i flödet, så att
+ * titel, stapel och tal behåller sin komposition. */
+.deck-card > .row-menu {
+  position: absolute;
+  top: var(--s3);
+  right: var(--s3);
+}
+
+.deck-card > .row-menu .row-menu-toggle {
+  color: var(--text-3);
+}
+
 /* ======================================================================
- * BOKHYLLA
- *
- * En grupp, inte en låda i lådan. Rubrikraden och linjen under den håller
- * ihop innehållet utan att lägga en ny ram runt kort som redan har ramar.
+ * TOM HYLLA
  * ====================================================================== */
 
-.bookshelf-container {
-  margin-bottom: var(--s6);
-}
-
-.bookshelf-header {
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  min-height: var(--control-h);
-  margin-bottom: var(--s4);
-  padding-bottom: var(--s2);
-  border-bottom: 1px solid var(--line);
-}
-
-.bookshelf-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--t-md);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bookshelf-container.bookshelf-done .bookshelf-title {
-  color: var(--text-2);
-}
-
-/* Tom hylla är ett släppmål. Streckad kant säger att något ska hit, utan att
- * se ut som ett kort som råkar vara tomt. */
 .bookshelf-empty {
+  grid-column: 1 / -1;
   margin: 0;
   padding: var(--s5);
   font-size: var(--t-sm);
@@ -383,23 +401,41 @@
  * ====================================================================== */
 
 @media (max-width: 600px) {
-  .library-summary {
-    grid-template-columns: 1fr 1fr;
-    margin-bottom: var(--s5);
+  /* Åtgärderna byter ordning och tyngd. Repetitionen är det man kommit hit
+   * för och tar hela bredden överst; de tre andra delar på raden under, som i
+   * mobilmockupen. Med tummen är en full rad lättare att träffa än tre
+   * knappar som råkar hamna först. */
+  #view-library .view-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s4);
   }
 
-  .library-figure {
-    padding: var(--s3) var(--s4) var(--s3) 0;
+  #view-library .view-actions {
+    width: 100%;
+  }
+
+  #view-library .view-actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  #view-library .view-actions .btn.primary {
+    order: -1;
+    flex: 1 1 100%;
+    min-height: var(--control-h-lg);
+    border-radius: var(--r-md);
+  }
+
+  .library-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s4);
+    margin-bottom: var(--s5);
+    padding: var(--s3) 0;
   }
 
   .library-figure:first-child {
     grid-column: 1 / -1;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .library-figure:nth-child(3) {
-    padding-left: var(--s4);
   }
 
   .library-figure:nth-child(2) .library-figure-n,
@@ -417,6 +453,10 @@
 
   .today-folder-actions .btn {
     flex: 1 1 0;
+  }
+
+  .today-folder-actions .btn {
+    flex: 1 1 0;
     min-height: var(--control-h-lg);
   }
 
@@ -428,7 +468,4 @@
     padding: var(--s3) var(--s4);
   }
 
-  .bookshelf-container {
-    margin-bottom: var(--s5);
-  }
 }

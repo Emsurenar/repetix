@@ -27,12 +27,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "http-server",
-        "/private/tmp/claude-501/-Users-emresunar-Egna-projekt-Spaced-repetition/0e68dc84-842c-44fb-91ba-0ed7171df747/scratchpad/mockups",
+        "docs",
         "-p",
-        "8235",
+        "8247",
         "-c-1"
       ],
-      "port": 8235
+      "port": 8247
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
 import { getLocalDateString } from '../domain/stats.js';
+import { ticksHtml } from './ticks.js';
 
 
 // --- DAGENS MAPP (DAILY RECOMMENDATION) ---
@@ -134,11 +135,14 @@ export const renderDagensMapp = () => {
             <div class="today-folder-body">
                 <p class="label today-folder-kicker">Dagens mapp</p>
                 <h2 class="today-folder-title">${escapeHtml(dagens.deckTitle)} <span>/</span> ${escapeHtml(dagens.sectionTitle)}</h2>
-                <p class="today-folder-meta num">${totalCards} kort <span class="today-folder-due">${dueCards} förfallna</span></p>
+                <p class="today-folder-meta num">
+                    <span>${dueCards} kort</span>
+                    ${ticksHtml(dueCards, dueCards)}
+                </p>
             </div>
             <div class="today-folder-actions">
                 <button type="button" class="btn" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Gå till mappen</button>
-                <button type="button" class="btn primary" onclick="studyDagensMapp('${dagens.deckId}', '${dagens.sectionId}')">Repetera mappen</button>
+                <button type="button" class="btn primary lg" onclick="studyDagensMapp('${dagens.deckId}', '${dagens.sectionId}')">Repetera mappen</button>
             </div>
         </section>
     `;

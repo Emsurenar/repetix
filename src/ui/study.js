@@ -18,6 +18,7 @@ import { renderLatex } from './latex.js';
 import { showConfirmModal } from './modals.js';
 import { finishPlaygroundSession } from './playground.js';
 import { switchView } from './router.js';
+import { ticksHtml } from './ticks.js';
 import { showToast } from './toast.js';
 
 
@@ -109,10 +110,36 @@ export const startSectionStudy = (sectionId, forceAll = false) => {
     switchView('study');
 };
 
+/* Toppslisten: kortlek, mapp och kölängd.
+ *
+ * Kortleken slås upp ur kortet och inte ur S.currentDeckId, eftersom ett
+ * globalt pass eller en hel bokhylla inte har någon aktuell kortlek — då är
+ * fältet null och slisten hade stått tom just när den behövs som mest.
+ */
+const renderStudyContext = (card) => {
+    const total = S.currentStudyCards.length;
+    const done = S.currentStudyIndex;
+
+    const deck = S.appData.decks.find((d) => d.cards.some((c) => c.id === card.id));
+    const section = card.sectionId ? deck?.sections?.find((sec) => sec.id === card.sectionId) : null;
+
+    const deckEl = document.getElementById('study-ctx-deck');
+    const sectionEl = document.getElementById('study-ctx-section');
+    if (deckEl) deckEl.textContent = deck?.title || 'Repetition';
+    // Mappen är en precisering av kortleken, inte ett eget led. Punkten hör
+    // därför ihop med mappnamnet och försvinner med det.
+    if (sectionEl) sectionEl.textContent = section ? ` · ${section.title}` : '';
+
+    const progressEl = document.getElementById('study-progress');
+    if (progressEl) progressEl.textContent = `${done + 1} av ${total}`;
+
+    const ticksEl = document.getElementById('study-ticks');
+    if (ticksEl) ticksEl.innerHTML = ticksHtml(total, done);
+};
+
 export const renderStudyCard = () => {
     document.getElementById('cinema-overlay')?.remove();
     if (S.currentStudyIndex >= S.currentStudyCards.length) {
-        document.getElementById('study-progress-fill').style.width = '100%';
         if (S.isPlaygroundSession) {
             finishPlaygroundSession();
         } else {
@@ -134,9 +161,7 @@ export const renderStudyCard = () => {
     document.getElementById('input-study-ai').value = '';
     document.getElementById('study-ai-loading').classList.add('hidden');
 
-    document.getElementById('study-progress').innerText = `${S.currentStudyIndex + 1} / ${S.currentStudyCards.length}`;
-    const progressPercent = S.currentStudyCards.length > 0 ? ((S.currentStudyIndex) / S.currentStudyCards.length) * 100 : 0;
-    document.getElementById('study-progress-fill').style.width = `${progressPercent}%`;
+    renderStudyContext(card);
     
     const frontTextEl = document.getElementById('study-front-text');
     if (card._jeopardy) {
@@ -158,6 +183,18 @@ export const renderStudyCard = () => {
         backTextEl2.classList.remove('long-form-content');
     }
 
+    /* Fordjupningen. Doljs helt nar den saknas — ett tomt falt under svaret
+     * ser ut som nagot som inte laddat klart. */
+    const descEl = document.getElementById('study-description');
+    if (card.description) {
+        descEl.innerHTML = safeParse(card.description);
+        descEl.hidden = false;
+        renderLatex(descEl);
+    } else {
+        descEl.innerHTML = '';
+        descEl.hidden = true;
+    }
+
     renderLatex(document.getElementById('study-front-text'));
     renderLatex(backTextEl2);
 
@@ -175,24 +212,13 @@ export const renderStudyCard = () => {
     document.getElementById('time-3').innerText = formatInt(previewInterval(tillstand, RATING.GOOD));
     document.getElementById('time-4').innerText = formatInt(previewInterval(tillstand, RATING.EASY));
 
-    // Dynamically size the flashcard to fit content
+    /* Kortet mattes tidigare upp i en requestAnimationFrame och fick en
+     * minsta hojd i pixlar, sa att det inte skulle hoppa nar baksidan vandes
+     * fram. Betygsraden ar sedan dess forankrad i vyns nederkant och kan inte
+     * hoppa; det enda matningen gav var ett dott falt mellan svaret och
+     * knapparna. Kortet far nu vara sa hogt som dess innehall. */
     const flashcardInner = document.getElementById('flashcard-inner');
-    const frontFace = document.querySelector('.flashcard-front');
     flashcardInner.classList.remove('flipped');
-    // Temporarily make front visible to measure
-    requestAnimationFrame(() => {
-        const flashcardEl = document.querySelector('.flashcard');
-        // Reset minHeight and force reflow so scrollHeight reflects actual content
-        flashcardInner.style.minHeight = '0px';
-        if (flashcardEl) flashcardEl.style.minHeight = '0px';
-        frontFace.style.position = 'static';
-        frontFace.offsetHeight; // force reflow
-        const frontHeight = frontFace.scrollHeight;
-        frontFace.style.position = '';
-        const finalHeight = Math.max(200, Math.min(frontHeight, window.innerHeight * 0.7));
-        flashcardInner.style.minHeight = finalHeight + 'px';
-        if (flashcardEl) flashcardEl.style.minHeight = finalHeight + 'px';
-    });
 
     const ratingBtns = document.querySelectorAll('.btn-rate');
     ratingBtns.forEach(btn => btn.style.display = '');

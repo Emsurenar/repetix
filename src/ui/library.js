@@ -8,9 +8,8 @@ import { loadRecords } from '../domain/stats.js';
 import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook } from './deck.js';
 import { deckList } from './dom.js';
-import { openColorModal, renderSidebar } from './modals-wiring.js';
+import { renderSidebar } from './modals-wiring.js';
 import { showConfirmModal, showPromptModal } from './modals.js';
-import { startBookshelfStudy } from './study.js';
 import { showToast } from './toast.js';
 
 
@@ -33,6 +32,24 @@ const rowMenu = (label, items) => `
         <div class="row-menu-items">${items}</div>
     </details>`;
 
+
+/* Stapelns tre andelar. Ett kort är moget när intervallet passerat tre veckor
+ * — då är det inlärt och inte längre under arbete — påbörjat så länge det har
+ * ett intervall alls, och osett dessförinnan. Gränsen är den vedertagna i
+ * spaced repetition och bär hela skillnaden mellan "kan" och "sett en gång".
+ * En enda fylld andel kunde inte visa den skillnaden. */
+const MATURE_DAYS = 21;
+
+const deckProgress = (cards) => {
+    const total = cards.length;
+    if (total === 0) return { maturePct: 0, youngPct: 0 };
+    const mature = cards.filter((c) => (c.interval || 0) >= MATURE_DAYS).length;
+    const young = cards.filter((c) => (c.interval || 0) > 0 && (c.interval || 0) < MATURE_DAYS).length;
+    return {
+        maturePct: Math.round((mature / total) * 100),
+        youngPct: Math.round((young / total) * 100),
+    };
+};
 
 const itemMatchesFilter = (item, type, flt) => {
     if (!flt) return true;
@@ -135,29 +152,18 @@ export const renderLibrary = () => {
             const deckCards = item.cards.filter(c => c.type !== 'note');
             const total = deckCards.length;
             const dueCards = deckCards.filter(c => c.nextReviewDate <= Date.now()).length;
-            const doneCards = total - dueCards;
-            const reviewedPct = total > 0 ? Math.round((doneCards / total) * 100) : 0;
-            
-            let itemColor = '#4F46E5';
-            if (item.bookshelfId) {
-                const shelf = S.appData.bookshelves.find(s => s.id === item.bookshelfId);
-                if (shelf && shelf.color) itemColor = shelf.color;
-            } else if (item.color) { // Legacy fallback
-                itemColor = item.color;
-            }
-            itemEl.style.setProperty('--deck-color', itemColor);
+            const { maturePct, youngPct } = deckProgress(deckCards);
 
             itemEl.innerHTML = `
-                <div class="deck-card-top">
-                    <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
-                    ${rowMenu(`Åtgärder för ${item.title}`, `
-                            <button type="button" class="btn-item-rename">Byt namn</button>
-                            <button type="button" class="btn-item-move">Flytta till bokhylla</button>
-                            <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
-                </div>
+                <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
+                ${rowMenu(`Åtgärder för ${item.title}`, `
+                        <button type="button" class="btn-item-rename">Byt namn</button>
+                        <button type="button" class="btn-item-move">Flytta till bokhylla</button>
+                        <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
                 <div class="deck-card-foot">
                     <div class="progress" aria-hidden="true">
-                        <div class="progress-fill" style="width: ${reviewedPct}%"></div>
+                        <i class="progress-fill" style="width: ${maturePct}%"></i>
+                        <i class="progress-fill-soft" style="width: ${youngPct}%"></i>
                     </div>
                     <div class="deck-card-nums">
                         <span class="deck-card-count num">${total} kort</span>
@@ -173,24 +179,13 @@ export const renderLibrary = () => {
             };
         } else if (type === 'notebook') {
             const total = item.notes.length;
-            
-            let itemColor = '#FF6D01';
-            if (item.bookshelfId) {
-                const shelf = S.appData.bookshelves.find(s => s.id === item.bookshelfId);
-                if (shelf && shelf.color) itemColor = shelf.color;
-            } else if (item.color) {
-                itemColor = item.color;
-            }
-            itemEl.style.setProperty('--deck-color', itemColor);
 
             itemEl.innerHTML = `
-                <div class="deck-card-top">
-                    <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
-                    ${rowMenu(`Åtgärder för ${item.title}`, `
-                            <button type="button" class="btn-item-rename">Byt namn</button>
-                            <button type="button" class="btn-item-move">Flytta till bokhylla</button>
-                            <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
-                </div>
+                <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
+                ${rowMenu(`Åtgärder för ${item.title}`, `
+                        <button type="button" class="btn-item-rename">Byt namn</button>
+                        <button type="button" class="btn-item-move">Flytta till bokhylla</button>
+                        <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
                 <div class="deck-card-foot">
                     <div class="deck-card-nums">
                         <span class="deck-card-count num">${total} anteckningar</span>
@@ -213,11 +208,6 @@ export const renderLibrary = () => {
                 renderLibrary();
                 renderSidebar();
             }
-        });
-
-        itemEl.querySelector('.btn-item-color')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openColorModal(item);
         });
 
         itemEl.querySelector('.btn-item-move').addEventListener('click', (e) => {
@@ -292,202 +282,128 @@ export const renderLibrary = () => {
         return itemEl;
     };
 
-    // Render Bookshelves
-    let shelvesToRender = S.appData.bookshelves;
-    if (S.currentBookshelfFilterId) {
-        shelvesToRender = S.appData.bookshelves.filter(s => s.id === S.currentBookshelfFilterId);
-        
-        // Render a back to all button
+    /* Ett platt rutnät. Biblioteket grupperades tidigare i bokhyllor med var
+     * sin rubrikrad, meny och egen "Repetera alla" — samma gruppering som
+     * sidopanelen redan visar, en gång till och med mer apparat. Hyllan bor nu
+     * i panelen; ett tryck på dess etikett filtrerar hit. */
+    /* Filtret laker sig sjalvt. Raderas hyllan man star i pekar filtret pa
+     * nagot som inte finns, och vyn blir tom med en rubrik som ljuger. */
+    if (S.currentBookshelfFilterId && !S.appData.bookshelves.some(b => b.id === S.currentBookshelfFilterId)) {
+        S.currentBookshelfFilterId = null;
+    }
+    const shelfId = S.currentBookshelfFilterId;
+
+    if (shelfId) {
         const backBtn = document.createElement('div');
         backBtn.className = 'library-filter-row';
         backBtn.innerHTML = `<button type="button" class="chip" onclick="filterBookshelf(null)">← Visa alla</button>`;
         deckList.appendChild(backBtn);
     }
 
-    const isBookshelfFullyReviewed = (shelf) => {
-        const shelfDecks = S.appData.decks.filter(d => d.bookshelfId === shelf.id);
-        return shelfDecks.length > 0 && shelfDecks.every(d => isDeckFullyReviewed(d));
+    const inScope = (item) => (shelfId ? item.bookshelfId === shelfId : true);
+
+    const getLastUpdated = (item) => {
+        let max = parseInt(item.id, 10) || 0;
+        const children = item.cards || item.notes || [];
+        children.forEach((child) => {
+            const time = parseInt(child.id, 10) || 0;
+            if (time > max) max = time;
+        });
+        return max;
     };
 
-    shelvesToRender = [...shelvesToRender].sort((a, b) => {
-        const aDone = isBookshelfFullyReviewed(a);
-        const bDone = isBookshelfFullyReviewed(b);
-        if (aDone !== bDone) return aDone ? 1 : -1;
-        return 0;
+    const items = [];
+    S.appData.decks.forEach((deck) => {
+        if (inScope(deck) && itemMatchesFilter(deck, 'deck', filter)) {
+            items.push({ item: deck, type: 'deck', updated: getLastUpdated(deck), done: isDeckFullyReviewed(deck) });
+        }
     });
-
-    shelvesToRender.forEach((shelf) => {
-        const shelfDone = isBookshelfFullyReviewed(shelf);
-        const shelfEl = document.createElement('div');
-        shelfEl.className = `bookshelf-container ${shelfDone ? 'bookshelf-done' : ''}`;
-
-        if (shelf.color) {
-            shelfEl.style.setProperty('--bookshelf-color', shelf.color);
-        }
-
-        shelfEl.innerHTML = `
-            <div class="bookshelf-header">
-                <h3 class="bookshelf-title">${escapeHtml(shelf.title)}</h3>
-                <button type="button" class="chip btn-bookshelf-study" title="Repetera alla kortlekar i bokhyllan">Repetera alla</button>
-                ${rowMenu(`Åtgärder för ${shelf.title}`, `
-                        <button type="button" class="btn-bookshelf-rename">Byt namn</button>
-                        <button type="button" class="btn-bookshelf-color">Ändra färg</button>
-                        <button type="button" class="btn-bookshelf-delete danger">Ta bort</button>`)}
-            </div>
-            <div class="bookshelf-items grid-container"></div>
-        `;
-
-        const itemsContainer = shelfEl.querySelector('.bookshelf-items');
-
-        shelfEl.querySelector('.btn-bookshelf-study').addEventListener('click', (e) => {
-            e.stopPropagation();
-            startBookshelfStudy(shelf.id);
-        });
-
-        shelfEl.querySelector('.btn-bookshelf-color')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openColorModal(shelf);
-        });
-        
-        itemsContainer.addEventListener('dragover', (e) => e.preventDefault());
-        itemsContainer.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Don't trigger deckList root drop
-            if (S.draggedItemId !== null && S.draggedItemType !== null) {
-                if (S.draggedItemType === 'deck') {
-                    const item = S.appData.decks.find(d => d.id === S.draggedItemId);
-                    if (item) item.bookshelfId = shelf.id;
-                } else if (S.draggedItemType === 'notebook') {
-                    const item = S.appData.notebooks.find(n => n.id === S.draggedItemId);
-                    if (item) item.bookshelfId = shelf.id;
-                }
-                saveData();
-                renderLibrary();
-            }
-        });
-
-        // Add items to this bookshelf, sorted by latest addition
-        const shelfItems = [];
-        const getLastUpdated = (item) => {
-            let max = parseInt(item.id, 10) || 0;
-            if (item.cards) {
-                item.cards.forEach(c => {
-                    const time = parseInt(c.id, 10) || 0;
-                    if (time > max) max = time;
-                });
-            } else if (item.notes) {
-                item.notes.forEach(n => {
-                    const time = parseInt(n.id, 10) || 0;
-                    if (time > max) max = time;
-                });
-            }
-            return max;
-        };
-
-        const shelfTitleMatches = shelf.title.toLowerCase().includes(filter);
-        S.appData.decks.forEach((deck, index) => {
-            if (deck.bookshelfId === shelf.id && (shelfTitleMatches || itemMatchesFilter(deck, 'deck', filter))) {
-                shelfItems.push({ element: renderItem(deck, 'deck', index), updated: getLastUpdated(deck), done: isDeckFullyReviewed(deck) });
-            }
-        });
-        S.appData.notebooks.forEach((notebook, index) => {
-            if (notebook.bookshelfId === shelf.id && (shelfTitleMatches || itemMatchesFilter(notebook, 'notebook', filter))) {
-                shelfItems.push({ element: renderItem(notebook, 'notebook', index), updated: getLastUpdated(notebook), done: false });
-            }
-        });
-
-        shelfItems.sort((a, b) => {
-            if (a.done !== b.done) return a.done ? 1 : -1;
-            return b.updated - a.updated;
-        });
-        shelfItems.forEach(item => itemsContainer.appendChild(item.element));
-
-        if(itemsContainer.children.length === 0) {
-            itemsContainer.innerHTML = '<p class="bookshelf-empty">Dra och släpp kortlekar eller anteckningsblock här</p>';
-        }
-
-        shelfEl.querySelector('.btn-bookshelf-rename').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const newTitle = await showPromptModal('Nytt namn för bokhyllan:', shelf.title);
-            if (newTitle && newTitle.trim() !== '') {
-                shelf.title = newTitle.trim();
-                saveData();
-                renderLibrary();
-                renderSidebar();
-                showToast('Bokhyllan har bytt namn');
-            }
-        });
-
-        shelfEl.querySelector('.btn-bookshelf-delete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            S.currentBookshelfToDelete = shelf.id;
-            document.getElementById('modal-delete-bookshelf').classList.remove('hidden');
-        });
-
-        if (!filter || shelfTitleMatches || shelfItems.length > 0) {
-            deckList.appendChild(shelfEl);
+    S.appData.notebooks.forEach((notebook) => {
+        if (inScope(notebook) && itemMatchesFilter(notebook, 'notebook', filter)) {
+            items.push({ item: notebook, type: 'notebook', updated: getLastUpdated(notebook), done: false });
         }
     });
 
-    // Root items (No bookshelfId)
-    if (!S.currentBookshelfFilterId) {
-        const rootItems = [];
-        const getLastUpdated = (item) => {
-            let max = parseInt(item.id, 10) || 0;
-            if (item.cards) {
-                item.cards.forEach(c => {
-                    const time = parseInt(c.id, 10) || 0;
-                    if (time > max) max = time;
-                });
-            } else if (item.notes) {
-                item.notes.forEach(n => {
-                    const time = parseInt(n.id, 10) || 0;
-                    if (time > max) max = time;
-                });
-            }
-            return max;
-        };
+    // Färdigrepeterat sjunker till botten: det som återstår att göra ska ligga
+    // överst utan att man behöver leta.
+    items.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return b.updated - a.updated;
+    });
 
-        S.appData.decks.forEach((deck, index) => {
-            if (!deck.bookshelfId && itemMatchesFilter(deck, 'deck', filter)) {
-                rootItems.push({ element: renderItem(deck, 'deck', index), updated: getLastUpdated(deck), done: isDeckFullyReviewed(deck) });
-            }
-        });
-        S.appData.notebooks.forEach((notebook, index) => {
-            if (!notebook.bookshelfId && itemMatchesFilter(notebook, 'notebook', filter)) {
-                rootItems.push({ element: renderItem(notebook, 'notebook', index), updated: getLastUpdated(notebook), done: false });
-            }
-        });
-
-        rootItems.sort((a, b) => {
-            if (a.done !== b.done) return a.done ? 1 : -1;
-            return b.updated - a.updated;
-        });
-
-        // Rubrik bara när det finns bokhyllor ovanför. Utan den ser de lösa
-        // kortlekarna ut som om de hörde till den sista bokhyllan.
-        if (rootItems.length > 0 && deckList.querySelector('.bookshelf-container')) {
-            const label = document.createElement('div');
-            label.className = 'library-group-label label';
-            label.textContent = 'Utan bokhylla';
-            deckList.appendChild(label);
-        }
-
-        rootItems.forEach(item => deckList.appendChild(item.element));
+    if (items.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'bookshelf-empty';
+        empty.textContent = filter
+            ? 'Inget matchar sökningen.'
+            : 'Bokhyllan är tom. Flytta hit en kortlek från dess meny.';
+        deckList.appendChild(empty);
+    } else {
+        items.forEach(({ item, type }) => deckList.appendChild(renderItem(item, type)));
     }
 
-    // Update global study button
-    const allDueCards = S.appData.decks.flatMap(d => d.cards.filter(c => c.nextReviewDate <= Date.now()));
+    /* Rubriken säger vad man tittar på. Står man i en bokhylla är det hyllans
+     * namn — annars påstår sidan "Bibliotek" medan den visar en delmängd. */
+    const shelf = shelfId ? S.appData.bookshelves.find(s => s.id === shelfId) : null;
+    const titleEl = document.querySelector('.library-title');
+    if (titleEl) titleEl.textContent = shelf ? shelf.title : 'Bibliotek';
+    renderShelfMenu(shelf);
+
+    /* Primärknappen repeterar det som visas, inte alltid allt. Bokhyllans egen
+     * "Repetera alla" försvann med rubrikraderna, och utan detta hade
+     * hyllfiltret inte gått att repetera. */
+    const scopedDecks = S.appData.decks.filter(inScope);
+    const dueInScope = scopedDecks.flatMap(d => d.cards.filter(c => c.type !== 'note' && c.nextReviewDate <= Date.now()));
     const globalBtn = document.getElementById('btn-study-all');
     const globalLabel = document.getElementById('btn-study-all-label');
-    if (allDueCards.length > 0) {
+    if (dueInScope.length > 0) {
         globalBtn.classList.remove('hidden');
-        globalLabel.innerText = `Repetera`;
+        globalLabel.innerText = shelf ? 'Repetera hyllan' : 'Repetera allt';
     } else {
         globalBtn.classList.add('hidden');
     }
 
     renderSidebar();
+};
+
+/* Bokhyllans åtgärder.
+ *
+ * De satt tidigare i rubrikraden över varje hylla i rutnätet. Med det platta
+ * rutnätet finns de raderna inte längre, och hyllan har bara ett ställe där
+ * den är öppnad: den här vyn, filtrerad. Menyn står därför bredvid rubriken
+ * och bara då.
+ *
+ * "Ändra färg" följer inte med. Hyllfärgen ritades ut på rubrikraden som är
+ * borta, och en färg vald ur en palett utanför tokens hör ändå inte hemma i
+ * "Lugn precision" — kontrollen ändrade ett värde ingen kunde se.
+ */
+const renderShelfMenu = (shelf) => {
+    const host = document.getElementById('library-shelf-menu');
+    if (!host) return;
+
+    if (!shelf) {
+        host.innerHTML = '';
+        return;
+    }
+
+    host.innerHTML = rowMenu(`Åtgärder för ${shelf.title}`, `
+            <button type="button" class="btn-bookshelf-rename">Byt namn</button>
+            <button type="button" class="btn-bookshelf-delete danger">Ta bort</button>`);
+
+    host.querySelector('.btn-bookshelf-rename').addEventListener('click', async () => {
+        const newTitle = await showPromptModal('Nytt namn för bokhyllan:', shelf.title);
+        if (newTitle && newTitle.trim() !== '') {
+            shelf.title = newTitle.trim();
+            saveData();
+            renderLibrary();
+            showToast('Bokhyllan har bytt namn');
+        }
+    });
+
+    host.querySelector('.btn-bookshelf-delete').addEventListener('click', () => {
+        S.currentBookshelfToDelete = shelf.id;
+        document.getElementById('modal-delete-bookshelf').classList.remove('hidden');
+    });
 };
 
 export function initUiLibrary() {

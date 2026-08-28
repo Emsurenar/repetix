@@ -29,6 +29,9 @@ export const switchView = (viewName, sectionId = null) => {
         v.classList.toggle('hidden', v !== views[viewName]);
     }
     window.scrollTo(0, 0);
+    // Repetitionen tar hela ytan. Sidopanelen ar bibliotekets navigering och
+    // har inget arende mitt i ett pass.
+    document.body.classList.toggle('focus-mode', viewName === 'study');
     for (const fn of viewListeners) fn(viewName);
 
     // Update breadcrumb
@@ -53,8 +56,9 @@ export const switchView = (viewName, sectionId = null) => {
         const nb = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
         updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock', action: `openNotebook('${S.currentNotebookId}')` }, { label: 'Anteckning' }]);
     } else if (viewName === 'study') {
-        const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-        updateBreadcrumb([lib, { label: deck?.title || 'Repetition', action: S.currentDeckId ? `openDeck('${S.currentDeckId}')` : '' }, { label: 'Repetition' }]);
+        // Repetitionen bar sin egen toppslist med kortlek, mapp och kolangd.
+        // En brodsmula ovanfor den hade sagt samma sak en gang till.
+        updateBreadcrumb([]);
     } else if (viewName === 'complete') {
         updateBreadcrumb([lib, { label: 'Klart!' }]);
     } else if (viewName === 'playground') {
@@ -68,7 +72,7 @@ export const switchView = (viewName, sectionId = null) => {
 
 export function initUiRouter() {
 
-  window.openPlayground = () => {
+  const openPlayground = () => {
       S.isPlaygroundSession = false;
       S.playgroundFilterSource = new Set();
       S.playgroundFilterAll = true;
@@ -77,4 +81,11 @@ export function initUiRouter() {
       switchView('playground');
       renderPlayground();
   };
+
+  window.openPlayground = openPlayground;
+
+  // Sidopanelens fot ar enda vagen till spelhallen. Knappen fanns i markupen
+  // men var aldrig kopplad — den forlitade sig pa en inline-onclick i tradet,
+  // som forsvann nar tradet blev en lista over kortlekar.
+  document.getElementById('btn-open-playground')?.addEventListener('click', openPlayground);
 }

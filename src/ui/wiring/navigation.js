@@ -5,7 +5,7 @@ import { renderLibrary } from '../library.js';
 import { showConfirmModal } from '../modals.js';
 import { renderPlayground } from '../playground.js';
 import { switchView } from '../router.js';
-import { deleteCurrentStudyCard, startGlobalStudy } from '../study.js';
+import { deleteCurrentStudyCard, startBookshelfStudy, startGlobalStudy } from '../study.js';
 import { showToast } from '../toast.js';
 
 
@@ -83,8 +83,14 @@ export function initUiWiringNavigation() {
           }
       });
 
+      // Knappen repeterar det biblioteket visar. Står man i en bokhylla är det
+      // hyllan; bokhyllans egen knapp försvann med rubrikraderna.
       document.getElementById('btn-study-all').addEventListener('click', () => {
-          startGlobalStudy();
+          if (S.currentBookshelfFilterId) {
+              startBookshelfStudy(S.currentBookshelfFilterId);
+          } else {
+              startGlobalStudy();
+          }
       });
 
       // Delete Deck / Notebook
