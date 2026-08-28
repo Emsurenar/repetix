@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Nothing here writes to the repository, so read access is all the token needs.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the previous run uninteresting.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 is the floor the dependency tree requires:
+      # @supabase/supabase-js declares >=22 and Vite 8 declares ^20.19 || >=22.12.
+      # Running on the floor catches accidental use of newer APIs.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # ci rather than install: it installs exactly what package-lock.json
+      # pins, so a green run cannot depend on a version nobody committed.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm test
+
+      # The build needs no environment variables. The client reads the Supabase
+      # configuration through optional chaining and falls back to local-only
+      # mode when it is missing, so an unconfigured build is still a valid one.
+      - run: npm run build
