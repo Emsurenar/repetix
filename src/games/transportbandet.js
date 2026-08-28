@@ -281,19 +281,20 @@ export const transportbandetReveal = () => {
         overlay.classList.add('cinema-overlay--game');
         
         overlay.innerHTML = `
-            <div class="cinema-bar cinema-bar-top"></div>
             <div class="tb-container">
-                <div class="tb-header">
-                    <div id="tb-lives" style="display:flex;gap:0.3rem;font-size:1.6rem; z-index: 5;"></div>
-                    <div style="display:flex; gap:1.2rem; align-items:center; font-weight:700; z-index: 5;">
-                        <span id="tb-pb" style="color:var(--accent); font-size:0.9rem;"> Rekord: ${personalBest}</span>
-                        <span id="tb-score" class="tb-score" style="font-size:1.1rem;">Poäng: 0</span>
-                        <span id="tb-progress" class="tb-progress">1 / ${cards.length}</span>
+                <div class="arena-top tb-header">
+                    <div id="tb-lives" class="arena-lives"></div>
+                    <div class="arena-meta num">
+                        <span id="tb-pb">Rekord ${personalBest}</span>
+                        <span class="arena-sep" aria-hidden="true"></span>
+                        <span id="tb-score" class="tb-score">Poäng 0</span>
+                        <span class="arena-sep" aria-hidden="true"></span>
+                        <span id="tb-progress" class="tb-progress">1 av ${cards.length}</span>
                     </div>
                 </div>
-                
-                <div style="text-align: center; height: 25px; margin-top: -0.25rem; z-index: 5;">
-                    <span id="tb-streak" class="tb-streak" style="font-weight:900; transition: opacity 0.2s ease;"></span>
+
+                <div class="tb-streak-row">
+                    <span id="tb-streak" class="tb-streak"></span>
                 </div>
                 
                 <div id="tb-arena" class="tb-arena">
@@ -311,9 +312,8 @@ export const transportbandetReveal = () => {
                         </button>
                     `}).join('')}
                 </div>
-                <div class="tb-controls-hint">Tryck på en korg för att sortera &nbsp;|&nbsp; ← → flytta, ↓ släpp, 1 – 4 direkt</div>
+                <p class="tb-controls-hint arena-hint">Tryck på en korg för att sortera &nbsp;·&nbsp; ← → flytta, ↓ släpp, 1 – 4 direkt</p>
             </div>
-            <div class="cinema-bar cinema-bar-bottom"></div>
         `;
         
         arena = overlay.querySelector('#tb-arena');
@@ -373,16 +373,12 @@ export const transportbandetReveal = () => {
 
         updateBinHighlight();
 
-        overlay.querySelector('#tb-progress').textContent = `${cardIdx + 1} / ${cards.length}`;
-        overlay.querySelector('#tb-score').textContent = `Poäng: ${score}`;
+        overlay.querySelector('#tb-progress').textContent = `${cardIdx + 1} av ${cards.length}`;
+        overlay.querySelector('#tb-score').textContent = `Poäng ${score}`;
 
         const streakEl = overlay.querySelector('#tb-streak');
-        if (streak >= 2) {
-            streakEl.textContent = ` ${streak} i rad`;
-            streakEl.style.opacity = '1';
-        } else {
-            streakEl.style.opacity = '0';
-        }
+        if (streak >= 2) streakEl.textContent = `${streak} i rad`;
+        streakEl.classList.toggle('is-on', streak >= 2);
 
         // Falling speed increases as you score correct categories
         const dropDuration = Math.max(1.0, baseSpeed - correctCount * 0.08);

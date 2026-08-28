@@ -19,30 +19,40 @@ export const dragkampenReveal = (allCards) => {
     overlay.className = 'cinema-overlay';
 
     overlay.innerHTML = `
-        <div class="cinema-bar cinema-bar-top"></div>
-        <div class="cinema-content" style="width:90%;max-width:700px;display:flex;flex-direction:column;align-items:center;gap:1rem;position:relative;">
-            <div style="display:flex;justify-content:space-between;width:100%;align-items:center;font-size:0.85rem;font-weight:700;color:var(--text-3);">
-                <span id="dk-progress">Kort 1 / ${cards.length}</span>
-                <span id="dk-drift-warn" style="color:var(--rate-2);opacity:0;transition:opacity 0.3s ease;">Datorn drar...</span>
+        <div class="arena">
+            <div class="arena-top">
+                <span class="micro">Dragkampen</span>
+                <span class="arena-meta num">
+                    <span id="dk-drift-warn" class="dk-drift">Datorn drar</span>
+                    <span id="dk-progress">1 av ${cards.length}</span>
+                </span>
             </div>
-            <div class="dk-meter-labels">
-                <span class="dk-label-cpu">Dator</span>
-                <span class="dk-label-player">Du</span>
+
+            <div class="dk-meter">
+                <div class="dk-meter-labels">
+                    <span class="dk-label-cpu">Dator</span>
+                    <span class="dk-label-player">Du</span>
+                </div>
+                <div class="dk-meter-track">
+                    <div id="dk-meter-fill-neg" class="dk-meter-fill-neg"></div>
+                    <div id="dk-meter-fill-pos" class="dk-meter-fill-pos"></div>
+                    <div id="dk-meter-cursor" class="dk-meter-cursor"></div>
+                </div>
             </div>
-            <div class="dk-meter-track">
-                <div id="dk-meter-fill-neg" class="dk-meter-fill-neg"></div>
-                <div id="dk-meter-fill-pos" class="dk-meter-fill-pos"></div>
-                <div id="dk-meter-cursor" class="dk-meter-cursor"></div>
+
+            <div class="arena-body">
+                <p class="micro">Påstående</p>
+                <div id="dk-question" class="arena-question"></div>
+                <div id="dk-claim" class="arena-plain"></div>
             </div>
-            <div id="dk-question" style="font-size:1.3rem;font-weight:700;color:var(--text-1);text-align:center;line-height:1.4;width:100%;"></div>
-            <div id="dk-claim" style="font-size:1.05rem;color:var(--text-2);text-align:center;line-height:1.4;padding:0.75rem 1rem;background:var(--surface-1);border-radius:var(--radius-md);width:100%;"></div>
-            <div id="dk-buttons" class="dk-buttons">
+
+            <div id="dk-buttons" class="arena-options">
                 <button id="dk-false" class="dk-btn dk-btn-false">← Falskt</button>
                 <button id="dk-true" class="dk-btn dk-btn-true">Sant →</button>
             </div>
-            <div id="dk-answer-area" style="display:none;width:100%;text-align:center;"></div>
+
+            <div id="dk-answer-area" class="arena-reveal" hidden></div>
         </div>
-        <div class="cinema-bar cinema-bar-bottom"></div>
     `;
 
     document.body.appendChild(overlay);
@@ -121,20 +131,20 @@ export const dragkampenReveal = (allCards) => {
         const rawClaim = isCorrectAnswer ? card.back : (randomOther ? randomOther.back : card.back);
 
         const progressEl = overlay.querySelector('#dk-progress');
-        if (progressEl) progressEl.textContent = `Kort ${cardIdx + 1} / ${cards.length}`;
+        if (progressEl) progressEl.textContent = `${cardIdx + 1} av ${cards.length}`;
 
         const qEl = overlay.querySelector('#dk-question');
         qEl.innerHTML = typeof safeParse === 'function' ? safeParse(card.front) : card.front;
         renderLatex(qEl);
 
         const claimEl = overlay.querySelector('#dk-claim');
-        claimEl.innerHTML = `<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-3);margin-bottom:0.3rem;">Påstående:</div>` + (typeof safeParse === 'function' ? safeParse(rawClaim) : rawClaim);
+        claimEl.innerHTML = typeof safeParse === 'function' ? safeParse(rawClaim) : rawClaim;
         renderLatex(claimEl);
 
         const buttonsEl = overlay.querySelector('#dk-buttons');
         const answerArea = overlay.querySelector('#dk-answer-area');
-        buttonsEl.style.display = 'flex';
-        answerArea.style.display = 'none';
+        buttonsEl.hidden = false;
+        answerArea.hidden = true;
         updateMeter();
 
         let answered = false;
@@ -150,13 +160,13 @@ export const dragkampenReveal = (allCards) => {
             else { meterValue = Math.max(-100, meterValue - 15); S.playgroundSessionStats.again++; }
             updateMeter();
 
-            buttonsEl.style.display = 'none';
-            answerArea.style.display = 'block';
+            buttonsEl.hidden = true;
+            answerArea.hidden = false;
             answerArea.innerHTML = `
-                <div style="font-size:0.85rem;font-weight:700;color:${correct ? 'var(--accent)' : 'var(--danger)'};margin-bottom:0.5rem;">${correct ? '✓ Rätt!' : '✗ Fel!'} Påståendet var ${isCorrectAnswer ? 'SANT' : 'FALSKT'}.</div>
-                <div style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.3rem;">Rätt svar:</div>
-                <div id="dk-full-answer" style="font-size:1rem;color:var(--text-1);background:var(--surface-1);padding:0.75rem;border-radius:8px;text-align:left;">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
-                <div style="font-size:0.8rem;color:var(--text-3);margin-top:0.5rem;font-style:italic;">[Space] fortsätt</div>
+                <p class="arena-verdict${correct ? ' is-good' : ' is-bad'}">${correct ? 'Rätt' : 'Fel'} — påståendet var ${isCorrectAnswer ? 'sant' : 'falskt'}.</p>
+                <p class="micro">Rätt svar</p>
+                <div id="dk-full-answer" class="arena-answer">${typeof safeParse === 'function' ? safeParse(card.back) : card.back}</div>
+                <p class="arena-hint"><span class="kbd">Space</span> fortsätt</p>
             `;
             const ansEl = answerArea.querySelector('#dk-full-answer');
             if (ansEl) { renderLatex(ansEl); if (typeof renderCardBackImages === 'function') renderCardBackImages(ansEl, card.backImages); }
@@ -198,7 +208,7 @@ export const dragkampenReveal = (allCards) => {
         meterValue = Math.max(-100, meterValue - 2);
         updateMeter();
         const warn = overlay.querySelector('#dk-drift-warn');
-        if (warn) { warn.style.opacity = '1'; setTimeout(() => { if (warn) warn.style.opacity = '0'; }, 800); }
+        if (warn) { warn.classList.add('is-on'); setTimeout(() => warn.classList.remove('is-on'), 800); }
         if (meterValue <= -100) showEndScreen(false);
     }, 1500);
 };

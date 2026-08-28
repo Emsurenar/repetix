@@ -516,6 +516,85 @@
   font-weight: 500;
 }
 
+/* ======================================================================
+ * UTFALLET
+ *
+ * Rätt eller fel sägs i ord och i accent respektive danger. Bocken och krysset
+ * bar ingen information som orden inte redan bar.
+ * ====================================================================== */
+
+.arena-verdict {
+  margin: 0;
+  font-size: var(--t-md);
+  font-weight: 500;
+}
+
+.arena-verdict.is-good {
+  color: var(--accent);
+}
+
+.arena-verdict.is-bad {
+  color: var(--danger);
+}
+
+/* Varningen när datorn drar. Ett tillstånd, inte en inline-opacitet. */
+.dk-drift {
+  color: var(--danger);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.dk-drift.is-on {
+  opacity: 1;
+}
+
+.dk-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* ======================================================================
+ * TRANSPORTBANDET
+ *
+ * Spelplanen är lägets egen — ett kort som faller mot fyra korgar går inte att
+ * pressa in i arenans kolumn. Slisten och talen delar däremot språk med de
+ * övriga lägena.
+ * ====================================================================== */
+
+.tb-header {
+  padding: 0 var(--s5);
+}
+
+.tb-streak-row {
+  min-height: 22px;
+  text-align: center;
+}
+
+.tb-streak {
+  font-family: var(--font-data);
+  font-size: var(--t-xs);
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.tb-streak.is-on {
+  opacity: 1;
+}
+
+.tb-controls-hint {
+  text-align: center;
+}
+
+/* Action och Lucktext behaller sina egna spelplaner men delar slist. */
+.action-hud,
+.lucktext-hud {
+  padding: 0 var(--s5);
+  background: transparent;
+  border: 0;
+}
+
 @media (max-width: 600px) {
   .arena {
     padding: var(--s4) var(--s3);

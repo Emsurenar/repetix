@@ -171,12 +171,18 @@ Kontrollerat: alla åtta lägen öppnade, med en kontrastmätning per läge — 
 element under 3:1 och ingen genomskinlig arena. Sudden Death och
 Transportbandet är dessutom provspelade, det senare med enbart klick.
 
+Alla åtta delar nu toppslist, tal och knappspråk. Sudden Death, Jeopardy,
+Dammiga kort, Fritext och Dragkampen bygger helt på `.arena`-klasserna;
+Lucktext, Action och Transportbandet behåller sina egna spelplaner — ett kort
+som faller mot fyra korgar går inte att pressa in i arenans kolumn — men har
+samma slist och samma sätt att skriva tal.
+
 Kvar att göra om någon vill:
 
-- `games-legacy.css` är fortfarande 2 159 rader. Lucktext, Action, Dragkampen
-  och Transportbandet ritar sin markup med inline-stilar och har inte flyttat
-  till `.arena`-klasserna; de ser rätt ut men bär kvar sin egen layout.
-- Touch är granskat för Transportbandet. Övriga sju har knappar och fungerar
+- `games-legacy.css` är fortfarande 2 159 rader, och spelen bär 111
+  inline-stilar. De flesta är funktionella (animeringstider, textstorlek som
+  skalar med svarets längd), men inte alla.
+- Touch är provspelat för Transportbandet. Övriga sju har knappar och fungerar
   med tryck, men ingen har provspelats på en riktig telefon.
 
 ### 5. Etapp 6 — publicering
@@ -187,10 +193,9 @@ och behöver kodsplittas — mest KaTeX. Tre inline-`onclick` finns kvar i
 
 ## Öppna punkter som kräver användaren
 
-- **Migration 0003** är inte körd.
 - **AI-rundturen är overifierad.** Användaren har inte lagt in någon API-nyckel
   än och sa att det får vänta. Allt är enhetstestat men ingen riktig prompt har
-  gått ut till en leverantör.
+  gått ut till en leverantör. Migration `0003` är körd (2026-08-28).
 - **Backupfilen är inte längre självbärande.** Efter bildmigreringen innehåller
   en export sökvägar till molnlagringen, inte bildbytes. Behöver lösas innan
   publicering.

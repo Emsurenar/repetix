@@ -113,15 +113,16 @@ import { processRating } from '../ui/study.js';
             <div class="cinema-flash"></div>
             <button class="lucktext-close-btn" id="lt-close-btn" title="Avsluta (Esc)">&times;</button>
             <div class="cinema-content" style="width:95%; max-width:800px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; padding: 12vh 0 10vh; position:relative; z-index:5; align-self:center; margin:0 auto;">
-                <div class="lucktext-hud">
-                    <div class="lucktext-hud-left">
-                        <span id="lt-score" class="lucktext-hud-val">0 p</span>
-                        <span id="lt-combo" class="lucktext-hud-combo" style="opacity:0;">x0</span>
-                    </div>
-                    <div class="lucktext-hud-right">
-                        <span id="lt-pb" class="lucktext-hud-pb">Rekord: ${personalBest}</span>
-                        <span id="lt-progress" class="lucktext-hud-progress">${cardIdx + 1} / ${cards.length}</span>
-                    </div>
+                <div class="arena-top lucktext-hud">
+                    <span class="arena-meta num">
+                        <span id="lt-score">0 p</span>
+                        <span id="lt-combo" class="arena-combo">x0</span>
+                    </span>
+                    <span class="arena-meta num">
+                        <span id="lt-pb">Rekord ${personalBest}</span>
+                        <span class="arena-sep" aria-hidden="true"></span>
+                        <span id="lt-progress">${cardIdx + 1} av ${cards.length}</span>
+                    </span>
                 </div>
                 <div id="lt-arena" class="lucktext-arena"></div>
             </div>
@@ -142,13 +143,13 @@ import { processRating } from '../ui/study.js';
             scoreHUD.textContent = `${score} p`;
             if (combo >= 2) {
                 comboHUD.textContent = `x${combo}`;
-                comboHUD.style.opacity = '1';
+                comboHUD.classList.add('is-on');
                 comboHUD.classList.add('pulse');
                 setTimeout(() => comboHUD.classList.remove('pulse'), 150);
             } else {
-                comboHUD.style.opacity = '0';
+                comboHUD.classList.remove('is-on');
             }
-            progressHUD.textContent = `${cardIdx + 1} / ${cards.length}`;
+            progressHUD.textContent = `${cardIdx + 1} av ${cards.length}`;
         };
 
         const triggerFlash = () => {

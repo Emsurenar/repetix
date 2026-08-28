@@ -55,15 +55,16 @@ import { processRating } from '../ui/study.js';
             <div class="cinema-flash"></div>
             <div class="cinema-content" id="action-game-container" style="width:95%; max-width:800px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; padding: 12vh 0 10vh; position:relative; z-index:5;">
                 <!-- HUD -->
-                <div class="action-hud" style="border-radius: var(--radius-md);">
-                    <div class="action-hud-left">
-                        <span id="action-score" class="action-hud-val">Poäng: 0</span>
-                        <span id="action-combo" class="action-hud-combo" style="opacity:0;"> 0</span>
-                    </div>
-                    <div class="action-hud-right">
-                        <span id="action-pb" class="action-hud-pb"> Rekord: ${personalBest}</span>
-                        <span id="action-progress" class="action-hud-progress">Kort ${cardIdx + 1} / ${cards.length}</span>
-                    </div>
+                <div class="arena-top action-hud">
+                    <span class="arena-meta num">
+                        <span id="action-score">Poäng 0</span>
+                        <span id="action-combo" class="arena-combo">x0</span>
+                    </span>
+                    <span class="arena-meta num">
+                        <span id="action-pb">Rekord ${personalBest}</span>
+                        <span class="arena-sep" aria-hidden="true"></span>
+                        <span id="action-progress">${cardIdx + 1} av ${cards.length}</span>
+                    </span>
                 </div>
                 
                 <!-- Main Arena -->
@@ -146,16 +147,16 @@ import { processRating } from '../ui/study.js';
         const progressHUD = overlay.querySelector('#action-progress');
 
         const updateHUD = () => {
-            scoreHUD.textContent = `Poäng: ${score}`;
+            scoreHUD.textContent = `Poäng ${score}`;
             if (combo >= 2) {
                 comboHUD.textContent = ` ${combo}`;
-                comboHUD.style.opacity = '1';
+                comboHUD.classList.add('is-on');
                 comboHUD.classList.add('pulse');
                 setTimeout(() => comboHUD.classList.remove('pulse'), 150);
             } else {
-                comboHUD.style.opacity = '0';
+                comboHUD.classList.remove('is-on');
             }
-            progressHUD.textContent = `Kort ${cardIdx + 1} / ${cards.length}`;
+            progressHUD.textContent = `${cardIdx + 1} av ${cards.length}`;
         };
 
         const cleanup = () => {
