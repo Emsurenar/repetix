@@ -1,5 +1,5 @@
 import { fetchDiaryCards } from '../diary.js';
-import { createCard } from '../../core/backup.js';
+import { createCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { renderLibrary } from '../../ui/library.js';
@@ -48,7 +48,7 @@ export function initAiWiringDiary() {
               }
               deckTarget = S.appData.decks.find(d => d.title === deckName);
               if (!deckTarget && sel.value.startsWith('__new__:')) {
-                  deckTarget = { id: Date.now().toString() + '_' + i, title: deckName, cards: [], bookshelfId: null, color: '#4F46E5', sections: [] };
+                  deckTarget = { id: Date.now().toString() + '_' + i, title: deckName, cards: [], bookshelfId: null, sections: [] };
                   S.appData.decks.push(deckTarget);
               }
 

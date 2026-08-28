@@ -241,7 +241,7 @@ export function build(rows) {
     decks: deckRows.map((r) => ({
       id: r.id,
       title: r.title,
-      color: r.color ?? '#4F46E5',
+      color: r.color ?? null,
       bookshelfId: r.bookshelf_id ?? null,
       sections: (sectionsByDeck.get(r.id) ?? []).map((s) => ({ id: s.id, title: s.title })),
       cards: (cardsByDeck.get(r.id) ?? []).map((rad) => {
@@ -314,3 +314,63 @@ export function stripTransientFields(card) {
   for (const field of TRANSIENT_FIELDS) delete clean[field];
   return clean;
 }
+
+// ---------------------------------------------------------------------------
+// Fabriker
+//
+// Nya kort och anteckningar skapas har och inte i lagringslagret. Fabrikerna
+// ar rena och bestammer vilka falt ett kort overhuvudtaget har — det ar
+// domankunskap, och det ar det enda stallet dar regeln "tom fordjupning blir
+// inget falt alls" kan provas utan en webblasare.
+// ---------------------------------------------------------------------------
+
+/**
+ * Skapar ett kort.
+ *
+ * De fem forsta argumenten ar positionella av historiska skal. Nya falt
+ * laggs i options-objektet i stallet — en sjatte, sjunde och attonde
+ * positionell parameter hade gjort varje anropsstalle olasligt.
+ *
+ * @param {string} front
+ * @param {string} back
+ * @param {boolean} [isLongForm]
+ * @param {string[]} [backImages]
+ * @param {string|null} [sectionId]
+ * @param {{description?: string}} [options] `description` ar fordjupningen som
+ *   visas efter svaret. Den halls skild fran `back` eftersom svaret ar det man
+ *   ska kunna aterkalla; ett svar som svaller gar inte att prova sig sjalv pa.
+ */
+export const createCard = (
+    front,
+    back,
+    isLongForm = false,
+    backImages = [],
+    sectionId = null,
+    options = {}
+) => {
+    const card = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        front,
+        back,
+        isLongForm,
+        backImages: backImages || [],
+        sectionId: sectionId || null,
+        repetition: 0,
+        interval: 0,
+        easeFactor: 2.5,
+        nextReviewDate: Date.now() // ready to review immediately
+    };
+    // Utelamnas nar den ar tom, sa att kort utan fordjupning inte barer ett
+    // tomt falt genom bade lagring och synk.
+    if (options.description?.trim()) card.description = options.description.trim();
+    return card;
+};
+
+export const createNoteCard = (content, sectionId = null) => {
+    return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        type: 'note',
+        content,
+        sectionId: sectionId || null,
+    };
+};

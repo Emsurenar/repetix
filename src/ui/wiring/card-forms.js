@@ -1,5 +1,5 @@
 import { uploadCardImages } from '../images.js';
-import { createNoteCard } from '../../core/backup.js';
+import { createNoteCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { openDeck, renderCards } from '../deck.js';
@@ -14,6 +14,7 @@ export function initUiWiringCardForms() {
 
           const newFront = document.getElementById('edit-card-front').value.trim();
           const newBack = document.getElementById('edit-card-back').value.trim();
+          const newDescription = document.getElementById('edit-card-description').value.trim();
           const isLongForm = document.getElementById('edit-card-longform').checked;
 
           if (newFront && newBack) {
@@ -22,6 +23,12 @@ export function initUiWiringCardForms() {
               if (cardProxy) {
                   cardProxy.front = newFront;
                   cardProxy.back = newBack;
+                  /* Tomt falt tar bort faltet, i stallet for att lamna en tom
+                   * strang. Ett kort utan fordjupning ska inte bara ett tomt
+                   * falt genom bade lagring och synk — diffen mot forra
+                   * ogonblicksbilden skulle da se en andring som inte finns. */
+                  if (newDescription) cardProxy.description = newDescription;
+                  else delete cardProxy.description;
                   cardProxy.isLongForm = isLongForm;
                   cardProxy.backImages = [...S.editCardImages];
                   saveData();

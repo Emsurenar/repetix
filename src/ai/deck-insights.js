@@ -1,5 +1,5 @@
 import { aiErrorMessage, callAI } from './call.js';
-import { createCard } from '../core/backup.js';
+import { createCard } from '../domain/model.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';

@@ -1,5 +1,5 @@
 import { closeSectionModal, openSectionModal } from '../../ai/client.js';
-import { createCard } from '../../core/backup.js';
+import { createCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { openDeck } from '../deck.js';
@@ -65,7 +65,10 @@ export function initUiWiringAddCard() {
                   }
               }
 
-              const nyttKort = createCard(front, back, isLongForm, [...S.addCardImages], finalSectionId);
+              const description = document.getElementById('card-description').value;
+              const nyttKort = createCard(front, back, isLongForm, [...S.addCardImages], finalSectionId, {
+                  description,
+              });
               deck.cards.push(nyttKort);
               saveData();
 
@@ -81,6 +84,7 @@ export function initUiWiringAddCard() {
 
               document.getElementById('card-front').value = '';
               document.getElementById('card-back').value = '';
+              document.getElementById('card-description').value = '';
               document.getElementById('card-longform').checked = false;
               S.addCardImages = [];
               renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, () => {});

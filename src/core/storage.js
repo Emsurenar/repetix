@@ -1,4 +1,5 @@
-import { createCard, isEffectivelyEmpty } from './backup.js';
+import { isEffectivelyEmpty } from './backup.js';
+import { createCard } from '../domain/model.js';
 import { S } from './state.js';
 import { renderDecks } from '../ui/deck.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
@@ -49,7 +50,6 @@ export const loadData = () => {
             if (!d.cards) d.cards = [];
             if (d.bookshelfId === undefined) d.bookshelfId = null;
             if (!d.sections) d.sections = [];
-            if (!d.color) d.color = '#4F46E5';
             d.cards.forEach(c => {
                 if (c.sectionId === undefined) c.sectionId = null;
             });
@@ -64,7 +64,6 @@ export const loadData = () => {
             id: Date.now().toString(),
             title: 'Svenska Glosor',
             bookshelfId: null,
-            color: '#4F46E5',
             sections: [],
             cards: [
                 createCard('Vad är huvudstaden i Sverige?', 'Stockholm'),

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { TABLES, build, cardToRow, flatten, reviewRow, rowToCard } from '../src/domain/model.js';
+import {
+  TABLES,
+  build,
+  cardToRow,
+  createCard,
+  createNoteCard,
+  flatten,
+  reviewRow,
+  rowToCard,
+} from '../src/domain/model.js';
 
 const ANVANDARE = '00000000-0000-4000-8000-000000000001';
 
@@ -498,8 +507,10 @@ describe('build', () => {
   });
 
   it('ger en kortlek utan farg appens standardfarg', () => {
+    // Ingen standardfarg langre. Fargvaljaren ar borttagen: fargen ritades ut
+    // pa en rubrikrad som inte finns, och indigo ar dessutom blatt.
     const rader = raderMed({ decks: [{ id: 'd9', title: 'Utan farg', position: 0, color: null }] });
-    expect(build(rader).decks[0].color).toBe('#4F46E5');
+    expect(build(rader).decks[0].color).toBeNull();
   });
 
   it('nollstaller sectionId nar mappen ar mjukraderad, sa kortet forblir synligt', () => {
@@ -612,5 +623,63 @@ describe('beskrivningsfaltet', () => {
   it('notiskort far ingen beskrivning', () => {
     const rad = { id: 'n1', type: 'note', content: 'Text', description: 'skrap' };
     expect(rowToCard(rad)).not.toHaveProperty('description');
+  });
+});
+
+
+describe('createCard', () => {
+  it('ger ett nytt kort som ar forfallet direkt', () => {
+    const kort = createCard('Fraga', 'Svar');
+    expect(kort.front).toBe('Fraga');
+    expect(kort.back).toBe('Svar');
+    expect(kort.repetition).toBe(0);
+    expect(kort.interval).toBe(0);
+    expect(kort.easeFactor).toBe(2.5);
+    expect(kort.nextReviewDate).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('tar med fordjupningen och putsar den', () => {
+    const kort = createCard('Fraga', 'Svar', false, [], null, {
+      description: '  Foljer ur definitionen.  ',
+    });
+    expect(kort.description).toBe('Foljer ur definitionen.');
+  });
+
+  it('satter inget falt alls nar fordjupningen ar tom', () => {
+    // Ett tomt falt skulle synas som en andring i diffen mot forra
+    // ogonblicksbilden och skicka en meningslos rad till synken.
+    for (const tom of [undefined, '', '   ', '\n']) {
+      const kort = createCard('Fraga', 'Svar', false, [], null, { description: tom });
+      expect(kort).not.toHaveProperty('description');
+    }
+  });
+
+  it('klarar sig utan options-objektet', () => {
+    expect(() => createCard('Fraga', 'Svar', false, [], null)).not.toThrow();
+  });
+
+  it('gor fordjupningen till en databasrad och tillbaka', () => {
+    const kort = createCard('Fraga', 'Svar', false, [], null, { description: 'Djupet' });
+    expect(rowToCard(cardToRow(kort, 'd1', ANVANDARE)).description).toBe('Djupet');
+  });
+
+  it('ger unika id aven for kort skapade i samma millisekund', () => {
+    const id = new Set(Array.from({ length: 50 }, () => createCard('F', 'S').id));
+    expect(id.size).toBe(50);
+  });
+});
+
+
+describe('createNoteCard', () => {
+  it('ar av typen note och baer text i stallet for tva sidor', () => {
+    const notis = createNoteCard('En anteckning');
+    expect(notis.type).toBe('note');
+    expect(notis.content).toBe('En anteckning');
+    expect(notis).not.toHaveProperty('front');
+  });
+
+  it('lagger sig i roten nar ingen mapp anges', () => {
+    expect(createNoteCard('Text').sectionId).toBeNull();
+    expect(createNoteCard('Text', 's1').sectionId).toBe('s1');
   });
 });

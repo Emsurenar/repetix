@@ -52,6 +52,29 @@
   min-height: 7rem;
 }
 
+/* Ett valfritt fält ska se valfritt ut. Rutans höjd är en uppmaning: sju rader
+ * ber om ett stycke, tre ber om en mening när man har en. */
+.form-group textarea.textarea-short {
+  min-height: 4.5rem;
+}
+
+/* "valfritt" bredvid etiketten. Ett upplysande ord, inte en åtgärd — därför
+ * tyst i stället för accent, som .label-action bredvid den. */
+.label-note {
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+/* Förklaringen under fältet. Den säger vad fältet gör, inte vad det heter —
+ * etiketten gör redan det. */
+.form-hint {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: var(--lh-normal);
+  color: var(--text-3);
+}
+
 #note-content {
   min-height: 18rem;
 }
@@ -475,43 +498,6 @@
 }
 
 /* ======================================================================
- * FÄRGVÄLJARE
- * ====================================================================== */
-
-.color-picker-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s2);
-}
-
-/* Kortlekens färg är data och sätts i markupen, inte här — den är användarens
- * märkning av sin egen kortlek och inte en del av gränssnittets palett. Men
- * åtta mättade fält bredvid varandra tar över hela dialogen. Färgen klipps
- * därför till innehållsrutan: träffytan förblir en hel kontrollhöjd, medan
- * färgen syns som en prick i en hårfin ring. */
-.color-dot {
-  position: relative;
-  width: var(--control-h);
-  height: var(--control-h);
-  padding: calc((var(--control-h) - 20px) / 2);
-  background-clip: content-box;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  cursor: pointer;
-}
-
-.color-dot:hover {
-  border-color: var(--line-strong);
-}
-
-/* Markeringen är en ring, inte en bock: vi vet inte vilken färg bocken skulle
- * behöva för att synas mot en färg som kommer utifrån. */
-.color-dot.selected {
-  outline: 2px solid var(--text-1);
-  outline-offset: -1px;
-}
-
-/* ======================================================================
  * VAD VILL DU SKAPA
  * ====================================================================== */
 
@@ -883,6 +869,57 @@
   display: flex;
   flex-direction: column;
   gap: var(--s1);
+}
+
+#modal-topic-generator .ai-card-select-checkbox {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 0;
+  /* Optisk linjering mot första etiketten, inte mot radens överkant. */
+  margin: 3px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.ai-card-fields {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+.ai-card-field-group textarea {
+  min-height: 3.5rem;
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-sm);
+  background: var(--surface-1);
+  border-color: var(--line);
+}
+
+.ai-card-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+#modal-topic-generator .btn-ai-card-delete:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* Raden som byts ut. Ingen snurra: texten säger redan vad som händer, och en
+ * roterande ring på varje rad i en lista blir oro snarare än besked. */
+.ai-generated-card-item.is-working .ai-card-actions {
+  visibility: hidden;
+}
+
+.ai-card-working {
+  margin: 0;
+  padding: var(--s4) 0;
+  font-size: var(--t-sm);
+  color: var(--text-3);
 }
 
 /* ======================================================================

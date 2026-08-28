@@ -1,6 +1,6 @@
 import { updateSaveCountBadge } from '../proposed-cards.js';
 import { fetchCardsByTopic } from '../topic-generator.js';
-import { createCard } from '../../core/backup.js';
+import { createCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { renderCards } from '../../ui/deck.js';

@@ -226,6 +226,7 @@ export const openEditCardModal = (card) => {
     S.currentEditCard = card;
     document.getElementById('edit-card-front').value = card.front;
     document.getElementById('edit-card-back').value = card.back;
+    document.getElementById('edit-card-description').value = card.description || '';
     document.getElementById('edit-card-longform').checked = card.isLongForm || false;
     // Load existing images into temp array
     S.editCardImages = card.backImages ? [...card.backImages] : [];

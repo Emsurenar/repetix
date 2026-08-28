@@ -200,57 +200,6 @@ export const stripHtml = (html) => {
         .trim();
 };
 
-/**
- * Skapar ett kort.
- *
- * De fem forsta argumenten ar positionella av historiska skal. Nya falt
- * laggs i options-objektet i stallet — en sjatte, sjunde och attonde
- * positionell parameter hade gjort varje anropsstalle olasligt.
- *
- * @param {string} front
- * @param {string} back
- * @param {boolean} [isLongForm]
- * @param {string[]} [backImages]
- * @param {string|null} [sectionId]
- * @param {{description?: string}} [options] `description` ar fordjupningen som
- *   visas efter svaret. Den halls skild fran `back` eftersom svaret ar det man
- *   ska kunna aterkalla; ett svar som svaller gar inte att prova sig sjalv pa.
- */
-export const createCard = (
-    front,
-    back,
-    isLongForm = false,
-    backImages = [],
-    sectionId = null,
-    options = {}
-) => {
-    const card = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-        front,
-        back,
-        isLongForm,
-        backImages: backImages || [],
-        sectionId: sectionId || null,
-        repetition: 0,
-        interval: 0,
-        easeFactor: 2.5,
-        nextReviewDate: Date.now() // ready to review immediately
-    };
-    // Utelamnas nar den ar tom, sa att kort utan fordjupning inte barer ett
-    // tomt falt genom bade lagring och synk.
-    if (options.description?.trim()) card.description = options.description.trim();
-    return card;
-};
-
-export const createNoteCard = (content, sectionId = null) => {
-    return {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-        type: 'note',
-        content,
-        sectionId: sectionId || null,
-    };
-};
-
 export const createNote = (content) => {
     return {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
