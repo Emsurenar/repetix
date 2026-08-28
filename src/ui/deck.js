@@ -36,6 +36,14 @@ export const studyDagensMapp = (deckId, sectionId) => {
 };
 
 // Update existing renderDecks calls to renderLibrary
+/* Knappen som startar en AI-generering i insiktspanelerna. Texten sager vad
+ * som hander, inte att man ska klicka: "Klicka for att generera" beskrev
+ * musen, inte resultatet. */
+const aiGenerateButton = (vilken) =>
+    `<button type="button" class="btn deck-ai-generate" data-ai-generate="${vilken}">${
+        vilken === 'summary' ? 'Sammanfatta kortleken' : 'Föreslå ett kort'
+    }</button>`;
+
 export const renderDecks = renderLibrary;
 
 export const openDeck = (id, sectionId = null) => {
@@ -62,50 +70,49 @@ export const openDeck = (id, sectionId = null) => {
             : `${studyable} kort`;
     }
 
+    /* Kortlekens ingång. Tre lägen, samma form: en etikett, en mening, och en
+     * knapp som bär handlingen. Panelen följer "Dagens mapp" i biblioteket —
+     * det är samma sorts påstående, och det ska se likadant ut. */
     const heroStatus = document.getElementById('deck-hero-status');
-    
-    let itemColor = '#4F46E5';
-    if (deck.bookshelfId) {
-        const shelf = S.appData.bookshelves.find(s => s.id === deck.bookshelfId);
-        if (shelf && shelf.color) itemColor = shelf.color;
-    } else if (deck.color) {
-        itemColor = deck.color;
-    }
-    
-    heroStatus.style.setProperty('--deck-color', itemColor);
+    const studyable = displayCards.filter(c => c.type !== 'note').length;
 
-    if (displayCards.length === 0) {
-        heroStatus.className = 'deck-hero-status asleep';
-        heroStatus.innerHTML = `
-            <div class="hero-status-number">0</div>
-            <div class="hero-status-text">Inga kort i denna lek ännu.</div>
-        `;
+    if (studyable === 0) {
+        heroStatus.className = 'deck-hero is-quiet';
         heroStatus.dataset.action = '';
+        heroStatus.innerHTML = `
+            <div class="deck-hero-body">
+                <p class="label deck-hero-kicker">Tom kortlek</p>
+                <p class="deck-hero-title">Inga kort i leken ännu</p>
+            </div>
+            <button type="button" class="btn" data-hero-action="new">Nytt kort</button>
+        `;
     } else if (dueCount === 0) {
-        heroStatus.className = 'deck-hero-status done';
-        heroStatus.innerHTML = `
-            <div class="hero-done-check">✓</div>
-            <div class="hero-status-text">Allt klart för idag</div>
-            <div class="hero-done-link">Träna ändå →</div>
-        `;
+        heroStatus.className = 'deck-hero is-quiet';
         heroStatus.dataset.action = 'study-early';
-    } else {
-        heroStatus.className = 'deck-hero-status active';
         heroStatus.innerHTML = `
-            <div class="hero-status-number">${dueCount}</div>
-            <div class="hero-status-text">kort väntar på dig. Börja repetera →</div>
+            <div class="deck-hero-body">
+                <p class="label deck-hero-kicker">Klart för idag</p>
+                <p class="deck-hero-title">Inget förfaller just nu</p>
+            </div>
+            <button type="button" class="btn" data-hero-action="study-early">Träna ändå</button>
         `;
+    } else {
+        heroStatus.className = 'deck-hero';
         heroStatus.dataset.action = 'study';
+        heroStatus.innerHTML = `
+            <div class="deck-hero-body">
+                <p class="label deck-hero-kicker">Att repetera</p>
+                <p class="deck-hero-title"><span class="num">${dueCount}</span> ${dueCount === 1 ? 'kort väntar' : 'kort väntar'}</p>
+            </div>
+            <button type="button" class="btn primary lg" data-hero-action="study">Repetera</button>
+        `;
     }
 
-    // Statusbandet är en div med role="button" och måste därför själv svara på
-    // Enter och mellanslag. Tilldelning i stället för addEventListener, så att
-    // lyssnaren inte staplas på sig varje gång en kortlek öppnas.
-    heroStatus.onkeydown = (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        heroStatus.click();
-    };
+    heroStatus.querySelector('[data-hero-action]')?.addEventListener('click', (e) => {
+        const handling = e.currentTarget.dataset.heroAction;
+        if (handling === 'new') document.getElementById('btn-add-card').click();
+        else document.getElementById('btn-study').click();
+    });
 
     document.getElementById('btn-study').onclick = (e) => {
         e.preventDefault();
@@ -134,15 +141,25 @@ export const openDeck = (id, sectionId = null) => {
             summaryBox.classList.add('deck-ai-loaded');
             summaryBox.onclick = null;
         } else {
-            summaryText.innerHTML = '<span class="deck-ai-placeholder">Klicka för att generera</span>';
+            summaryText.innerHTML = aiGenerateButton('summary');
             summaryBox.classList.remove('deck-ai-loaded');
             summaryBox.onclick = () => generateDeckSummary();
         }
         // Suggestion always starts as placeholder
         const suggestionContent = document.getElementById('deck-ai-suggestion-content');
         const suggestionBox = document.getElementById('deck-ai-suggestion');
-        suggestionContent.innerHTML = '<span class="deck-ai-placeholder">Klicka för att generera</span>';
+        suggestionContent.innerHTML = aiGenerateButton('suggestion');
         suggestionBox.classList.remove('deck-ai-loaded');
+
+        /* Knapparna ritas om varje gang kortleken oppnas. Delegering pa
+         * behallaren i stallet for en lyssnare per knapp, sa att inget
+         * staplas pa sig. */
+        insightsContainer.onclick = (e) => {
+            const knapp = e.target.closest('[data-ai-generate]');
+            if (!knapp) return;
+            if (knapp.dataset.aiGenerate === 'summary') window.generateDeckSummary();
+            else window.generateDeckSuggestion();
+        };
         suggestionBox.onclick = () => generateDeckSuggestion();
     } else {
         insightsContainer.classList.add('hidden');

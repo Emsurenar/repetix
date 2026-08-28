@@ -42,69 +42,54 @@
  * säga att raden är dagens ingång till leken.
  * ====================================================================== */
 
-.deck-hero-status {
+.deck-hero {
   display: flex;
-  align-items: baseline;
-  gap: var(--s3);
-  margin-bottom: var(--s5);
-  padding: var(--s4) var(--s5);
+  align-items: center;
+  gap: var(--s5);
+  margin-bottom: var(--s7);
+  padding: 22px var(--s5);
   background: var(--surface-1);
   border: 1px solid var(--line);
   border-left: 2px solid var(--accent);
-  border-radius: var(--r-lg);
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease);
-}
-
-.deck-hero-status:hover {
-  border-color: var(--line-strong);
-  border-left-color: var(--accent);
+  border-radius: var(--r-md);
 }
 
 /* Klar eller tom lek: ingenting brådskar, alltså ingen accentkant. */
-.deck-hero-status.done,
-.deck-hero-status.asleep {
+.deck-hero.is-quiet {
   border-left-color: var(--line-strong);
 }
 
-.deck-hero-status.asleep {
-  cursor: default;
+.deck-hero-body {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.deck-hero-status.asleep:hover {
-  border-color: var(--line);
-}
-
-.hero-status-number {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--t-2xl);
-  font-weight: 500;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-tight);
+.deck-hero-kicker {
+  margin: 0 0 var(--s2);
   color: var(--accent);
 }
 
-.deck-hero-status.asleep .hero-status-number {
+.deck-hero.is-quiet .deck-hero-kicker {
   color: var(--text-3);
 }
 
-.hero-status-text {
-  font-size: var(--t-sm);
-  color: var(--text-2);
-}
-
-.hero-done-check {
+.deck-hero-title {
+  margin: 0;
   font-size: var(--t-lg);
-  line-height: var(--lh-tight);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.deck-hero-title .num {
   color: var(--accent);
 }
 
-.hero-done-link {
-  margin-left: auto;
-  font-size: var(--t-sm);
-  font-weight: 500;
-  color: var(--accent);
+.deck-hero.is-quiet .deck-hero-title .num {
+  color: inherit;
+}
+
+.deck-hero > .btn {
+  flex: 0 0 auto;
 }
 
 /* ======================================================================
@@ -137,20 +122,6 @@
   padding: var(--s4);
 }
 
-.deck-ai-clickable {
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease);
-}
-
-.deck-ai-clickable:hover {
-  border-color: var(--line-strong);
-}
-
-/* Färdig text är inte längre en knapp. */
-.deck-ai-loaded {
-  cursor: default;
-}
-
 .deck-ai-summary-header,
 .deck-ai-suggestion-header {
   display: flex;
@@ -177,8 +148,10 @@
   color: var(--text-2);
 }
 
-.deck-ai-placeholder {
-  color: var(--text-3);
+/* Panelen är tom tills man ber om något. Knappen är hela innehållet, och
+ * säger vad som händer i stället för hur man klickar. */
+.deck-ai-generate {
+  margin-top: var(--s1);
 }
 
 .deck-ai-suggestion-card {
@@ -513,9 +486,16 @@
 }
 
 @media (max-width: 600px) {
-  .deck-hero-status {
-    margin-bottom: var(--s4);
+  .deck-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s3);
+    margin-bottom: var(--s5);
     padding: var(--s3) var(--s4);
+  }
+
+  .deck-hero > .btn {
+    min-height: var(--control-h-lg);
   }
 
   .deck-toolbar {

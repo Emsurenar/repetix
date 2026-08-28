@@ -15,26 +15,27 @@ export const renderProposedCards = () => {
         const div = document.createElement('div');
         div.className = 'ai-generated-card-item';
         div.setAttribute('data-index', index);
+        /* Klasser i stallet for inline-stilar. Raden bar tidigare sin egen
+         * lila (#7C3AED), sin egen radie och sin egen bakgrund direkt i
+         * markupen — tre varden utanfor tokens som ingen kunde hitta. */
         div.innerHTML = `
-            <div style="display:flex; align-items:center; padding-top:2px;">
-                <input type="checkbox" class="ai-card-select-checkbox" data-index="${index}" checked style="width:16px; height:16px; accent-color:#7C3AED; cursor:pointer;">
+            <input type="checkbox" class="ai-card-select-checkbox" data-index="${index}" checked aria-label="Behall kortet">
+            <div class="ai-card-fields">
+                <label class="ai-card-field-group">
+                    <span class="label">Framsida (Fråga)</span>
+                    <textarea class="ai-card-front-input" rows="2" data-index="${index}">${card.front}</textarea>
+                </label>
+                <label class="ai-card-field-group">
+                    <span class="label">Baksida (Svar)</span>
+                    <textarea class="ai-card-back-input" rows="2" data-index="${index}">${card.back}</textarea>
+                </label>
             </div>
-            <div style="flex:1; display:flex; flex-direction:column; gap:0.5rem;">
-                <div class="ai-card-field-group">
-                    <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Framsida (Fråga)</span>
-                    <textarea class="ai-card-front-input" rows="2" data-index="${index}" style="width:100%; font-family:inherit; font-size:0.85rem; padding:0.4rem 0.6rem; border:1px solid var(--border-color); border-radius:8px; resize:vertical; outline:none; transition:border-color 0.15s; background:#fafafa;">${card.front}</textarea>
-                </div>
-                <div class="ai-card-field-group">
-                    <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Baksida (Svar)</span>
-                    <textarea class="ai-card-back-input" rows="2" data-index="${index}" style="width:100%; font-family:inherit; font-size:0.85rem; padding:0.4rem 0.6rem; border:1px solid var(--border-color); border-radius:8px; resize:vertical; outline:none; transition:border-color 0.15s; background:#fafafa;">${card.back}</textarea>
-                </div>
-            </div>
-            <div style="display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end;">
-                <button type="button" class="btn-ai-card-delete" data-index="${index}" style="background:none; border:none; padding:6px; cursor:pointer; color:var(--rate-1); display:flex; align-items:center; justify-content:center; opacity:0.6; transition:opacity 0.2s;" title="Ta bort">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <div class="ai-card-actions">
+                <button type="button" class="btn-icon btn-ai-card-regenerate" data-index="${index}" title="Generera om detta kort" aria-label="Generera om detta kort">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                 </button>
-                <button type="button" class="btn-ai-card-regenerate" data-index="${index}" style="background:none; border:none; padding:6px; cursor:pointer; color:#7C3AED; display:flex; align-items:center; justify-content:center; opacity:0.6; transition:opacity 0.2s;" title="Generera om detta kort">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <button type="button" class="btn-icon btn-ai-card-delete" data-index="${index}" title="Ta bort" aria-label="Ta bort kortet">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
             </div>
         `;
@@ -101,15 +102,13 @@ const regenerateSingleCard = async (index) => {
     const cardEl = container.querySelector(`.ai-generated-card-item[data-index="${index}"]`);
     if (!cardEl) return;
 
-    // Show loading spinner placeholder in this card
-    cardEl.style.opacity = '0.7';
-    const fieldsDiv = cardEl.querySelector('div[style*="flex:1"]');
-    const oldHTML = fieldsDiv.innerHTML;
+    // Visar att just den har raden bytes ut. Faltvaljaren letade tidigare efter
+    // en inline-stil ("div[style*=flex:1]") och slutade fungera sa fort raden
+    // fick en klass i stallet.
+    cardEl.classList.add('is-working');
+    const fieldsDiv = cardEl.querySelector('.ai-card-fields');
     fieldsDiv.innerHTML = `
-        <div style="display:flex; align-items:center; gap:0.5rem; color:#7C3AED; font-size:0.85rem; padding:1.5rem 0;">
-            <div class="wizard-spinner" style="width:20px; height:20px; border-width:2.5px;"></div>
-            <span>Ersätter med nytt kort...</span>
-        </div>
+        <p class="ai-card-working">Ersätter med nytt kort...</p>
     `;
     const actionButtons = cardEl.querySelectorAll('button');
     actionButtons.forEach(btn => btn.style.display = 'none');

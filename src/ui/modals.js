@@ -45,7 +45,6 @@ const CLOSE_BUTTONS = {
   'modal-create-options': 'btn-cancel-create-options',
   'modal-new-deck': 'btn-cancel-deck',
   'modal-new-bookshelf': 'btn-cancel-bookshelf',
-  'modal-change-color': 'btn-cancel-change-color',
   'modal-confirm': 'btn-confirm-cancel',
   'modal-prompt': 'btn-prompt-cancel',
   'modal-new-section': 'btn-cancel-section',

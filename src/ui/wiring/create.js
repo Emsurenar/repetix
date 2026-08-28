@@ -47,21 +47,16 @@ export function initUiWiringCreate() {
           document.getElementById('new-deck-name').value = '';
       });
 
-      // Color picker logic
-      document.querySelectorAll('#deck-color-picker .color-dot').forEach(dot => {
-          dot.addEventListener('click', () => {
-              document.querySelectorAll('#deck-color-picker .color-dot').forEach(d => d.classList.remove('selected'));
-              dot.classList.add('selected');
-          });
-      });
-
       document.getElementById('form-new-deck').addEventListener('submit', (e) => {
           e.preventDefault();
           const name = document.getElementById('new-deck-name').value.trim();
-          const selectedColor = document.querySelector('#deck-color-picker .color-dot.selected')?.dataset.color || '#4F46E5';
           if (name) {
               if (S.currentCreationType === 'deck') {
-                  const newDeck = { id: Date.now().toString(), title: name, cards: [], bookshelfId: null, color: selectedColor, sections: [] };
+                  /* Ingen farg. Kortlekens farg ritades ut pa en rubrikrad som
+                   * inte finns langre, och en palett utanfor tokens hor inte
+                   * hemma i "Lugn precision" — valjaren andrade ett varde
+                   * ingen kunde se. */
+                  const newDeck = { id: Date.now().toString(), title: name, cards: [], bookshelfId: null, sections: [] };
                   S.appData.decks.push(newDeck);
                   showToast('Kortlek skapad!');
               } else {
