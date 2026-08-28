@@ -1,47 +1,71 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Vägledning för Claude Code (claude.ai/code) i det här repot.
 
-## Running the App
+## Repetix
 
-Serve with any static file server. The configured launch uses:
-```
-npx http-server . -p 8234 -c-1
-```
-Then open `http://localhost:8234`. No build step, no bundler, no framework.
+Repetitionsapp med spaced repetition. Svenskt gränssnitt. Under ombyggnad från
+en lokal envägsapp till en publik, molnlagrad app på Vercel enligt
+[specen](docs/superpowers/specs/2026-08-28-repetix-design.md).
 
-## Architecture
-
-Single-page vanilla JS/HTML/CSS app — three files carry the entire codebase:
-
-- **script.js** (~3500 lines): All application logic in one file. Sections are delimited by `// ---` comment headers. Key sections:
-  - **Data & Storage** (~line 98): `appData` object with `decks`, `notebooks`, `bookshelves`. Persisted to `localStorage` under key `noji_clone_data`.
-  - **Routing / View Logic** (~line 437): `switchView()` toggles between library, deck, study, notebook views. No router library — views are `<section>` elements toggled via `hidden` class.
-  - **Study Logic** (~line 1760): SM-2 spaced repetition algorithm. Cards have `repetition`, `interval`, `easeFactor`, `nextReviewDate` fields. Study modes: per-deck, global (all due), bookshelf-scoped, section-scoped, and "playground" modes (svettiga timmen, dammiga kort, etc.).
-  - **AI Logic** (~line 2034): Calls the Anthropic API directly from the browser using `claude-sonnet-4-6`. Functions: `fetchExplanation`, `fetchTestQuestion`, `fetchCardsByTopic`, `fetchStudyAi`. API key loaded from `.env` file via fetch.
-  - **Initialization** (~line 3421): `initApp()` → `loadData()` → `renderDecks()` → `renderSidebar()`.
-- **index.html** (~688 lines): All view templates and modals. Swedish-language UI.
-- **style.css** (~1684 lines): All styling, responsive breakpoints at 768px.
-
-## Data Model
+## Kommandon
 
 ```
-appData = {
-  decks: [{ id, title, color, bookshelfId, sections: [], cards: [] }],
-  notebooks: [{ id, title, bookshelfId, notes: [] }],
-  bookshelves: [{ id, title }]
-}
+npm run dev      # Vite på http://localhost:5173
+npm test         # Vitest
+npm run lint     # ESLint
+npm run build    # produktionsbygge till dist/
 ```
 
-Cards: `{ id, front, back, isLongForm, backImages, sectionId, repetition, interval, easeFactor, nextReviewDate, type, lapses, lastReviewed }`
+Starta aldrig en dev-server med Bash. Använd `preview_start` med namnet
+`repetix` från `.claude/launch.json`.
 
-All data lives in localStorage. No backend, no database. The `loadData()` function includes migration logic for schema changes.
+## Arkitektur
 
-## Key Conventions
+Vanilla JS i ES-moduler, byggt med Vite. Ingen ramverksberoende. `index.html`
+innehåller alla vymallar och modaler; `style.css` all styling.
 
-- UI language is Swedish throughout.
-- Markdown rendering via `marked.js`, LaTeX via KaTeX (both loaded from CDN).
-- Images stored as base64 data URLs inside card objects in localStorage.
-- `saveData()` is called after every mutation — grep for it to find all write points.
-- Functions exposed to inline HTML handlers are assigned to `window.*` at the bottom of script.js.
-- `remove_emojis.js` is a Node utility script to strip emojis from source files.
+```
+src/
+  main.js       startpunkt: importerar moduler och anropar init-funktionerna
+  app/          vendor (marked, KaTeX), initApp
+  core/         state, storage, backup, utils
+  domain/       srs (ren SM-2), stats
+  ui/           en modul per vy, plus wiring/ för DOM-koppling
+  games/        ett spelläge per modul
+  ai/           anrop, prompts, wiring
+tests/          Vitest
+```
+
+### Två konventioner som styr allt
+
+**Delat tillstånd ligger i `S`** (`src/core/state.js`), ett muterbart objekt med
+appens 50 globaler: `S.appData`, `S.currentDeckId`, `S.currentStudyCards` och så
+vidare. Moduler importerar `S` och läser eller skriver egenskaper på det. Detta
+är ett mellanläge från den ursprungliga enfilsappen, inte en slutgiltig design —
+det ersätts av riktig molnlagring i etapp 2.
+
+**Moduler definierar, `main.js` kopplar.** En modul innehåller bara
+definitioner. All DOM-koppling ligger i en exporterad `initXxx()`-funktion som
+`main.js` anropar, i samma ordning som den ursprungliga filen körde dem.
+Ordningen har betydelse — flytta inte anropen i `main.js` utan att kontrollera
+vad som beror på vad.
+
+## Data
+
+All data ligger i localStorage under `noji_clone_data`, plus separata nycklar
+för rekord (`pg_records`), dagens mapp (`noji_dagens_mapp`) och personbästa per
+spelläge (`spaced_rep_*_pb_*`). `saveData()` anropas efter varje mutation.
+
+Kända problem som etapp 2 löser: bilder lagras som okomprimerad base64 och kan
+spränga localStorage-kvoten, och statistiken härleds ur `card.lastReviewed` som
+skrivs över vid varje repetition, så historiken raderar sig själv.
+
+## Regler
+
+- Inga emojis någonstans i appen.
+- Gränssnittet är på svenska.
+- `.env` committas aldrig. Det finns ingen serverside-API-nyckel i den nya
+  arkitekturen; användarna tar med egna nycklar.
+- Schemaläggningen (`src/domain/srs.js`) är rena funktioner utan DOM. Håll den
+  så, och lägg till test när den ändras.

@@ -2,15 +2,36 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "repetix",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
       "name": "spaced-repetition",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", ".", "-p", "8234", "-c-1"],
+      "runtimeArgs": [
+        "http-server",
+        ".",
+        "-p",
+        "8234",
+        "-c-1"
+      ],
       "port": 8234
     },
     {
       "name": "mockups",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "/private/tmp/claude-501/-Users-emresunar-Egna-projekt-Spaced-repetition/0e68dc84-842c-44fb-91ba-0ed7171df747/scratchpad/mockups", "-p", "8235", "-c-1"],
+      "runtimeArgs": [
+        "http-server",
+        "/private/tmp/claude-501/-Users-emresunar-Egna-projekt-Spaced-repetition/0e68dc84-842c-44fb-91ba-0ed7171df747/scratchpad/mockups",
+        "-p",
+        "8235",
+        "-c-1"
+      ],
       "port": 8235
     }
   ]
