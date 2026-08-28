@@ -80,6 +80,14 @@
   letter-spacing: -0.01em;
 }
 
+/* Tiden står under talet, en nivå tystare. Den är ett besked man tar med sig,
+ * inte en siffra man ska läsa. */
+.deck-hero-meta {
+  margin: var(--s1) 0 0;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
 .deck-hero-title .num {
   color: var(--accent);
 }
@@ -209,6 +217,7 @@
 /* --- Mapp som hopfällbar sektion ------------------------------------- */
 
 .section-header {
+  transition: background var(--dur-1) var(--ease-soft);
   display: flex;
   align-items: center;
   gap: var(--s2);
@@ -342,6 +351,14 @@
 
 .list-item:last-child {
   border-bottom: 0;
+}
+
+/* Raden svarar på pekaren innan man tryckt. Utan det vet man inte att den ÄR
+ * en rad man kan öppna. */
+.list-item {
+  transition:
+    background var(--dur-1) var(--ease-soft),
+    border-color var(--dur-1) var(--ease-soft);
 }
 
 .list-item:hover {

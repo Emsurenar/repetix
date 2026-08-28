@@ -201,13 +201,5 @@ video {
   -webkit-overflow-scrolling: touch;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* Avstängd rörelse hanteras i sin helhet av motion.css, som äger frågan.
+ * Två block som gör samma sak är två block att glömma att uppdatera. */

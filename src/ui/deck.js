@@ -11,6 +11,7 @@ import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
 import { switchView } from './router.js';
 import { renderStudyCard, startSectionStudy, startStudy } from './study.js';
+import { uppskattadTid } from '../domain/estimate.js';
 
 
 /* Samma menyikon och samma radmeny som i biblioteket. En <details> är alltid
@@ -99,10 +100,12 @@ export const openDeck = (id, sectionId = null) => {
     } else {
         heroStatus.className = 'deck-hero';
         heroStatus.dataset.action = 'study';
+        const tid = uppskattadTid(dueCount);
         heroStatus.innerHTML = `
             <div class="deck-hero-body">
                 <p class="label deck-hero-kicker">Att repetera</p>
-                <p class="deck-hero-title"><span class="num">${dueCount}</span> ${dueCount === 1 ? 'kort väntar' : 'kort väntar'}</p>
+                <p class="deck-hero-title"><span class="num">${dueCount}</span> kort väntar</p>
+                ${tid ? `<p class="deck-hero-meta">${tid}</p>` : ''}
             </div>
             <button type="button" class="btn primary lg" data-hero-action="study">Repetera</button>
         `;

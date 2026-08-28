@@ -1,6 +1,7 @@
 import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
 import { getLocalDateString } from '../domain/stats.js';
+import { uppskattadTid } from '../domain/estimate.js';
 import { ticksHtml } from './ticks.js';
 
 
@@ -138,6 +139,7 @@ export const renderDagensMapp = () => {
                 <p class="today-folder-meta num">
                     <span>${dueCards} kort</span>
                     ${ticksHtml(dueCards, dueCards)}
+                    ${uppskattadTid(dueCards) ? `<span class="today-folder-time">${uppskattadTid(dueCards)}</span>` : ''}
                 </p>
             </div>
             <div class="today-folder-actions">

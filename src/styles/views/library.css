@@ -163,6 +163,11 @@
   max-width: none;
 }
 
+.today-folder-time {
+  font-family: var(--font-ui);
+  color: var(--text-3);
+}
+
 .today-folder-meta {
   display: flex;
   align-items: center;
