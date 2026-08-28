@@ -2,6 +2,21 @@
 // sker i init-funktioner som anropas här, i samma ordning som den
 // ursprungliga filen körde dem.
 
+// Stilarna importeras har for att ordningen ska vara deterministisk:
+// tokens, bas, komponenter, layout, vyer. Spellagenas arvda stilar sist,
+// tills de byggs om i etapp 5.
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/components.css';
+import './styles/layout.css';
+import './styles/views/library.css';
+import './styles/views/deck.css';
+import './styles/views/study.css';
+import './styles/views/forms.css';
+import './styles/views/auth.css';
+import './styles/views/search.css';
+import './styles/games-legacy.css';
+
 import './app/vendor.js';
 
 import { initCloud } from './app/cloud.js';
