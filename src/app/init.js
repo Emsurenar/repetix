@@ -161,6 +161,33 @@ const initApp = () => {
         };
         syncSidebarExpanded(true);
 
+        /* Sidopanelen flyttas ut ur bild med transform. Den finns darmed kvar
+         * i tabbordningen: infalld gav den tretton osynliga kontroller att
+         * tabba igenom innan man nadde hamburgaren, och mitt i en repetition
+         * tabbade man rakt in i det osynliga biblioteket.
+         *
+         * inert tar bort hela tradet ur bade tabbordning och skarmlasare sa
+         * lange panelen ar utanfor skarmen. Lyssnaren sitter pa <body>:
+         * klasserna satts fran fyra olika hall — infallning, hamburgare, ett
+         * tryck vid sidan om, och vybytet till fokuslage — och en observator
+         * fangar alla fyra utan att nagon av dem behover komma ihag det. */
+        const sidebar = document.getElementById('sidebar');
+        const syncSidebarInert = () => {
+            if (!sidebar) return;
+            const overlay = window.matchMedia('(max-width: 900px)').matches;
+            const utanforBild = overlay
+                ? !document.body.classList.contains('sidebar-open')
+                : document.body.classList.contains('sidebar-collapsed') ||
+                  document.body.classList.contains('focus-mode');
+            sidebar.inert = utanforBild;
+        };
+        new MutationObserver(syncSidebarInert).observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+        window.addEventListener('resize', syncSidebarInert);
+        syncSidebarInert();
+
         // Läget bärs av två klasser på <body>, eftersom både panelen, dess
         // överlägg och innehållsytans marginal måste ändras samtidigt.
         // Knapparna satte tidigare klasser på panelen och innehållsytan som
