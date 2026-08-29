@@ -537,6 +537,48 @@
                 </div>
             </section>
 
+            <!-- Användning. Visas bara med konto: mätaren mäter molnanrop, och
+                 lokalt läge gör inga. -->
+            <section class="settings-section" id="settings-usage-section" aria-labelledby="settings-usage-title" hidden>
+                <div class="settings-section-head">
+                    <h2 id="settings-usage-title" class="settings-section-title">Användning</h2>
+                </div>
+
+                <div class="set-row">
+                    <div class="set-label">Denna månad</div>
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <p id="usage-month" class="usage-sum num">–</p>
+                            <p id="usage-month-tokens" class="set-hint num"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <div class="set-label">Idag</div>
+                    <div class="set-field">
+                        <p id="usage-today" class="usage-sum num">–</p>
+                    </div>
+                </div>
+
+                <div class="set-row" id="usage-breakdown-row" hidden>
+                    <div class="set-label">Per funktion</div>
+                    <div class="set-field">
+                        <ul id="usage-breakdown" class="usage-list"></ul>
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <label class="set-label" for="settings-budget">Månadstak</label>
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <input type="number" id="settings-budget" class="field" min="0" step="1" inputmode="decimal" placeholder="Inget tak">
+                            <button type="button" id="btn-settings-save-budget" class="btn">Spara tak</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="settings-section" aria-labelledby="settings-account-title">
                 <div class="settings-section-head">
                     <h2 id="settings-account-title" class="settings-section-title">Konto</h2>

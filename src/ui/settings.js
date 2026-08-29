@@ -25,6 +25,8 @@ import {
 } from '../ai/models.js';
 import { S } from '../core/state.js';
 import { cloudConfigured, deleteAccount, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
+import { getLocalDateString } from '../domain/stats.js';
+import { summera } from '../domain/usage.js';
 import { openAuth } from './auth.js';
 import { updateBreadcrumb } from './breadcrumb.js';
 import { renderLibrary } from './library.js';
@@ -520,6 +522,7 @@ async function uppdatera() {
   renderaModeller(providerId, val?.model || defaultModelFor(providerId));
 
   await laddaNyckelstatus();
+  await renderaAnvandning();
 }
 
 /** Hämtar vilka leverantörer som har en nyckel. Svaret bär aldrig nyckeln. */
@@ -550,6 +553,74 @@ async function laddaNyckelstatus() {
     });
   }
   renderaNyckelstatus();
+}
+
+/** Namnen på funktionerna, för panelen. Okända värden visas som de står. */
+const FUNKTIONSNAMN = {
+  topic: 'Kort ur ämne eller text',
+  diary: 'Kort ur dagbok',
+  regenerate: 'Gör om kort',
+  sort: 'Sortering',
+  autofolder: 'Välj mapp',
+  answer: 'Generera svar',
+  summary: 'Sammanfattning',
+  suggest: 'Föreslå kort',
+  explain: 'Fördjupning',
+  testquestion: 'Testfråga',
+  tutor: 'Handledare',
+};
+
+/* Två decimaler räcker och en tredje ljuger: ett enskilt anrop kan kosta mindre
+ * än en cent, men det är månadssumman panelen finns för. */
+const dollar = (n) => `$${n.toFixed(2)}`;
+
+/** Hämtar månadens ai_usage-rader och fyller Användning-panelen. Dold utan konto. */
+async function renderaAnvandning() {
+  const sektion = el('settings-usage-section');
+  if (!sektion) return;
+
+  const userId = getUserId();
+  sektion.hidden = !userId;
+  if (!userId) return;
+
+  const idag = getLocalDateString();
+  const manadsstart = `${idag.slice(0, 7)}-01`;
+
+  const { data, error } = await supabase
+    .from('ai_usage')
+    .select('model, feature, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, created_at')
+    .gte('created_at', `${manadsstart}T00:00:00.000Z`)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    el('usage-month').textContent = 'Kunde inte läsa';
+    return;
+  }
+
+  const manad = summera(data, { fran: manadsstart, till: idag });
+  const dag = summera(data, { fran: idag, till: idag });
+
+  el('usage-month').textContent = dollar(manad.total);
+  el('usage-today').textContent = dollar(dag.total);
+  el('usage-month-tokens').textContent =
+    `${manad.tokens.in.toLocaleString('sv-SE')} in · ${manad.tokens.ut.toLocaleString('sv-SE')} ut` +
+    (manad.okändaModeller ? ' · någon modell saknar pris' : '');
+
+  const rad = el('usage-breakdown-row');
+  const lista = el('usage-breakdown');
+  rad.hidden = manad.perFunktion.length === 0;
+  lista.innerHTML = '';
+  for (const post of manad.perFunktion) {
+    const li = document.createElement('li');
+    li.className = 'usage-item';
+    const namn = document.createElement('span');
+    namn.textContent = FUNKTIONSNAMN[post.feature] ?? post.feature;
+    const belopp = document.createElement('span');
+    belopp.className = 'num';
+    belopp.textContent = dollar(post.kostnad);
+    li.append(namn, belopp);
+    lista.appendChild(li);
+  }
 }
 
 // ---------------------------------------------------------------------------
