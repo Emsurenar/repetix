@@ -1,3 +1,4 @@
+import { nyttId } from '../../core/utils.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { renderLibrary } from '../library.js';
@@ -56,11 +57,11 @@ export function initUiWiringCreate() {
                    * inte finns langre, och en palett utanfor tokens hor inte
                    * hemma i "Lugn precision" — valjaren andrade ett varde
                    * ingen kunde se. */
-                  const newDeck = { id: Date.now().toString(), title: name, cards: [], bookshelfId: null, sections: [] };
+                  const newDeck = { id: nyttId(), title: name, cards: [], bookshelfId: null, sections: [] };
                   S.appData.decks.push(newDeck);
                   showToast('Kortlek skapad!');
               } else {
-                  const newNotebook = { id: Date.now().toString(), title: name, notes: [], bookshelfId: null };
+                  const newNotebook = { id: nyttId(), title: name, notes: [], bookshelfId: null };
                   S.appData.notebooks.push(newNotebook);
                   showToast('Anteckningsblock skapat!');
               }
@@ -81,7 +82,7 @@ export function initUiWiringCreate() {
           e.preventDefault();
           const name = document.getElementById('new-bookshelf-name').value.trim();
           if (name) {
-              const newBookshelf = { id: Date.now().toString(), title: name };
+              const newBookshelf = { id: nyttId(), title: name };
               if (!S.appData.bookshelves) S.appData.bookshelves = [];
               S.appData.bookshelves.push(newBookshelf);
               saveData();

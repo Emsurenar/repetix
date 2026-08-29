@@ -1,3 +1,4 @@
+import { nyttId } from '../../core/utils.js';
 import { fetchDiaryCards } from '../diary.js';
 import { createCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
@@ -48,7 +49,7 @@ export function initAiWiringDiary() {
               }
               deckTarget = S.appData.decks.find(d => d.title === deckName);
               if (!deckTarget && sel.value.startsWith('__new__:')) {
-                  deckTarget = { id: Date.now().toString() + '_' + i, title: deckName, cards: [], bookshelfId: null, sections: [] };
+                  deckTarget = { id: nyttId(), title: deckName, cards: [], bookshelfId: null, sections: [] };
                   S.appData.decks.push(deckTarget);
               }
 
@@ -62,7 +63,7 @@ export function initAiWiringDiary() {
                   }
                   let shelf = S.appData.bookshelves.find(s => s.title === shelfName);
                   if (!shelf && bookshelfSel.value.startsWith('__new__:')) {
-                      shelf = { id: Date.now().toString() + '_shelf_' + i, title: shelfName, color: null };
+                      shelf = { id: nyttId(), title: shelfName, color: null };
                       S.appData.bookshelves.push(shelf);
                   }
                   if (shelf) {
@@ -80,7 +81,7 @@ export function initAiWiringDiary() {
                   if (!deckTarget.sections) deckTarget.sections = [];
                   let existingSection = deckTarget.sections.find(s => s.title === secName);
                   if (!existingSection && sectionSel.value.startsWith('__new__:')) {
-                      existingSection = { id: Date.now().toString() + '_sec_' + i, title: secName };
+                      existingSection = { id: nyttId(), title: secName };
                       deckTarget.sections.push(existingSection);
                   }
                   if (existingSection) {

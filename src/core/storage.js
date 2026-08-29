@@ -1,3 +1,4 @@
+import { nyttId } from './utils.js';
 import { isEffectivelyEmpty } from './backup.js';
 import { createCard } from '../domain/model.js';
 import { S } from './state.js';
@@ -61,7 +62,7 @@ export const loadData = () => {
     } else {
         // Initial dummy deck if empty
         S.appData.decks.push({
-            id: Date.now().toString(),
+            id: nyttId(),
             title: 'Svenska Glosor',
             bookshelfId: null,
             sections: [],

@@ -1,3 +1,4 @@
+import { nyttId } from '../../core/utils.js';
 import { closeSectionModal, openSectionModal } from '../../ai/client.js';
 import { createCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
@@ -59,7 +60,7 @@ export function initUiWiringAddCard() {
                   if (existingSection) {
                       finalSectionId = existingSection.id;
                   } else {
-                      const newSec = { id: Date.now().toString(), title: newSecName };
+                      const newSec = { id: nyttId(), title: newSecName };
                       deck.sections.push(newSec);
                       finalSectionId = newSec.id;
                   }
@@ -169,7 +170,7 @@ export function initUiWiringAddCard() {
           if (S.currentSectionToEdit) {
               S.currentSectionToEdit.title = name;
           } else {
-              const newSection = { id: Date.now().toString() + '_sec', title: name };
+              const newSection = { id: nyttId(), title: name };
               deck.sections.push(newSection);
           }
           saveData();

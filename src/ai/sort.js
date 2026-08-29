@@ -1,3 +1,4 @@
+import { nyttId } from '../core/utils.js';
 import { aiErrorMessage, callAI } from './call.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
@@ -100,7 +101,7 @@ export const applyAiSort = () => {
     Object.entries(sectionGroups).forEach(([sectionName, cards]) => {
         let section = (deck.sections || []).find(s => s.title === sectionName);
         if (!section) {
-            section = { id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5), title: sectionName };
+            section = { id: nyttId(), title: sectionName };
             if (!deck.sections) deck.sections = [];
             deck.sections.push(section);
         }

@@ -183,9 +183,22 @@ async function pushReviews() {
   // Rader loggade före inloggning saknar ägare. De tillhör den som nu är
   // inloggad — det är samma enhet och samma person som gjorde repetitionen.
   const rows = pending.map((r) => ({ ...r, user_id: r.user_id ?? userId }));
-  // id genereras lokalt så att en uppladdning som skickas två gånger — efter en
-  // timeout där svaret ändå kom fram — inte skapar dubbletter i loggen.
-  const { error } = await supabase.from('reviews').upsert(rows, { onConflict: 'id' });
+  /* id genereras lokalt så att en uppladdning som skickas två gånger — efter en
+   * timeout där svaret ändå kom fram — inte skapar dubbletter i loggen.
+   *
+   * ignoreDuplicates är inte en detalj. Utan den blir upsert ett
+   * `ON CONFLICT DO UPDATE`, och reviews saknar MED FLIT update-policy
+   * (loggen är append-only). En verklig krock fick alltså radnivåsäkerheten
+   * att neka och hela anropet att kasta — och eftersom pushReviews ligger före
+   * pull() i synken innebar det att inkommande hämtning aldrig kördes igen.
+   * Synken var permanent död, och användaren såg bara "Kunde inte synka".
+   *
+   * Två öppna flikar räckte för att utlösa det: båda läser samma köade rader
+   * innan någon hinner kvittera. Med ignoreDuplicates blir det
+   * `ON CONFLICT DO NOTHING`, som aldrig rör update-vägen. */
+  const { error } = await supabase
+    .from('reviews')
+    .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
   if (error) throw error;
   await ackReviews(pending.map((r) => r.id));
   return pending.length;

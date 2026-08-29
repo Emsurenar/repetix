@@ -1,3 +1,4 @@
+import { nyttId } from '../../core/utils.js';
 import { updateSaveCountBadge } from '../proposed-cards.js';
 import { fetchCardsByTopic } from '../topic-generator.js';
 import { createCard } from '../../domain/model.js';
@@ -221,7 +222,7 @@ export function initAiWiringTopicGenerator() {
               if (existingSection) {
                   sectionId = existingSection.id;
               } else {
-                  const newSec = { id: Date.now().toString() + '_sec_gen', title: newSecName };
+                  const newSec = { id: nyttId(), title: newSecName };
                   deck.sections.push(newSec);
                   sectionId = newSec.id;
               }
