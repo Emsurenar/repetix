@@ -14,7 +14,7 @@ Ombyggnaden är indelad i sex etapper. Fem är klara. Kvar är publiceringen.
 | 3. AI — leverantörsoberoende lager, serverproxy | **Klar** |
 | 4. Design — hela gränssnittet | **Klar** |
 | 5. Spellägena — åtta lägen ombyggda | **Klar** |
-| 6. Publicering — README, licens, CI, Vercel | Ej påbörjad |
+| 6. Publicering — README, licens, CI, säkerhet | **Klar utom deploy** |
 
 475 tester, noll lintfel, bygget går igenom.
 
@@ -324,11 +324,80 @@ betydelsen skiljer sig mellan lägen.
 provspelat ett kort, inga nya konsolfel. Rörelsen i Transportbandet och
 Dragkampen är sedd men inte provspelad med finger.
 
-### 5. Etapp 6 — publicering
+### 5. Etapp 6 — publicering — klar utom själva deployen
 
-README, licens, CI, säkerhetsgenomgång, Vercel-deploy. Paketet är cirka 800 kB
-och behöver kodsplittas — mest KaTeX. Tre inline-`onclick` finns kvar i
-`index.html`.
+`README.md`, `LICENSE` (MIT) och `.github/workflows/ci.yml` finns. CI kör lint,
+test och bygge på push och pull request. **Ägaren gör Vercel-deployen själv** —
+se lanseringschecklistan sist i det här avsnittet.
+
+**Startpaketet: 820 → 563 kB** (gzip 228 → 152), CSS 192 → 163 kB. KaTeX (261
+kB plus sextio typsnittsfiler) hämtas nu först när ett kort faktiskt bär
+matematik. `renderLatex` är därmed asynkron; alla anropare utom en struntar i
+returvärdet, vilket är rätt för något som renderar in i DOM:en. Undantaget är
+lucktext, som går igenom noderna efter `.katex` för att hålla matematik utanför
+luckorna — utan `await` blev en renderad formel en lucka man ombads skriva av,
+men bara på första kortet med matematik.
+
+**Noll inline-`onclick`** i hela kodbasen (påståendet om tre i `index.html` var
+föråldrat; de var noll där men åtta i JS-genererad markup). Det var
+förutsättningen för CSP:n i `vercel.json`, som kan sättas med `script-src
+'self'` utan `unsafe-inline` eftersom bygget bara lägger en extern modul i
+HTML:en.
+
+#### Säkerhetsgenomgången
+
+Tre granskningar: serverfunktionerna, konto- och dataåtkomst, samt injektion i
+klienten. **Kryptering, autentisering, SSRF-skydd och radnivåsäkerhet håller** —
+det verifierades i detalj och ska inte tas om. Inga hemligheter finns i repot
+eller i git-historiken (alla 405 blobbar genomsökta).
+
+Det som **inte** höll, och nu är åtgärdat:
+
+| Fynd | Vad som hände |
+|---|---|
+| **Ingen HTML-sanering alls** | `safeParse` skyddade bara LaTeX mot markdown. `marked` v14 släpper igenom rå HTML, och resultatet går till `innerHTML` på 48 ställen. Ett kort med `<img src=x onerror=…>` körde kod. Sessionen ligger i localStorage → kontoövertagande. LaTeX-platshållarna återställdes dessutom **efter** `marked`, en andra oberoende väg in. Båda saneras nu med DOMPurify |
+| **Brödsmulan** | Byggde ett `onclick` av kortlekens id och renderade titeln rått. Ett id kan komma från en importerad backupfil och kunde skriva om vad strängen gjorde |
+| **AI-svar i en `<textarea>`** | `proposed-cards.js` la modellens svar oescapat inuti elementet. `</textarea><img src=x onerror=…>` bröt ut. Promptinjektion via kortinnehåll är en färdig väg dit |
+| **Id ur klockan** | Kortlekar m.fl. fick `Date.now().toString()`, och id är primärnyckel **ensamt** — en global namnrymd. En angripare kunde lägga beslag på en timmes id:n och permanent låsa godtyckliga användares synk. Hände också av misstag vid samma millisekund. Nu UUID. **Kort rörs inte** — deras id bär redan slump, och spelhallen läser den inledande tidsstämpeln |
+| **`reviews`-upserten** | Saknade `ignoreDuplicates` och blev `ON CONFLICT DO UPDATE`. Loggen är append-only och saknar med flit update-policy, så en krock kastade — och `pushReviews` ligger före `pull()`. **Två öppna flikar räckte för att döda synken permanent** |
+| **Läcka mellan konton** | Spegeln tömdes bara via utloggningsknappen. Gick sessionen förlorad på annat sätt loggade nästa användare in ovanpå förra användarens data, och molnlagret visade den. `claimMirror` i `sync.js` tömmer nu spegeln när den tillhör någon annan, **före** utkorgen skickas. Synkmarkören är namnrymdad per användare |
+| **Utloggningen** | Tog bara bort en av sju nycklar. Kvar låg hela biblioteket i klartext under `repetix_lokal_data_innan_molnet`. Dialogen lovade redan motsatsen |
+| **Lösenordsåterställning** | Länken fanns men ingen vy tog emot den. Med `detectSessionInUrl` blev användaren **inloggad** av att klicka den och trodde sig ha bytt lösenord medan det gamla gällde |
+| **Trasig importfil låste appen** | `loadData()` låg först i `initApp`, så när den kastade kopplades aldrig importknappen — enda vägen tillbaka |
+| **`.env.example`** | Beskrev anon-nyckeln som RLS-kringgående. En självhostare kunde dra slutsatsen att en service role-nyckel behövdes och klistra in en — vilket hade slagit ut varenda policy |
+
+#### Kvar innan öppen registrering
+
+- **Takt-spärr i `/api/*`** — `/api/ai-key` är annars ett obegränsat
+  nyckelvalideringsorakel: svaret skiljer exakt på giltig och ogiltig nyckel,
+  verifieringen kostar noll tokens, och anropen går från Vercels IP:n.
+- **Migration 0004**: lagringshinken saknar `file_size_limit` och
+  `allowed_mime_types`, och `public` sattes aldrig (`on conflict do nothing`
+  rör inte en befintlig hink). Utan det är den gratis filhotell.
+- **Främmande nycklar validerar inte ägarskap** — ett kort kan peka på någon
+  annans kortlek. Inte läsbart för offret, men `on delete cascade` och ett
+  existens-orakel följer med.
+- **`deleteImage` anropas aldrig.** Mjuk radering lämnar filerna i hinken för
+  alltid. Vid kontoradering blir de föräldralösa och överlever kontot.
+- **Ingen kontoradering finns** i appen alls.
+
+#### Lanseringschecklista — kräver ägaren
+
+1. Kör migration `0003` och `0004` i Supabases SQL Editor, i ordning.
+2. Verifiera RLS i det **körda** projektet, inte bara i filerna:
+   `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
+   och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`
+3. Slå på **e-postbekräftelse** i Supabase Auth. Utan den kostar ett nytt konto
+   ingenting, och varje takt-spärr per användare går att kringgå.
+4. Lägg `/#aterstall` i Supabases **Redirect URLs**, annars avvisas
+   återställningslänken tyst.
+5. Sätt de fem miljövariablerna i Vercel. **Ingen av dem är en service
+   role-nyckel.**
+6. Överväg en brandväggsregel per IP på `/api/*` (kräver Pro), eller
+   Spend Management-tak på Hobby.
+7. `public/wash/` innehåller 25 bilder från Picsum under Unsplash-licens. MIT
+   ger formellt rätt att sälja kopior, vilket inte gäller fotona. Härkomsten
+   står i README; vill man ha det vattentätt byts de mot egna eller CC0.
 
 ## Interaktionen — rörelsesystemet
 
