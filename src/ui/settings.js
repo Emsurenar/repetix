@@ -74,6 +74,34 @@ function felText(code) {
   return map[code] ?? null;
 }
 
+/**
+ * Koder där serverns egen text säger något klienten omöjligt kan veta: vilken
+ * statuskod leverantören faktiskt svarade med.
+ *
+ * Den texten kastades tidigare bort så fort felText kände igen koden, och det
+ * gjorde felet omöjligt att spåra. "Leverantören svarade med ett fel" är samma
+ * mening oavsett om krediterna tagit slut (429), om leverantören ligger nere
+ * (500) eller om vi ringer fel adress (404) — och serverfunktionerna loggar
+ * med flit ingenting, eftersom en logg är det enklaste sättet att av misstag
+ * skriva ut en användares nyckel. Utan statuskoden i meddelandet finns alltså
+ * ingen kvar någonstans.
+ *
+ * Serverns beskrivning står först, eftersom den säger vad som hände.
+ * Uppmaningen står sist, eftersom den säger vad man gör åt det.
+ */
+const UPPMANING = {
+  provider_error: 'Prova igen om en liten stund.',
+  bad_request: 'Kontrollera leverantör och modell.',
+};
+
+export function felmeddelande(code, serverText) {
+  const servern = typeof serverText === 'string' ? serverText.trim() : '';
+  if (servern && UPPMANING[code]) return `${servern} ${UPPMANING[code]}`;
+  // Tom sträng är inte nullish och skulle passera ?? som ett giltigt
+  // meddelande — alltså en ruta med ingenting i.
+  return felText(code) || servern || 'Något gick fel på servern.';
+}
+
 // ---------------------------------------------------------------------------
 // Anrop mot serverfunktionerna
 // ---------------------------------------------------------------------------
@@ -132,7 +160,7 @@ async function apiFetch(path, options = {}) {
 
   if (!res.ok) {
     const code = data?.code ?? 'unknown';
-    return { ok: false, code, error: felText(code) ?? data?.error ?? 'Något gick fel på servern.' };
+    return { ok: false, code, error: felmeddelande(code, data?.error) };
   }
   return { ok: true, data: data ?? {} };
 }
