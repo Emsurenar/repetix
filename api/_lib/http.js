@@ -65,6 +65,8 @@ export function sendError(res, err) {
  * i produktion — vilket är precis det (req, res)-formen ska undvika.
  */
 export async function readJsonBody(req) {
+  assertDeclaredSize(req);
+
   const body = req.body;
   if (body && typeof body === 'object' && !Buffer.isBuffer(body)) return body;
 
@@ -74,10 +76,38 @@ export async function readJsonBody(req) {
       ? body
       : await readStream(req);
   if (!raw.trim()) return {};
+
+  let parsed;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     throw new ApiError(400, 'bad_request', 'Begäran är inte giltig JSON.');
+  }
+
+  // `null`, `5` och `"text"` är giltig JSON men inga kroppar. Handlarna läser
+  // fält ur det som kommer tillbaka, och utan den här raden blir `curl -d null`
+  // ett TypeError och därmed 500 — ett serverfel för något som är avsändarens.
+  if (!parsed || typeof parsed !== 'object') {
+    throw new ApiError(400, 'bad_request', 'Begäran måste vara ett JSON-objekt.');
+  }
+  return parsed;
+}
+
+/**
+ * Avvisar en för stor begäran på det uppgivna content-length.
+ *
+ * Måste ske före allt annat i läsningen. Räkningen i readStream nås aldrig i
+ * produktion — Vercel har redan tolkat kroppen när handlern körs, så funktionen
+ * returnerar på första raden och gränsen gällde i praktiken bara lokalt. Ett
+ * fält på flera megabyte gick alltså rakt igenom och vidare till leverantören.
+ *
+ * Huvudet kan saknas eller ljuga, och därför är det bara första linjen:
+ * fältgränserna i api/ai.js gäller oavsett hur kroppen kom in.
+ */
+function assertDeclaredSize(req) {
+  const declared = Number(req.headers?.['content-length']);
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    throw new ApiError(400, 'bad_request', 'Begäran är för stor.');
   }
 }
 
@@ -90,6 +120,39 @@ async function readStream(req) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString('utf8');
+}
+
+/**
+ * Läser ett textfält ur en begäran och håller det inom sin gräns.
+ *
+ * Gränsen är inte en formsak: fälten skickas vidare till leverantören, så ett
+ * obegränsat fält gör serverfunktionen till en förstärkare av någon annans
+ * utgående bandbredd. Längden mäts i tecken och inte i byte, eftersom det är
+ * tecken användaren skriver och tecken leverantören räknar.
+ *
+ * @param {unknown} value fältets värde ur den tolkade kroppen
+ * @param {{ name: string, max: number, required?: boolean }} options
+ * @returns {string} värdet, trimmat. Saknas det och är valfritt: tom sträng.
+ */
+export function readTextField(value, { name, max, required = false }) {
+  if (value === undefined || value === null) {
+    if (required) throw new ApiError(400, 'bad_request', `Begäran saknar fältet ${name}.`);
+    return '';
+  }
+  if (typeof value !== 'string') {
+    throw new ApiError(400, 'bad_request', `Fältet ${name} måste vara text.`);
+  }
+  if (value.length > max) {
+    throw new ApiError(
+      400,
+      'bad_request',
+      `Fältet ${name} är för långt: ${value.length} tecken, gränsen är ${max}.`
+    );
+  }
+
+  const text = value.trim();
+  if (required && !text) throw new ApiError(400, 'bad_request', `Begäran saknar fältet ${name}.`);
+  return text;
 }
 
 /**

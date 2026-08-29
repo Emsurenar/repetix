@@ -79,10 +79,14 @@ function resolveHandler(apiDir, url) {
  * Lyfter in serverns miljövariabler i process.env.
  *
  * Vite exponerar bara VITE_-prefixade variabler, och då i import.meta.env i
- * klienten. Serverns tre variabler får inte ha det prefixet — det skulle bygga
- * in service role-nyckeln i klientpaketet — så de måste plockas ur .env för
- * hand. Värdena stannar i utvecklingsserverns egen process: de definieras
- * ingenstans i bygget och kan därför inte hamna i klienten.
+ * klienten. Serverns tre variabler — SUPABASE_URL, SUPABASE_ANON_KEY och
+ * AI_KEY_SECRET — får inte ha det prefixet, eftersom det hade byggt in
+ * huvudnyckeln till användarnas API-nycklar i klientpaketet. De måste därför
+ * plockas ur .env för hand. Värdena stannar i utvecklingsserverns egen process:
+ * de definieras ingenstans i bygget och kan därför inte hamna i klienten.
+ *
+ * (Appen använder medvetet ingen service role-nyckel alls — se
+ * docs/api-contract.md.)
  *
  * Redan satta variabler lämnas orörda, så att skalets värden vinner över .env
  * på samma sätt som i produktion.

@@ -57,10 +57,16 @@ Utför ett AI-anrop med den inloggade användarens nyckel.
 | `unauthorized` | 401 | Ingen eller ogiltig Supabase-token |
 | `no_key` | 428 | Användaren har inte lagt in någon nyckel |
 | `invalid_key` | 401 | Leverantören avvisade nyckeln |
-| `rate_limited` | 429 | Leverantören svarade 429. Svaret bär `retryAfter` i sekunder när leverantören angav det |
+| `rate_limited` | 429 | Kvoten är förbrukad, eller leverantören svarade 429. Svaret bär `retryAfter` i sekunder |
 | `provider_error` | 502 | Leverantören svarade med fel |
-| `timeout` | 504 | Leverantören svarade inte inom 60 sekunder |
-| `bad_request` | 400 | Felaktig begäran från klienten |
+| `timeout` | 504 | Leverantören svarade inte inom 45 sekunder |
+| `bad_request` | 400 | Felaktig begäran från klienten: fel format, okänd leverantör, eller ett fält över gränsen |
+| `server_error` | 500, 503 | Inget av kontraktets fall. Klienten kan bara visa meddelandet |
+
+Timeouten måste ligga **strikt under** `maxDuration` i `vercel.json`. Är de lika
+har funktionen noll tid kvar att skriva svaret när signalen löser ut, och
+klienten får plattformens HTML-504 i stället för kontraktets JSON — koden
+`timeout` går då inte att få. 45 mot 60 sekunder ger den marginalen.
 
 ## POST /api/ai-key
 
@@ -98,6 +104,62 @@ den krypterade texten.
 ```jsonc
 { "ok": true }
 ```
+
+## Gränser
+
+Registreringen är öppen, så en inloggad användare är inte samma sak som ägaren.
+Gränserna nedan är inte formsaker: utan dem kan ett nyregistrerat konto binda
+hundratals serverfunktioner samtidigt och använda nyckelkontrollen som ett
+orakel för skrapade API-nycklar.
+
+### Fältgränser
+
+Överskrids någon av dem svarar servern `bad_request` (400) och säger vilket
+fält det gäller. Fälten skickas vidare till leverantören, så ett obegränsat
+fält gör slutpunkten till en förstärkare av vår egen utgående bandbredd.
+
+| Fält | Gräns |
+|---|---|
+| Hela kroppen | 1 MB, avvisas på `content-length` innan den läses |
+| `user` | 200 000 tecken |
+| `system` | 200 000 tecken |
+| `model` | 128 tecken, och bara `A–Z a–z 0–9 . _ : @ / -` |
+| `provider` | 40 tecken, och måste finnas i katalogen |
+| `maxTokens` | positivt heltal, kapas till 16 384 |
+| `key` (POST /api/ai-key) | 512 tecken, synliga ASCII-tecken utan blanksteg |
+
+Modellkontrollen sitter på det framräknade id:t och inte på fältet i begäran.
+Ett modell-id kan komma tre vägar och två av dem är användarens — begäran och
+det sparade värdet i `user_settings` — och det interpoleras in i Googles URL.
+
+### Takt-spärr
+
+Räknas per användare i databasen, av `bump_rate_limit` i migration 0004. Fasta
+fönster: en rad per användare, slutpunkt och fönster, som stegas uppåt.
+
+| Slutpunkt | Tak |
+|---|---|
+| `POST /api/ai` | 20 per minut **och** 120 per timme |
+| `/api/ai-key` (alla metoder) | 60 per timme |
+| `POST /api/ai-key`, nyckelkontrollen | 10 per timme |
+
+Två fönster på `/api/ai` av två skäl. Timfönstret är kostnadstaket. Minutfönstret
+är parallellitetstaket, och det är det som skyddar plånboken: ett timtak hindrar
+inte att alla 120 anropen görs i samma sekund, och varje anrop håller en
+serverfunktion uppbunden i upp till 45 sekunder.
+
+Nyckelkontrollen har det strängaste taket trots att den varken kostar tokens
+eller tid, eftersom den skiljer exakt på giltig och ogiltig nyckel. Att lägga in
+en nyckel är en handling man gör med handen, någon enstaka gång per leverantör.
+
+Ett stopp ger `rate_limited` (429) med `retryAfter` i sekunder, både i kroppen
+och i svarshuvudet `Retry-After`. Avvisade anrop räknas också — annars kunde man
+hålla sig precis under taket genom att sluta räknas.
+
+**Spärren stänger när den inte går att nå.** Svarar databasen med fel avvisas
+anropet med `server_error` (503). En spärr som öppnar sig när databasen krånglar
+är verkningslös just när den behövs som mest, och samma databas läses ändå två
+rader längre fram för att hämta nyckeln.
 
 ## Leverantörer och modeller
 

@@ -6,12 +6,32 @@
 
 import { requireUser } from './_lib/auth.js';
 import { encrypt } from './_lib/crypto.js';
-import { ApiError, readJsonBody, sendError, sendJson } from './_lib/http.js';
+import { ApiError, readJsonBody, readTextField, sendError, sendJson } from './_lib/http.js';
+import { enforceRateLimit } from './_lib/limit.js';
 import { getProvider } from './_lib/providers.js';
+
+/**
+ * En API-nyckel är kort och består av tecken som får stå i ett HTTP-huvud.
+ * Gränsen finns för att strängen skickas vidare som autentiseringshuvud till
+ * leverantören — utan den kan slutpunkten användas för att skicka megabyte i
+ * ett huvud från våra servrar.
+ */
+const MAX_KEY_CHARS = 512;
+
+/**
+ * Synliga ASCII-tecken utan blanksteg. Ett radbrott i ett huvudvärde är den
+ * klassiska vägen att smuggla in en egen rad i en HTTP-begäran, och en riktig
+ * nyckel innehåller aldrig något utanför det här intervallet.
+ */
+const KEY_PATTERN = /^[\x21-\x7e]+$/;
 
 export default async function handler(req, res) {
   try {
     const { userId, db } = await requireUser(req);
+
+    // Gäller alla tre metoderna. Läsning och radering rör inte nätet utanför
+    // Supabase, men kostar en serverfunktion var.
+    await enforceRateLimit(db, 'ai-key');
 
     if (req.method === 'POST') return await saveKey(req, res, userId, db);
     if (req.method === 'GET') return await listKeys(res, userId, db);
@@ -34,8 +54,24 @@ async function saveKey(req, res, userId, db) {
   const provider = getProvider(requireProvider(body.provider));
 
   // Nycklar klistras in, och urklipp bär ofta med sig blanksteg eller radbrott.
-  const key = typeof body.key === 'string' ? body.key.trim() : '';
-  if (!key) throw new ApiError(400, 'bad_request', 'Begäran saknar fältet key.');
+  const key = readTextField(body.key, { name: 'key', max: MAX_KEY_CHARS, required: true });
+  if (!KEY_PATTERN.test(key)) {
+    throw new ApiError(
+      400,
+      'bad_request',
+      'API-nyckeln innehåller tecken som inte kan skickas till leverantören. Kontrollera att bara nyckeln kopierats med.'
+    );
+  }
+
+  // Egen, hårdare kvot precis före kontrollen mot leverantören.
+  //
+  // Kontrollen skickar den inkomna strängen som autentiseringshuvud och skiljer
+  // sedan exakt på giltig och ogiltig nyckel, utan att kosta en enda token.
+  // Obegränsad är den ett orakel: den som skrapat ihop nycklar någon annanstans
+  // kan triagera dem mot fyra leverantörer från våra IP-nummer och under vårt
+  // namn. Taket gör slutpunkten obrukbar för det utan att märkas av någon som
+  // lägger in sin egen nyckel.
+  await enforceRateLimit(db, 'ai-key:verify');
 
   const verified = await provider.verifyKey(key);
   if (!verified) {

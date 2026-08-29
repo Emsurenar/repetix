@@ -288,8 +288,12 @@ export const providerIds = Object.keys(providers);
 
 /** Slår upp en adapter. Kastar ApiError vid okänd leverantör. */
 export function getProvider(name) {
-  const provider = providers[name];
-  if (!provider) {
+  // Object.hasOwn och inte `providers[name]`: uppslaget går annars vidare upp i
+  // prototypkedjan, där '__proto__', 'constructor' och 'toString' alla ger ett
+  // sant värde. Namnet kommer från klienten, och en sådan träff hade tagit sig
+  // förbi den här kontrollen för att i stället falla på ett saknat
+  // buildRequest — alltså 500 server_error i stället för kontraktets 400.
+  if (typeof name !== 'string' || !Object.hasOwn(providers, name)) {
     throw new ApiError(
       400,
       'bad_request',
@@ -297,5 +301,5 @@ export function getProvider(name) {
       `Okänd leverantör: ${String(name).slice(0, 40)}. Välj en av ${providerIds.join(', ')}.`
     );
   }
-  return provider;
+  return providers[name];
 }

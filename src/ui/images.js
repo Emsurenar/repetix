@@ -26,7 +26,23 @@ const readFileAsDataUrl = (file) =>
  * egen hand spränga localStorage-kvoten. Misslyckas omkodningen behålls
  * originalet — en stor bild är bättre än ingen bild.
  */
+/* SVG tas inte emot.
+ *
+ * En SVG är ett dokument som kan bära skript, inte en bild. Lagringen serverar
+ * filen bakom en signerad länk med den typ som angetts, så en öppnad länk hade
+ * kört kod på lagringens domän. Migration 0004 utesluter därför typen ur
+ * hinkens tillåtna lista — och utan den här kontrollen hade användaren fått en
+ * uppladdning som misslyckades långt senare, utan att något sade varför.
+ *
+ * Kastar i stället för att returnera null, så att anroparen kan säga till. */
+const SVG = 'image/svg+xml';
+
 export const fileToDataUrl = async (file) => {
+  if (file?.type === SVG) {
+    const fel = new Error('SVG stöds inte som kortbild.');
+    fel.code = 'svg_ej_tillaten';
+    throw fel;
+  }
   const original = await readFileAsDataUrl(file);
   try {
     const { dataUrl } = await compressDataUrl(original);

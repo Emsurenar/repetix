@@ -68,10 +68,55 @@ export async function requireUser(req) {
     );
   }
 
+  if (!looksLikeAccessToken(token)) {
+    throw new ApiError(401, 'unauthorized', 'Din session gäller inte längre. Logga in igen.');
+  }
+
   const { data, error } = await anonClient.auth.getUser(token);
   if (error || !data?.user?.id) {
     throw new ApiError(401, 'unauthorized', 'Din session gäller inte längre. Logga in igen.');
   }
 
   return { userId: data.user.id, token, db: userClient(token) };
+}
+
+/**
+ * Ser strängen över huvud taget ut som en Supabase-token?
+ *
+ * DET HÄR ÄR INTE AUTENTISERING. Signaturen kontrolleras inte, och ingenting i
+ * nyttolasten litas på — user_id hämtas fortfarande ur svaret från Supabase,
+ * som är det enda som kan avgöra om token är äkta.
+ *
+ * Kontrollen finns bara för att ett skräpvärde ska kosta oss ingenting. Utan
+ * den blir `Authorization: Bearer x` i en slinga en gratis förstärkare: varje
+ * begäran betalar en serverfunktion och en förfrågan mot Supabases
+ * auth-tjänst, utan att avsändaren behöver ett konto. Med den avvisas allt som
+ * inte ens har formen av en token innan något nät rörs.
+ */
+function looksLikeAccessToken(token) {
+  // En token på flera kilobyte är inte vår: den ska inte kopieras vidare i ett
+  // huvud bara för att få veta att den är ogiltig.
+  if (token.length < 60 || token.length > 8192) return false;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  if (!parts.every((part) => /^[A-Za-z0-9_-]+$/.test(part))) return false;
+
+  const payload = decodeSegment(parts[1]);
+  if (!payload || typeof payload.sub !== 'string' || !payload.sub) return false;
+
+  // Utgången token avvisas här. Det är ingen genväg förbi verifieringen —
+  // Supabase hade avvisat den ändå — utan ett nätanrop mindre. Marginalen
+  // finns för att vår klocka kan gå före utfärdarens.
+  if (typeof payload.exp !== 'number') return false;
+  return payload.exp * 1000 > Date.now() - 60_000;
+}
+
+function decodeSegment(segment) {
+  try {
+    const parsed = JSON.parse(Buffer.from(segment, 'base64url').toString('utf8'));
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
 }

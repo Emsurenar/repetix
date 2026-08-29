@@ -6,13 +6,53 @@
 
 import { requireUser } from './_lib/auth.js';
 import { decrypt } from './_lib/crypto.js';
-import { ApiError, isTimeoutError, readJsonBody, sendError, sendJson } from './_lib/http.js';
+import {
+  ApiError,
+  isTimeoutError,
+  readJsonBody,
+  readTextField,
+  sendError,
+  sendJson,
+} from './_lib/http.js';
+import { enforceRateLimit } from './_lib/limit.js';
 import { extractProviderMessage, getProvider, isAuthFailure } from './_lib/providers.js';
 
-/** Kontraktets gräns. Speglas av maxDuration i vercel.json. */
-const TIMEOUT_MS = 60_000;
+/**
+ * Kontraktets gräns, och den måste ligga under maxDuration i vercel.json.
+ *
+ * Var den lika med maxDuration kunde svaret aldrig levereras: när signalen löste
+ * ut hade funktionen noll tid kvar att skriva något, och klienten fick
+ * plattformens HTML-504 i stället för kontraktets JSON. Koden `timeout` gick
+ * alltså inte att få. Marginalen på 15 sekunder räcker för att skriva ett svar
+ * på några hundra byte med bred marginal.
+ */
+const TIMEOUT_MS = 45_000;
 
 const DEFAULT_MAX_TOKENS = 1024;
+
+/**
+ * Fältgränser.
+ *
+ * Fälten går vidare till leverantören, så ett obegränsat fält gör slutpunkten
+ * till en förstärkare av vår egen utgående bandbredd. Taken ligger långt över
+ * verklig användning: 200 000 tecken är ungefär tio gånger den största prompten
+ * appen bygger, en hel kortlek inräknad.
+ *
+ * Modell-id:t har ett eget, mycket lägre tak eftersom det interpoleras in i
+ * Googles URL.
+ */
+const MAX_USER_CHARS = 200_000;
+const MAX_SYSTEM_CHARS = 200_000;
+const MAX_MODEL_CHARS = 128;
+const MAX_PROVIDER_CHARS = 40;
+
+/**
+ * Tecken som får förekomma i ett modell-id. Snedstrecket behövs av OpenRouter
+ * (`leverantör/modell`), kolon och at-tecken av leverantörer som versionerar i
+ * namnet. Allt annat — blanksteg, procenttecken, kontrolltecken — hör inte
+ * hemma i ett modellnamn och ska inte ta sig in i en URL eller en JSON-kropp.
+ */
+const MODEL_PATTERN = /^[A-Za-z0-9._:@/-]+$/;
 
 /**
  * Tak för maxTokens. Fakturan är användarens egen, så taket finns inte för att
@@ -32,16 +72,20 @@ export default async function handler(req, res) {
       throw new ApiError(405, 'bad_request', 'Slutpunkten tar bara emot POST.');
     }
 
+    // Kvoten dras före allt arbete. Ett anrop som ändå ska avvisas ska inte
+    // hinna kosta två databasläsningar och en uppkoppling mot leverantören.
+    await enforceRateLimit(db, 'ai');
+
     const body = await readJsonBody(req);
 
-    const user = typeof body.user === 'string' ? body.user.trim() : '';
-    if (!user) throw new ApiError(400, 'bad_request', 'Begäran saknar fältet user.');
+    const user = readTextField(body.user, { name: 'user', max: MAX_USER_CHARS, required: true });
+    const system = readTextField(body.system, { name: 'system', max: MAX_SYSTEM_CHARS });
 
     const { providerName, provider, model } = await resolveTarget(body, db, userId);
     const apiKey = await loadApiKey(db, providerName, provider.label);
 
     const request = provider.buildRequest({
-      system: typeof body.system === 'string' ? body.system : '',
+      system,
       user,
       maxTokens: resolveMaxTokens(body.maxTokens),
       model,
@@ -68,11 +112,11 @@ async function resolveTarget(body, db, userId) {
   const settings = await readSettings(db, userId);
   const savedProvider = settings.ai_provider || 'anthropic';
 
-  const requested = typeof body.provider === 'string' ? body.provider.trim() : '';
+  const requested = readTextField(body.provider, { name: 'provider', max: MAX_PROVIDER_CHARS });
   const providerName = requested || savedProvider;
   const provider = getProvider(providerName);
 
-  const requestedModel = typeof body.model === 'string' ? body.model.trim() : '';
+  const requestedModel = readTextField(body.model, { name: 'model', max: MAX_MODEL_CHARS });
   const savedModel = providerName === savedProvider ? settings.ai_model : null;
   const model = requestedModel || savedModel || provider.defaultModel;
 
@@ -83,7 +127,33 @@ async function resolveTarget(body, db, userId) {
       `Ingen modell är vald för ${provider.label}. Ange ett modell-id i inställningarna.`
     );
   }
+  assertModel(model);
   return { providerName, provider, model };
+}
+
+/**
+ * Kontrollen sitter på den framräknade modellen, inte på fältet i begäran.
+ *
+ * Ett modell-id kan komma tre vägar, och två av dem är användarens: fältet i
+ * begäran och det sparade värdet i user_settings, som klienten skriver själv.
+ * Bara den tredje — leverantörens standard — är vår egen. En kontroll på fältet
+ * hade alltså lämnat den sparade vägen öppen.
+ */
+function assertModel(model) {
+  if (typeof model !== 'string' || model.length > MAX_MODEL_CHARS) {
+    throw new ApiError(
+      400,
+      'bad_request',
+      `Modell-id:t är för långt. Gränsen är ${MAX_MODEL_CHARS} tecken.`
+    );
+  }
+  if (!MODEL_PATTERN.test(model)) {
+    throw new ApiError(
+      400,
+      'bad_request',
+      'Modell-id:t innehåller tecken som inte hör hemma i ett modellnamn.'
+    );
+  }
 }
 
 async function readSettings(db, userId) {
@@ -157,7 +227,11 @@ async function callProvider(provider, request) {
     });
   } catch (err) {
     if (isTimeoutError(err)) {
-      throw new ApiError(504, 'timeout', 'Leverantören svarade inte inom 60 sekunder.');
+      throw new ApiError(
+        504,
+        'timeout',
+        `Leverantören svarade inte inom ${Math.round(TIMEOUT_MS / 1000)} sekunder.`
+      );
     }
     throw new ApiError(502, 'provider_error', 'Ingen kontakt med leverantören.');
   }

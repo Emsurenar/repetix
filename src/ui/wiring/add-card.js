@@ -102,7 +102,11 @@ export function initUiWiringAddCard() {
           const files = Array.from(e.target.files);
           for (const file of files) {
               if (!file.type.startsWith('image/')) continue;
-              try { S.addCardImages.push(await fileToDataUrl(file)); } catch {}
+              try {
+                  S.addCardImages.push(await fileToDataUrl(file));
+              } catch (fel) {
+                  if (fel?.code === 'svg_ej_tillaten') showToast('SVG stöds inte som kortbild.');
+              }
           }
           e.target.value = '';
           const previewRefresh = (idx) => {
@@ -120,7 +124,11 @@ export function initUiWiringAddCard() {
           const files = Array.from(e.target.files);
           for (const file of files) {
               if (!file.type.startsWith('image/')) continue;
-              try { S.editCardImages.push(await fileToDataUrl(file)); } catch {}
+              try {
+                  S.editCardImages.push(await fileToDataUrl(file));
+              } catch (fel) {
+                  if (fel?.code === 'svg_ej_tillaten') showToast('SVG stöds inte som kortbild.');
+              }
           }
           e.target.value = '';
           const previewRefresh = (idx) => {

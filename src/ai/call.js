@@ -21,8 +21,9 @@ export class AiError extends Error {
   }
 }
 
-/** Serverns timeout är 60 s. Klienten ger den lite marginal att svara färdigt. */
-const CLIENT_TIMEOUT_MS = 65_000;
+/** Serverns timeout är 45 s, strikt under Vercels maxDuration så att den hinner
+ *  skriva sitt svar. Klienten ger den marginal att göra det färdigt. */
+const CLIENT_TIMEOUT_MS = 55_000;
 
 /** Koder det är meningsfullt att försöka igen på. Övriga är permanenta. */
 const RETRYABLE = new Set(['rate_limited', 'provider_error', 'timeout']);
