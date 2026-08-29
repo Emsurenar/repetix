@@ -6,7 +6,14 @@
 
 import { requireUser } from './_lib/auth.js';
 import { encrypt } from './_lib/crypto.js';
-import { ApiError, readJsonBody, readTextField, sendError, sendJson } from './_lib/http.js';
+import {
+  ApiError,
+  dbError,
+  readJsonBody,
+  readTextField,
+  sendError,
+  sendJson,
+} from './_lib/http.js';
 import { enforceRateLimit } from './_lib/limit.js';
 import { getProvider } from './_lib/providers.js';
 
@@ -93,7 +100,7 @@ async function saveKey(req, res, userId, db) {
     },
     { onConflict: 'user_id,provider' }
   );
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte spara nyckeln. Försök igen.');
+  if (error) throw dbError(error, 'Kunde inte spara nyckeln. Försök igen.');
 
   sendJson(res, 200, { ok: true, hint, verified: true });
 }
@@ -112,7 +119,7 @@ async function listKeys(res, userId, db) {
     .select('provider, key_hint, last_verified')
     .eq('user_id', userId)
     .order('provider');
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte läsa dina sparade nycklar.');
+  if (error) throw dbError(error, 'Kunde inte läsa dina sparade nycklar.');
 
   sendJson(res, 200, {
     providers: (data ?? []).map((rad) => ({
@@ -135,7 +142,7 @@ async function deleteKey(req, res, userId, db) {
     .delete()
     .eq('user_id', userId)
     .eq('provider', provider.id);
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte radera nyckeln. Försök igen.');
+  if (error) throw dbError(error, 'Kunde inte radera nyckeln. Försök igen.');
 
   sendJson(res, 200, { ok: true });
 }

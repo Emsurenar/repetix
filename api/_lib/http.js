@@ -21,6 +21,29 @@ export class ApiError extends Error {
 }
 
 /**
+ * Databasfelet får bära sin kod med sig tillbaka till användaren.
+ *
+ * Koden kastades tidigare bort på varje ställe där en fråga mot Supabase kunde
+ * misslyckas, och kvar blev en mening som beskriver alla orsaker lika illa:
+ * "Kunde inte spara nyckeln. Försök igen." En policy som saknas (42501), en
+ * migration som aldrig kördes (42703, PGRST204) och en databas som ligger nere
+ * ser då exakt likadana ut — och rådet att försöka igen gäller bara det sista.
+ * Serverfunktionerna loggar med flit ingenting, eftersom en logg är det
+ * enklaste sättet att av misstag skriva ut en användares nyckel. Utan koden i
+ * meddelandet finns felet alltså inte bevarat någonstans alls.
+ *
+ * Enbart koden följer med. Fälten details och hint återger raden som inte gick
+ * igenom — "Failing row contains (...)" — och den raden bär chiffertexten för
+ * användarens nyckel. Formkravet finns för att koden kommer utifrån och landar
+ * i en text som visas för användaren.
+ */
+export function dbError(error, text) {
+  const code = typeof error?.code === 'string' ? error.code.trim() : '';
+  if (!/^[A-Za-z0-9_]{1,20}$/.test(code)) return new ApiError(500, 'server_error', text);
+  return new ApiError(500, 'server_error', `${text} (databasfel ${code})`);
+}
+
+/**
  * Största begäran vi läser. En prompt med kortlekskontext landar på tiotals
  * kilobyte; allt bortom en megabyte är antingen en bugg i klienten eller ett
  * försök att fylla funktionens minne.

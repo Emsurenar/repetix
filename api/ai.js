@@ -8,6 +8,7 @@ import { requireUser } from './_lib/auth.js';
 import { decrypt } from './_lib/crypto.js';
 import {
   ApiError,
+  dbError,
   isTimeoutError,
   readJsonBody,
   readTextField,
@@ -162,7 +163,7 @@ async function readSettings(db, userId) {
     .select('ai_provider, ai_model')
     .eq('user_id', userId)
     .maybeSingle();
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte läsa dina AI-inställningar.');
+  if (error) throw dbError(error, 'Kunde inte läsa dina AI-inställningar.');
   return data ?? {};
 }
 
@@ -179,7 +180,7 @@ async function loadApiKey(db, providerName, label) {
   // auth.uid(), så den kan bara någonsin returnera anroparens egen rad. Det är
   // det som gör att appen inte behöver någon service role-nyckel.
   const { data, error } = await db.rpc('get_my_ai_key', { p_provider: providerName });
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte hämta din sparade API-nyckel.');
+  if (error) throw dbError(error, 'Kunde inte hämta din sparade API-nyckel.');
 
   if (!data) {
     throw new ApiError(
