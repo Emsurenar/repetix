@@ -427,11 +427,42 @@ Migration 0005 lägger också **ägarskap på främmande nycklar** — ett kort 
 tidigare peka på någon annans kortlek. Läs kommentaren i filen: kör
 kontrollfrågan först, den måste ge tomt.
 
+#### Användningsmätaren — klar
+
+`supabase/migrations/0006_ai_usage.sql`, Inställningar → Användning och
+sidopanelens statusrad. Spec: `docs/superpowers/specs/2026-08-29-anvandningsmatare-design.md`.
+
+Varje AI-anrop skriver en rad i `ai_usage` — append-only, som `reviews`: bara
+tokental lagras, aldrig kostnad, eftersom priser ändras och tokental är fakta.
+Kostnaden räknas fram vid visning ur `src/domain/pricing.js`, som **bara
+känner Anthropics priser**. En modell utan pris ger tokental men inget belopp
+i panelen — en påhittad prislapp är värre än en ärlig lucka.
+
+**Mätaren varnar, den stoppar aldrig.** Ett hårt tak hade krävt att kostnaden
+uppskattas *före* anropet, vilket är ytterligare ett API-anrop för att lösa
+något varningen redan täcker. Taket sätts i panelen och är `null` som förval —
+ingen rad syns då.
+
+Varningen står i **sidopanelen**, inte bara i panelen som skrev den — samma
+plats som "Lokalt läge" och "Kunde inte synka". Skälet är praktiskt: en
+varning som bara syns efter ett besök i Inställningar ser man i praktiken
+aldrig, och sidopanelen är den enda ytan som alltid är framme. Lyssnaren i
+`initSettings` uppdaterar den därför **villkorslöst** vid varje auth-ändring,
+även innan användaren någonsin öppnat vyn — annars gäller precis den
+invändningen.
+
+**`laddaVal()` i `src/ui/settings.js` degraderar om 0006 inte är körd.**
+PostgREST avvisar hela frågan om `ai_monthly_budget` saknas; klienten faller då
+tillbaka på den gamla kolumnuppsättningen och visar taket som saknat i stället
+för att låta hela svaret falla bort — det senare hade gjort att en riktig
+leverantör och modell ersattes av standardvärden i gränssnittet.
+
 #### Kvar innan öppen registrering
 
 #### Lanseringschecklista — kräver ägaren
 
-1. Kör migration `0003`, `0004` och `0005` i Supabases SQL Editor, i ordning.
+1. Kör migration `0003`, `0004`, `0005` och `0006` i Supabases SQL Editor, i
+   ordning.
 2. Verifiera RLS i det **körda** projektet, inte bara i filerna:
    `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
    och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`
