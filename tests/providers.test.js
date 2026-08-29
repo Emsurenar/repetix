@@ -337,6 +337,23 @@ describe('extractUsage', () => {
     });
   });
 
+  it('läser OpenAI:s cachade tokens ur det nästlade fältet', () => {
+    expect(
+      providers.openai.extractUsage({
+        usage: {
+          prompt_tokens: 500,
+          completion_tokens: 120,
+          prompt_tokens_details: { cached_tokens: 400 },
+        },
+      })
+    ).toEqual({
+      inputTokens: 500,
+      outputTokens: 120,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 400,
+    });
+  });
+
   it('läser Googles fält', () => {
     expect(
       providers.google.extractUsage({
@@ -347,6 +364,23 @@ describe('extractUsage', () => {
       outputTokens: 90,
       cacheWriteTokens: 0,
       cacheReadTokens: 0,
+    });
+  });
+
+  it('läser Googles cachade tokens', () => {
+    expect(
+      providers.google.extractUsage({
+        usageMetadata: {
+          promptTokenCount: 700,
+          candidatesTokenCount: 90,
+          cachedContentTokenCount: 500,
+        },
+      })
+    ).toEqual({
+      inputTokens: 700,
+      outputTokens: 90,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 500,
     });
   });
 

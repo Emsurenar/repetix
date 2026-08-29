@@ -130,6 +130,9 @@ const tal = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
  * - `buildRequest({ system, user, maxTokens, model, json, key })` som ger
  *   `{ url, headers, body }`. Kroppen är ett objekt; anroparen serialiserar.
  * - `extractText(responseJson)` som ger svarets text.
+ * - `extractUsage(responseJson)` som ger `{ inputTokens, outputTokens,
+ *   cacheWriteTokens, cacheReadTokens }` — alla tal, aldrig undefined. Varje
+ *   leverantör rapporterar tokentalen under olika namn; adaptern läser rätt fält.
  * - `verifyKey(key)` som ger true eller false.
  */
 export const providers = {
