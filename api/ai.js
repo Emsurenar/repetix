@@ -46,6 +46,11 @@ const MAX_SYSTEM_CHARS = 200_000;
 const MAX_MODEL_CHARS = 128;
 const MAX_PROVIDER_CHARS = 40;
 
+/* Funktionens namn är vårt eget och kort. Taket finns av samma skäl som de
+ * andra: ett obegränsat fält gör slutpunkten till en väg att skriva godtycklig
+ * mängd data till databasen. */
+const MAX_FEATURE_CHARS = 40;
+
 /**
  * Tecken som får förekomma i ett modell-id. Snedstrecket behövs av OpenRouter
  * (`leverantör/modell`), kolon och at-tecken av leverantörer som versionerar i
@@ -80,6 +85,14 @@ export default async function handler(req, res) {
 
     const user = readTextField(body.user, { name: 'user', max: MAX_USER_CHARS, required: true });
     const system = readTextField(body.system, { name: 'system', max: MAX_SYSTEM_CHARS });
+    const feature = readTextField(body.feature, {
+      name: 'feature',
+      max: MAX_FEATURE_CHARS,
+      required: true,
+    });
+    // Valideras redan här, men kopplas in i användningsraden i ett senare steg
+    // — funktionen ska kunna säga vem som frågar innan bokföringen finns.
+    void feature;
 
     const { providerName, provider, model } = await resolveTarget(body, db, userId);
     const apiKey = await loadApiKey(db, providerName, provider.label);

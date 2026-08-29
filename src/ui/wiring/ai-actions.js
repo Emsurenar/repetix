@@ -24,6 +24,7 @@ import { populateAddCardSections } from './add-card.js';
                 user: `Fråga: "${questionText}"`,
                 maxTokens: 200,
                 json: true,
+                feature: 'autofolder',
             });
 
             // Extraktionen behålls trots json: true som skydd mot en leverantör
@@ -131,6 +132,7 @@ export function initUiWiringAiActions() {
                   system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
                   user: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`,
                   maxTokens,
+                  feature: 'answer',
               });
 
               backField.value = text.trim();

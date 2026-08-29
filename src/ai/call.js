@@ -48,11 +48,21 @@ async function accessToken() {
  * @param {boolean} [options.json] be leverantören svara med ren JSON
  * @param {string} [options.provider] annars användarens inställning
  * @param {string} [options.model] annars användarens inställning
+ * @param {string} options.feature vilken funktion som frågar, för användningsmätaren
  * @param {AbortSignal} [options.signal] för att kunna avbryta
  * @returns {Promise<string>} svarstexten
  * @throws {AiError}
  */
-export async function callAI({ system, user, maxTokens, json, provider, model, signal } = {}) {
+export async function callAI({
+  system,
+  user,
+  maxTokens,
+  json,
+  provider,
+  model,
+  feature,
+  signal,
+} = {}) {
   if (!user?.trim()) throw new AiError('Tomt meddelande skickades till AI.', 'bad_request');
 
   const token = await accessToken();
@@ -75,7 +85,7 @@ export async function callAI({ system, user, maxTokens, json, provider, model, s
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ system, user, maxTokens, json, provider, model }),
+        body: JSON.stringify({ system, user, maxTokens, json, provider, model, feature }),
         signal: combined,
       });
 

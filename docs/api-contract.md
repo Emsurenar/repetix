@@ -142,6 +142,7 @@ fält gör slutpunkten till en förstärkare av vår egen utgående bandbredd.
 | Hela kroppen | 1 MB, avvisas på `content-length` innan den läses |
 | `user` | 200 000 tecken |
 | `system` | 200 000 tecken |
+| `feature` | 40 tecken, obligatoriskt |
 | `model` | 128 tecken, och bara `A–Z a–z 0–9 . _ : @ / -` |
 | `provider` | 40 tecken, och måste finnas i katalogen |
 | `maxTokens` | positivt heltal, kapas till 16 384 |

@@ -51,6 +51,7 @@ const renderSuggestionCard = (card, container) => {
 
 const fetchSuggestion = async (deck, info, signal) => {
     const text = await callAI({
+        feature: 'suggest',
         system: `Du är en expert på spaced repetition och pedagogik. Du får en komplett lista med flashcards. Din uppgift: identifiera det kort som saknas mest i kortleken — den fråga som borde finnas men inte gör det. Tänk på:
 - Vilka koncept testas men kopplingen mellan dem saknas?
 - Finns det viktiga förkunskaper eller konsekvenser som aldrig frågas om?
@@ -134,6 +135,7 @@ export const generateDeckSummary = async () => {
 
     try {
         const text = await callAI({
+            feature: 'summary',
             system: `Du sammanfattar flashcard-kortlekar med precision och skärpa. Du får hela kortlistan. Skriv en kort, sofistikerad sammanfattning (2-4 meningar) som gör två saker:
 
 1. Fånga kärnan: Vad handlar kortleken egentligen om, på en nivå djupare än titeln antyder?

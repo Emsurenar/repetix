@@ -166,6 +166,7 @@ Svara med ett enda JSON-objekt.`;
             user: userInstructions,
             maxTokens: 1000,
             json: true,
+            feature: 'regenerate',
         });
 
         // Fence-strippningen behålls trots json: true som skydd mot en

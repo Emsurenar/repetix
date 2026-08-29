@@ -86,6 +86,7 @@ ${contextSnippet}`;
             user: instructions,
             maxTokens: 3500,
             json: true,
+            feature: 'topic',
         });
 
         // Fence-strippningen behålls trots json: true som skydd mot en

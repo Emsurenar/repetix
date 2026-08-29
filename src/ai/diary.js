@@ -26,6 +26,7 @@ export const fetchDiaryCards = async (diaryText) => {
             user: `Här är mina lärdomar från idag:\n\n${diaryText}`,
             maxTokens: 4000,
             json: true,
+            feature: 'diary',
         });
 
         // Fence-strippningen behålls trots json: true som skydd mot en
