@@ -427,11 +427,31 @@ Migration 0005 lägger också **ägarskap på främmande nycklar** — ett kort 
 tidigare peka på någon annans kortlek. Läs kommentaren i filen: kör
 kontrollfrågan först, den måste ge tomt.
 
+### Migration 0006 — skrivvägen för AI-nycklar
+
+**Utan den går det inte att spara en API-nyckel alls.** Servern gjorde tidigare
+en upsert rakt mot `user_ai_keys`, och `insert ... on conflict do update` kräver
+att raden får läsas under radnivåsäkerheten. Postgres avgör det utifrån satsens
+form, inte utifrån om någon krock inträffar, så kravet gällde även mot tom
+tabell. Tabellen saknar select-policy med flit — därför misslyckades varje
+sparning med `42501`, och ingen nyckel hade någonsin sparats.
+
+Skrivningen går nu genom `save_my_ai_key`, som kör med ägarens rättigheter och
+härleder användaren ur `auth.uid()` — samma mönster som `get_my_ai_key` på
+läsvägen. Select-policyn ligger kvar borta.
+
+Kontrollfråga efter körningen, ska ge en rad:
+
+```sql
+select proname, prosecdef from pg_proc
+ where pronamespace = 'public'::regnamespace and proname = 'save_my_ai_key';
+```
+
 #### Kvar innan öppen registrering
 
 #### Lanseringschecklista — kräver ägaren
 
-1. Kör migration `0003`, `0004` och `0005` i Supabases SQL Editor, i ordning.
+1. Kör migration `0003`, `0004`, `0005` och `0006` i Supabases SQL Editor, i ordning.
 2. Verifiera RLS i det **körda** projektet, inte bara i filerna:
    `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
    och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`
