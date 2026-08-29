@@ -112,6 +112,15 @@ async function probeKey(url, headers) {
 }
 
 /**
+ * Ett tal, eller noll.
+ *
+ * Leverantörernas svar är inte kontrakt vi äger: ett fält kan saknas, byta namn
+ * eller komma som null. Summeringen i panelen adderar de här talen rakt av, och
+ * en enda undefined hade gjort hela månadssumman till NaN.
+ */
+const tal = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
+/**
  * Adaptrarna. Varje leverantör har:
  *
  * - `models` och `defaultModel` — katalogen från kontraktet. Den är en
@@ -165,6 +174,17 @@ export const providers = {
         .join('');
     },
 
+    // enda leverantören som rapporterar cache separat
+    extractUsage(data) {
+      const u = data?.usage;
+      return {
+        inputTokens: tal(u?.input_tokens),
+        outputTokens: tal(u?.output_tokens),
+        cacheWriteTokens: tal(u?.cache_creation_input_tokens),
+        cacheReadTokens: tal(u?.cache_read_input_tokens),
+      };
+    },
+
     // Modellistan kräver samma nyckel som meddelanden men kostar ingenting.
     // Ett riktigt meddelande hade debiterat användaren för att upptäcka en
     // felskrivning.
@@ -208,6 +228,16 @@ export const providers = {
       return data?.choices?.[0]?.message?.content ?? '';
     },
 
+    extractUsage(data) {
+      const u = data?.usage;
+      return {
+        inputTokens: tal(u?.prompt_tokens),
+        outputTokens: tal(u?.completion_tokens),
+        cacheWriteTokens: 0,
+        cacheReadTokens: tal(u?.prompt_tokens_details?.cached_tokens),
+      };
+    },
+
     verifyKey(key) {
       return probeKey('https://api.openai.com/v1/models', { authorization: `Bearer ${key}` });
     },
@@ -243,6 +273,16 @@ export const providers = {
 
     extractText(data) {
       return (data?.candidates?.[0]?.content?.parts ?? []).map((part) => part?.text ?? '').join('');
+    },
+
+    extractUsage(data) {
+      const u = data?.usageMetadata;
+      return {
+        inputTokens: tal(u?.promptTokenCount),
+        outputTokens: tal(u?.candidatesTokenCount),
+        cacheWriteTokens: 0,
+        cacheReadTokens: tal(u?.cachedContentTokenCount),
+      };
     },
 
     verifyKey(key) {
@@ -286,6 +326,17 @@ export const providers = {
 
     extractText(data) {
       return data?.choices?.[0]?.message?.content ?? '';
+    },
+
+    // OpenAI-kompatibelt svar
+    extractUsage(data) {
+      const u = data?.usage;
+      return {
+        inputTokens: tal(u?.prompt_tokens),
+        outputTokens: tal(u?.completion_tokens),
+        cacheWriteTokens: 0,
+        cacheReadTokens: 0,
+      };
     },
 
     verifyKey(key) {
