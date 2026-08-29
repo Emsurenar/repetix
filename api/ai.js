@@ -16,6 +16,7 @@ import {
 } from './_lib/http.js';
 import { enforceRateLimit } from './_lib/limit.js';
 import { extractProviderMessage, getProvider, isAuthFailure } from './_lib/providers.js';
+import { recordUsage } from './_lib/usage.js';
 
 /**
  * Kontraktets gräns, och den måste ligga under maxDuration i vercel.json.
@@ -90,9 +91,6 @@ export default async function handler(req, res) {
       max: MAX_FEATURE_CHARS,
       required: true,
     });
-    // Valideras redan här, men kopplas in i användningsraden i ett senare steg
-    // — funktionen ska kunna säga vem som frågar innan bokföringen finns.
-    void feature;
 
     const { providerName, provider, model } = await resolveTarget(body, db, userId);
     const apiKey = await loadApiKey(db, providerName, provider.label);
@@ -106,8 +104,13 @@ export default async function handler(req, res) {
       key: apiKey,
     });
 
-    const text = await callProvider(provider, request);
-    sendJson(res, 200, { text, provider: providerName, model });
+    const { text, usage } = await callProvider(provider, request);
+
+    // Efter att svaret säkrats, före att det skickas. Skrivningen kan inte
+    // kasta, så ordningen kostar ingenting.
+    await recordUsage(db, { userId, provider: providerName, model, feature, usage });
+
+    sendJson(res, 200, { text, provider: providerName, model, usage });
   } catch (err) {
     sendError(res, err);
   }
@@ -256,7 +259,7 @@ async function callProvider(provider, request) {
   if (!text) {
     throw new ApiError(502, 'provider_error', 'Leverantören svarade utan någon text.');
   }
-  return text;
+  return { text, usage: provider.extractUsage(data) };
 }
 
 function translateFailure(res, bodyText) {
