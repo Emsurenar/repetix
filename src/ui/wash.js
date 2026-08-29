@@ -26,17 +26,54 @@ const hash = (text) => {
     return h >>> 0;
 };
 
+/* Ljuslyft per bild.
+ *
+ * De trettio fotografierna är inte lika ljusa. Medelljuset spänner från 37
+ * till 204 av 255, och de fyra mörkaste — w01, w02, w05, w29 — är så mörka i
+ * källan att panelen blev en svart platta: skärmen ovanpå bilden lägger till
+ * ytterligare mörker, och ett foto på 37 syns inte under den. Ingen justering
+ * av filtret kunde rädda det, eftersom det inte fanns något ljus att dra fram.
+ *
+ * Talen är 125 delat med bildens uppmätta medelljus, aldrig under 1 (en bild
+ * som redan fungerar rörs inte) och aldrig över 2,6. Taket är satt av ögat:
+ * över det börjar färgbruset i en fyrtio pixlar bred miniatyr synas som
+ * fläckar när den skalas upp.
+ *
+ * Mätt en gång med canvas över de faktiska filerna. Byts en bild ut måste dess
+ * tal mätas om — därför står de i en enda lista och inte utspridda.
+ */
+const LYFT = [
+    2.6, 2.6, 1.47, 1.56, 2.6, 1, 1.01, 1.74, 1, 1,
+    1.15, 1, 1, 1, 1.06, 1, 1.09, 1, 1, 1,
+    1, 1.84, 1.05, 1, 1, 1, 1, 1.79, 2.6, 1,
+];
+
+/** Bildens nummer, 1–30. Samma frö ger alltid samma bild. */
+const bildnummer = (deckId) => (hash(String(deckId)) % ANTAL_BILDER) + 1;
+
 export const washUrl = (deckId) => {
     if (!deckId) return null;
-    const n = (hash(String(deckId)) % ANTAL_BILDER) + 1;
-    return `wash/w${String(n).padStart(2, '0')}.jpg`;
+    return `wash/w${String(bildnummer(deckId)).padStart(2, '0')}.jpg`;
 };
 
 /* Bilden sätts som egenskap på elementet, inte som en klass per bild. Trettio
  * klasser i stilmallen hade varit trettio ställen att glömma. */
 export const applyWash = (el, deckId) => {
     if (!el) return;
-    const url = washUrl(deckId);
-    if (url) el.style.setProperty('--wash-photo', `url("${url}")`);
-    else el.style.removeProperty('--wash-photo');
+    if (!deckId) {
+        el.style.removeProperty('--wash-photo');
+        el.style.removeProperty('--wash-lift');
+        return;
+    }
+    el.style.setProperty('--wash-photo', `url("${washUrl(deckId)}")`);
+    el.style.setProperty('--wash-lift', String(LYFT[bildnummer(deckId) - 1]));
+};
+
+/* Samma två variabler som en sträng, för de ställen som bygger sitt element
+ * med en mall i stället för att nå det som DOM — spelhallens brickor. Utan
+ * den här hade de satt bilden men inte lyftet, och de fyra mörka bilderna
+ * hade fortsatt vara svarta just där. */
+export const washStyle = (deckId) => {
+    if (!deckId) return '';
+    return `--wash-photo:url('${washUrl(deckId)}');--wash-lift:${LYFT[bildnummer(deckId) - 1]}`;
 };
