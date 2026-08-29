@@ -275,7 +275,13 @@
  * som innehållet är" utan att någon räknar ut pixlar i JS.
  *
  * display: none klippte bort raderna i en bildruta, och den som fällde ihop
- * en mapp fick aldrig veta om innehållet gömdes eller togs bort. */
+ * en mapp fick aldrig veta om innehållet gömdes eller togs bort.
+ *
+ * KRAVET tekniken ställer: .section-items måste ha EXAKT ETT barn, och korten
+ * ligger i det. grid-template-rows styr bara de explicita raderna, så låg
+ * korten som syskon hamnade det andra och framåt i implicita auto-rader som
+ * 0fr aldrig nådde — mappen såg ihopfälld ut medan korten stod kvar. Lägg
+ * aldrig tillbaka dem som direkta barn här. */
 .section-items {
   display: grid;
   grid-template-rows: 1fr;
