@@ -48,6 +48,12 @@ const keyStatus = new Map();
 /** Sant medan ett anrop pågår, så att dubbelklick inte skickar två gånger. */
 let busy = false;
 
+/** Så länge "Sparat" står kvar innan det tonar bort. */
+const KVITTO_MS = 2500;
+
+/** @type {ReturnType<typeof setTimeout>|undefined} */
+let kvittoTimer;
+
 // ---------------------------------------------------------------------------
 // Felmeddelanden
 // ---------------------------------------------------------------------------
@@ -391,6 +397,28 @@ function renderaModeller(providerId, valdModell = '') {
   customField.hidden = finnsIListan;
 }
 
+/**
+ * Avgör om ett val ska sparas, och vilken modell det i så fall är.
+ *
+ * Funktionen finns för att beslutet har fler kanter än det ser ut att ha, och
+ * alla dyker upp när sparaknappen är borta. Utan knapp finns inget ögonblick
+ * där användaren säger "nu": varje ändring måste själv avgöra om den är ett
+ * färdigt val. Ett tomt fritextfält är det inte — det är någon som just valt
+ * "Eget modell-id" och ännu inte hunnit skriva, och att spara tomt där hade
+ * tagit bort modellen ur kontot medan användaren trodde att hen lade till en.
+ *
+ * @param {{selectValue: string, customValue: string}} lage
+ * @returns {{spara: boolean, model: string}}
+ */
+export function valetSomSkaSparas({ selectValue, customValue }) {
+  if (selectValue !== CUSTOM_MODEL) {
+    const model = (selectValue ?? '').trim();
+    return { spara: Boolean(model), model };
+  }
+  const model = (customValue ?? '').trim();
+  return { spara: Boolean(model), model };
+}
+
 /** Modell-id:t som användaren just nu har valt, oavsett hur det valdes. */
 function valdModell() {
   const select = el('settings-model');
@@ -478,7 +506,6 @@ function renderaInloggningslage() {
     'settings-model',
     'settings-model-custom',
     'settings-api-key',
-    'btn-settings-save-model',
     'btn-settings-save-key',
     'btn-settings-delete-key',
   ]) {
@@ -576,24 +603,57 @@ function setBusy(btn, pagar, text) {
   btn.disabled = pagar;
 }
 
-async function onSparaVal() {
-  if (busy) return;
-  const provider = valdLeverantor();
-  const model = valdModell();
+/**
+ * Kvittot på modellraden.
+ *
+ * "Sparat" tonar bort av sig själv: det är en bekräftelse, och en bekräftelse
+ * som ligger kvar slutar betyda något. Ett fel står kvar tills nästa försök,
+ * eftersom det är det enda av lägena som kräver något av användaren.
+ *
+ * @param {string} text tom sträng rensar kvittot
+ * @param {'ok'|'fel'} [tone]
+ */
+function visaKvitto(text, tone = 'ok') {
+  const nod = el('settings-model-receipt');
+  if (!nod) return;
 
-  if (!model) {
-    visaMeddelande('Skriv in ett modell-id, eller välj en modell ur listan.', 'fel');
-    el('settings-model-custom')?.focus();
+  clearTimeout(kvittoTimer);
+  nod.textContent = text;
+  if (text) nod.dataset.tone = tone;
+  else delete nod.dataset.tone;
+
+  if (text && tone === 'ok') {
+    kvittoTimer = setTimeout(() => {
+      nod.textContent = '';
+      delete nod.dataset.tone;
+    }, KVITTO_MS);
+  }
+}
+
+/**
+ * Sparar leverantör och modell så fort valet ändras.
+ *
+ * Sista skrivningen vinner. Ett eget lås per anrop hade kunnat lämna kontot på
+ * det näst sista valet om två ändringar följde tätt på varandra, och det valet
+ * är inte det användaren ser i väljaren.
+ */
+async function sparaValetNu() {
+  const provider = valdLeverantor();
+  const { spara, model } = valetSomSkaSparas({
+    selectValue: el('settings-model')?.value ?? '',
+    customValue: el('settings-model-custom')?.value ?? '',
+  });
+
+  // Tomt fritextfält är inget val ännu. Tyst, eftersom användaren är mitt i
+  // en handling och inte har gjort något fel.
+  if (!spara) {
+    visaKvitto('');
     return;
   }
 
-  const btn = el('btn-settings-save-model');
-  setBusy(btn, true, 'Sparar...');
   const res = await sparaVal(provider, model);
-  setBusy(btn, false);
-
-  if (!res.ok) visaMeddelande(res.error, 'fel');
-  else visaMeddelande(`Valet sparat: ${providerLabel(provider)}, ${model}.`, 'ok');
+  if (res.ok) visaKvitto('Sparat');
+  else visaKvitto(res.error, 'fel');
 }
 
 async function onSparaNyckel() {
@@ -730,11 +790,17 @@ export function initSettings() {
     window.switchView?.('library');
   });
 
+  /* Byte av leverantör sparar också.
+   *
+   * Leverantör och modell är ett enda val i två delar. Sparade bara modellen
+   * sig själv skulle halva valet ligga kvar och vänta på ingenting, och
+   * väljaren hade visat en modell som kontot inte kände till. */
   el('settings-provider')?.addEventListener('change', () => {
     const providerId = valdLeverantor();
     renderaModeller(providerId, defaultModelFor(providerId));
     renderaNyckelstatus();
     doljMeddelande();
+    void sparaValetNu();
   });
 
   el('settings-model')?.addEventListener('change', () => {
@@ -743,9 +809,21 @@ export function initSettings() {
     if (customField) customField.hidden = !isCustom;
     if (isCustom) el('settings-model-custom')?.focus();
     doljMeddelande();
+    void sparaValetNu();
   });
 
-  el('btn-settings-save-model')?.addEventListener('click', () => void onSparaVal());
+  /* Fritextfältet sparar när det lämnas, inte medan det skrivs.
+   *
+   * change utlöses vid blur och bara om värdet ändrats, vilket är precis rätt
+   * tillfälle: ett id som sparades per tangenttryck hade lagt varje halvskrivet
+   * prefix i kontot, och mellan två tangenttryck är värdet alltid fel. Enter
+   * finns för den som skriver klart och förväntar sig att det tog. */
+  el('settings-model-custom')?.addEventListener('change', () => void sparaValetNu());
+  el('settings-model-custom')?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    void sparaValetNu();
+  });
   el('btn-settings-save-key')?.addEventListener('click', () => void onSparaNyckel());
   el('btn-settings-delete-key')?.addEventListener('click', () => void onTaBortNyckel());
   el('btn-settings-signin')?.addEventListener('click', () => openAuth());

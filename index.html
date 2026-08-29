@@ -471,7 +471,10 @@
                                     <path d="M1 1.5L4.5 5L8 1.5" />
                                 </svg>
                             </span>
-                            <button type="button" id="btn-settings-save-model" class="btn">Spara val</button>
+                            <!-- Kvittot står där sparaknappen stod, och bär dess bredd.
+                                 Modellen i väljaren ÄR den som körs; raden har inget
+                                 mellanläge där ett val gjorts men inte gäller. -->
+                            <span id="settings-model-receipt" class="set-receipt" role="status" aria-live="polite"></span>
                         </div>
                     </div>
                 </div>
