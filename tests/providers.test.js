@@ -249,3 +249,51 @@ describe('felttolkning', () => {
     expect(extractProviderMessage('')).toBe('');
   });
 });
+
+/* Nyckelkontrollen är den enda platsen där ett fel från leverantören inte kan
+ * felsökas i efterhand: serverfunktionerna loggar med flit ingenting, så det
+ * som inte följer med i meddelandet är borta. Statuskoden ensam räcker inte —
+ * ett 400 säger att begäran var fel men inte vad i den. */
+describe('verifyKey: vad som når användaren', () => {
+  const medSvar = async (svar, fn) => {
+    const original = globalThis.fetch;
+    globalThis.fetch = async () => svar;
+    try {
+      return await fn();
+    } finally {
+      globalThis.fetch = original;
+    }
+  };
+
+  const svar = (status, body) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    text: async () => body,
+  });
+
+  it('avvisad nyckel ger false, inte ett kastat fel', async () => {
+    const r = await medSvar(svar(401, '{"error":{"message":"invalid x-api-key"}}'), () =>
+      providers.anthropic.verifyKey(NYCKEL)
+    );
+    expect(r).toBe(false);
+  });
+
+  it('tar med leverantorens egen beskrivning vid 400', async () => {
+    const fel = await medSvar(
+      svar(400, '{"error":{"type":"invalid_request_error","message":"limit: unrecognized"}}'),
+      () => providers.anthropic.verifyKey(NYCKEL).then(() => null).catch((e) => e)
+    );
+    expect(fel).toBeInstanceOf(ApiError);
+    expect(fel.code).toBe('provider_error');
+    expect(fel.message).toContain('400');
+    expect(fel.message).toContain('limit: unrecognized');
+  });
+
+  it('klarar ett felsvar utan beskrivning', async () => {
+    const fel = await medSvar(svar(503, ''), () =>
+      providers.anthropic.verifyKey(NYCKEL).then(() => null).catch((e) => e)
+    );
+    expect(fel.message).toContain('503');
+    expect(fel.message).not.toContain('undefined');
+  });
+});

@@ -91,10 +91,23 @@ async function probeKey(url, headers) {
   if (res.ok) return true;
   const detail = await res.text().catch(() => '');
   if (isAuthFailure(res.status, detail)) return false;
+
+  /* Leverantörens egen beskrivning följer med.
+   *
+   * Den hämtades redan för isAuthFailure och kastades sedan bort, vilket gjorde
+   * ett 400 här omöjligt att tolka: statuskoden ensam säger att begäran var fel
+   * men inte vad i den som var det. /api/ai skickar sedan länge med samma
+   * detalj — det här är samma sak på verifieringsvägen.
+   *
+   * extractProviderMessage plockar bara ut error.message och kortar till 200
+   * tecken, så ekon av begäran följer inte med tillbaka. */
+  const beskrivning = extractProviderMessage(detail);
   throw new ApiError(
     502,
     'provider_error',
-    `Leverantören svarade med fel (${res.status}) när nyckeln skulle kontrolleras.`
+    beskrivning
+      ? `Leverantören svarade med fel (${res.status}) när nyckeln skulle kontrolleras: ${beskrivning}`
+      : `Leverantören svarade med fel (${res.status}) när nyckeln skulle kontrolleras.`
   );
 }
 
