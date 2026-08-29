@@ -1,25 +1,30 @@
 # Repetix
 
 A spaced-repetition flashcard app: decks, scheduled reviews, offline-first
-sync, optional AI help, and eight practice modes. Built as vanilla JavaScript
-in ES modules with Vite — no framework.
+sync, optional AI help, and eight practice modes. Vanilla JavaScript in ES
+modules, built with Vite. No framework.
 
-**The interface is entirely in Swedish**, and deliberately so: there is no
-translation layer and none is planned. Most source comments and the documents
-under `docs/` are Swedish too. This README is in English so the repository can
-be read without it.
+**The interface is entirely in Swedish**, deliberately: there is no translation
+layer and none is planned. Most source comments and the documents under `docs/`
+are Swedish too. This README is in English so the repository can be read
+without it.
+
+![The library view: decks grouped into shelves, with the day's recommended folder on top](docs/skarmbilder/bibliotek.png)
 
 ## Contents
 
 - [What it does](#what-it-does)
+- [Screenshots](#screenshots)
 - [Requirements](#requirements)
 - [Run it locally](#run-it-locally)
 - [Commands](#commands)
 - [Set up Supabase](#set-up-supabase)
 - [AI: bring your own key](#ai-bring-your-own-key)
+- [Security](#security)
 - [Build and deploy](#build-and-deploy)
 - [Architecture](#architecture)
 - [Tests and CI](#tests-and-ci)
+- [Status and contributions](#status-and-contributions)
 - [License](#license)
 
 ## What it does
@@ -28,45 +33,54 @@ be read without it.
   `src/domain/srs.js`. Pure functions, no DOM, and the invariant
   `Igen ≤ Svårt < Bra < Lätt` (Again ≤ Hard < Good < Easy) is tested across
   196 states.
-- **Cards with three fields** — front, back, and an optional description that
-  is shown after the answer and never counts towards the grade.
+- **Cards with three fields** — front, back, and an optional description shown
+  after the answer that never counts towards the grade.
 - **Offline first** — the app always reads and writes locally (localStorage for
-  app data, IndexedDB for images) and queues changes in an outbox. What changed
-  is computed as a diff against the previous snapshot rather than reported by
-  each mutation site. Deletes are soft (`deleted_at`), and the review log is
-  append-only — it is the basis for every statistic.
+  app data, IndexedDB for the mirror) and queues changes in an outbox. What
+  changed is computed as a diff against the previous snapshot rather than
+  reported by each mutation site. Deletes are soft (`deleted_at`), and the
+  review log is append-only — it is the basis for every statistic.
 - **Accounts and cloud sync** — Supabase Postgres with row-level security on
   every table: each row carries `user_id`, and every policy requires
   `user_id = auth.uid()`. A bug in client code cannot hand one user's cards to
   another, because the barrier sits in the database.
-- **Bring your own AI key** — generating cards from a topic or from a diary
-  entry, deck insights, sorting loose cards into folders, and a tutor you can
-  ask about the card in front of you. All of it runs on the user's own provider
-  key, which never reaches the browser. See [below](#ai-bring-your-own-key).
+- **Bring your own AI key** — generate cards from a topic or a diary entry, get
+  deck insights, sort loose cards into folders, and ask a tutor about the card
+  in front of you. All of it runs on the user's own provider key, which never
+  reaches the browser. See [below](#ai-bring-your-own-key).
 - **Markdown and LaTeX** on both sides of a card (marked and KaTeX, bundled
-  from npm with pinned versions).
-- **Eight practice modes** — Action (speed and combo), Lucktext (cloze),
-  Fritext (write the answer from memory), Jeopardy (see the answer, guess the
-  question), Dammiga kort (the twenty cards untouched the longest), Sudden
-  Death (three lives), Transportbandet (sort falling cards into the right
-  folder), and Dragkampen (true or false, tug of war).
+  from npm with pinned versions). KaTeX is fetched only when a card actually
+  contains maths.
+- **Eight practice modes** — Action (a clock you spend by thinking), Lucktext
+  (cloze, with a bonus that ticks down while you memorise), Fritext (write the
+  answer from memory; near-misses count), Jeopardy (bet before you see the
+  clue), Dammiga kort (the cards untouched the longest), Sudden Death (three
+  lives, endless), Transportbandet (sort falling cards; a growing queue is the
+  only way to lose), and Dragkampen (true or false, tug of war).
 - **Images on cards**, compressed in the browser and stored in a private
   Supabase bucket where each user has their own folder.
+- **Delete your account** from within the app, images included.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![The arcade: eight practice modes, each with its own blurred backdrop](docs/skarmbilder/spelhallen.png) | ![A deck: what is due, the folders, and the cards](docs/skarmbilder/kortlek.png) |
+| The arcade. Each mode keeps the same backdrop every time, so the hall is navigable from colour memory. | A deck: what is due today, the AI panels, and the cards grouped by folder. |
 
 ## Requirements
 
-- **Node 22 or newer.** `package.json` declares `>=20`, but the dependency tree
-  is stricter: `@supabase/supabase-js` requires `>=22` and Vite 8 requires
-  `^20.19 || >=22.12`. CI runs on Node 22.
+- **Node 22 or newer.** `@supabase/supabase-js` requires `>=22` and Vite 8
+  requires `^20.19 || >=22.12`. CI runs on Node 22.
 - npm 10 or newer (ships with Node 22).
-- A [Supabase](https://supabase.com) project, if you want accounts, sync, or
-  AI. The free tier is enough. Everything else runs without one.
+- A [Supabase](https://supabase.com) project, if you want accounts, sync or AI.
+  The free tier is enough. Everything else runs without one.
 
 ## Run it locally
 
 ```bash
-git clone <your fork of this repository>
-cd Spaced-repetition
+git clone https://github.com/Emsurenar/repetix.git
+cd repetix
 npm install
 npm run dev
 ```
@@ -104,33 +118,47 @@ the anon (publishable) key are under **Project Settings → API**.
 
 ### 2. Run the migrations
 
-Open the **SQL Editor** in the Supabase dashboard and run the files in
-`supabase/migrations/` **one at a time, in numeric order**. This project has no
-CLI step and no `supabase link` — the migrations are applied by hand. All three
-are idempotent, so re-running one is safe.
+Open the **SQL Editor** and run the files in `supabase/migrations/` **one at a
+time, in numeric order**. There is no CLI step and no `supabase link` — the
+migrations are applied by hand. All of them are idempotent, so re-running one
+is safe.
 
 | File | What it sets up |
 |---|---|
 | `0001_init.sql` | Tables, `updated_at` triggers, row-level security policies, and the private `card-images` storage bucket |
 | `0002_ai_key_access.sql` | `get_my_ai_key()` and the `user_ai_key_status` view — this is what removes the need for a service role key |
 | `0003_card_description.sql` | The `description` column on `cards` |
+| `0004_hardening.sql` | Per-user rate limits for `api/`, plus size and MIME limits on the storage bucket |
+| `0005_account_deletion.sql` | `delete_my_account()`, and foreign keys that force a row to share its owner with its parent |
 
-Skipping `0003` does not break the app locally, but syncing a card that has a
-description will be rejected by the cloud.
+Two of these are load-bearing, not optional:
+
+- **Skipping `0004` breaks the AI endpoints.** The rate limiter fails closed —
+  a limiter that opens up when the database is unwell is useless exactly when
+  it is needed — so without the table `/api/ai` answers `503`.
+- **Skipping `0003`** does not break the app locally, but syncing a card that
+  has a description will be rejected by the cloud.
+
+`0005` repoints several foreign keys. Read the comment at the top: run the
+included check query first, and make sure it returns nothing.
 
 ### 3. Authentication
 
-Sign-up with email and password is open, using Supabase Auth's defaults; adjust
-email confirmation under **Authentication** as you prefer.
+Sign-up with email and password is open, using Supabase Auth's defaults.
+
+**Turn on email confirmation before you let strangers register.** The rate
+limits in `0004` count per user, so without friction at sign-up an attacker
+simply registers more accounts. Consider a CAPTCHA on sign-up too. This is the
+one protection that cannot live in the code.
 
 The app also offers a *Sign in with Google* button, which needs the Google
 provider enabled under **Authentication → Providers**. Leave it off and
 everything else still works.
 
 Both the OAuth flow and the password-reset link redirect back to the page's own
-origin, so add every origin you serve the app from — `http://localhost:5173`
-in development, your deployment URL in production — under **Authentication →
-URL Configuration**.
+origin. Under **Authentication → URL Configuration**, add every origin you
+serve the app from, and add `/#aterstall` as a redirect URL — without it the
+password reset link is silently rejected.
 
 ### 4. Environment variables
 
@@ -167,7 +195,12 @@ bypasses all row-level security, so a leak would lay every user's library open
 — a bad price for a protection that is not the real defence here. Migration
 `0002` replaces it with a `security definer` function that filters on
 `auth.uid()`, which comes from the caller's own token and cannot be forged, so
-it can only ever return the caller's own row.
+it can only ever return the caller's own row. `0005` deletes accounts the same
+way.
+
+If a comment or a guide ever tells you to paste a service role key into
+`SUPABASE_ANON_KEY`, it is wrong. It would work, and it would silently disable
+every policy in the project.
 
 ## AI: bring your own key
 
@@ -197,6 +230,42 @@ call to a provider anywhere else. The endpoint contract is
 [`docs/api-contract.md`](docs/api-contract.md), and it is meant to be changed
 before either implementation is.
 
+## Security
+
+The app was reviewed in three passes — the serverless functions, account and
+data access, and injection in the client — before this repository was made
+public. What that established:
+
+- **Row-level security covers every table**, for select, insert, update *and*
+  delete, and `with check` prevents a client from writing someone else's
+  `user_id`. `reviews` deliberately has no update or delete policy: the log is
+  append-only even for its owner.
+- **All rendered HTML is sanitised** with DOMPurify. The app builds markup with
+  template strings and `innerHTML`, so this is the barrier that matters; both
+  the Markdown path and the LaTeX path go through it.
+- **No inline event handlers anywhere**, which is what allows the
+  Content-Security-Policy in `vercel.json` to use `script-src 'self'` with no
+  `unsafe-inline`.
+- **Per-user rate limits** on the AI endpoints, counted atomically in Postgres.
+  Without them `/api/ai-key` is an unlimited key-validation oracle: it answers
+  *valid* or *invalid* for any key you hand it, at no cost to the caller.
+- **Encryption** is AES-256-GCM with a fresh 12-byte IV per encryption and the
+  authentication tag verified on the way back.
+
+Known gaps, which are honest rather than resolved:
+
+- Storage objects are removed when a card image is deleted and when an account
+  is deleted, but there is no sweeper for anything that slipped through before
+  that code existed.
+- There is no global quota across all users. Rate limits are per account, and
+  a hundred accounts get a hundred quotas. An IP-level rule at the edge is the
+  missing layer; on Vercel that is a firewall rule on `/api/*`.
+- The review is documented in `docs/OVERLAMNING.md` (Swedish), including what
+  was checked and found sound, so it does not have to be redone from scratch.
+
+Found something? Open an issue, or email the address on the author's GitHub
+profile if you would rather not do it in public.
+
 ## Build and deploy
 
 ```bash
@@ -204,24 +273,35 @@ npm run build     # → dist/
 npm run preview   # serve that build
 ```
 
-`vercel.json` is already configured for Vercel: the `vite` framework preset,
-`npm run build`, `dist/` as output, and the functions in `api/` with a 60
-second limit (a slow model can take that long). Import the repository into
-Vercel, add the five environment variables under **Project Settings →
-Environment Variables**, and add the resulting URL to Supabase's redirect URLs.
+The build splits KaTeX and its fonts into a lazy chunk, so a reader who never
+opens a card with maths does not download it:
+
+| | Raw | gzip |
+|---|---|---|
+| Initial JS | ~594 kB | ~163 kB |
+| Initial CSS | ~163 kB | ~26 kB |
+| KaTeX, lazy | ~261 kB | ~78 kB |
+
+`vercel.json` is already configured: the `vite` framework preset,
+`npm run build`, `dist/` as output, the functions in `api/` with a 60-second
+limit, a Content-Security-Policy, and immutable caching for the
+content-hashed assets. Import the repository into Vercel, add the five
+environment variables, and add the resulting URL to Supabase's redirect URLs.
+
+The function's own timeout is 45 seconds and must stay **strictly below**
+`maxDuration`, or the function is cut off before it can write the timeout
+response and the client gets Vercel's HTML error page instead of the
+contract's JSON.
 
 Nothing in the code is Vercel-specific: any static host plus a Node function
 runtime will do.
-
-One known rough edge: the client bundle is around 800 kB, most of it KaTeX, and
-has not been code-split yet.
 
 ## Architecture
 
 ```
 src/
   main.js       entry point: imports styles and modules, calls the init functions
-  app/          third-party bundling (marked, KaTeX), initApp, the cloud layer
+  app/          third-party bundling (KaTeX), initApp, the cloud layer
   core/         state, storage, supabase, sync, local-db, images, encryption
   domain/       srs, model, diff, stats, history — pure functions, no DOM
   ui/           one module per view, plus wiring/ for DOM binding
@@ -232,7 +312,7 @@ api/            serverless functions: ai, ai-key, _lib
 supabase/       database migrations, run by hand in the SQL Editor
 tools/          generate-icons.mjs
 tests/          Vitest
-docs/           handover, API contract, design mockups
+docs/           handover, API contract, design mockups, screenshots
 ```
 
 Four conventions hold it together:
@@ -247,9 +327,9 @@ Four conventions hold it together:
   and are tested without a browser.
 - **`src/styles/tokens.css` is the only place** a colour, a type step or a
   spacing value may be defined. No hardcoded hex values outside it, no
-  `!important`, light mode only. The design direction is *Lugn precision*
-  (calm precision) with a verdigris accent, and the reference mockups are
-  `docs/mockup-a-lugn-precision.html` (desktop) and
+  `!important`, light mode only, one corner radius for everything. The design
+  direction is *Lugn precision* (calm precision) with a verdigris accent, and
+  the reference mockups are `docs/mockup-a-lugn-precision.html` (desktop) and
   `docs/mockup-mobil-1-stram.html` (mobile).
 
 `docs/OVERLAMNING.md` is the handover document (in Swedish): where the work
@@ -260,18 +340,26 @@ coding assistant reads.
 ## Tests and CI
 
 `npm test` runs the Vitest suite in Node — the scheduler, the sync diff,
-encryption, the provider adapters, the local database, image compression and
-the statistics. The Vite plugin does not run under Vitest, so the server
-environment variables are deliberately absent from the tests.
+encryption, the provider adapters, the local database, image compression,
+sanitisation, the rate limiter and the statistics. The Vite plugin does not run
+under Vitest, so the server environment variables are deliberately absent from
+the tests.
 
 GitHub Actions runs `npm ci`, `npm run lint`, `npm test` and `npm run build` on
 every push and pull request; see
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml). There is no deploy
 automation — deployment is done from Vercel.
 
-If you open a pull request: keep the interface Swedish, let comments explain
-*why* rather than *what*, add tests when you touch `src/domain/srs.js`, and
-never commit a `.env`.
+## Status and contributions
+
+This is a personal project, built for one person's studying and published in
+case it is useful to someone else. It works and it is in daily use, but it is
+not a product: there is no roadmap, no support commitment, and no guarantee
+that an issue gets answered quickly.
+
+You are welcome to fork it. If you open a pull request: keep the interface
+Swedish, let comments explain *why* rather than *what*, add tests when you
+touch `src/domain/srs.js`, and never commit a `.env`.
 
 ## License
 
@@ -279,5 +367,9 @@ never commit a `.env`.
 
 The thirty background thumbnails in `public/wash/` are assets rather than
 source code: five are the author's own photographs, and the rest come from
-[Picsum](https://picsum.photos) under the Unsplash License. `marked` and KaTeX
-are bundled from npm under their own MIT licenses.
+[Picsum](https://picsum.photos) under the Unsplash License, which permits free
+use but not resale of the photographs themselves. If you redistribute a fork,
+consider replacing them with your own.
+
+Bundled dependencies keep their own licenses: `marked` and KaTeX are MIT,
+DOMPurify is dual-licensed under MPL-2.0 or Apache-2.0.
