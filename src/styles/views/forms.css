@@ -77,6 +77,15 @@
   padding-top: var(--s2);
 }
 
+/* Upplysningen och åtgärden hör ihop och står tillsammans till höger.
+ * Etikettraden är space-between, så tre fria barn hade spridits ut över hela
+ * bredden och gjort "valfritt" till en egen spalt mitt i raden. */
+.label-aside {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
 /* "valfritt" bredvid etiketten. Ett upplysande ord, inte en åtgärd — därför
  * tyst i stället för accent, som .label-action bredvid den. */
 .label-note {

@@ -238,7 +238,10 @@
                 <div class="form-group">
                     <label for="card-description" class="label-row">
                         Fördjupning
-                        <span class="label-note">valfritt</span>
+                        <span class="label-aside">
+                            <span class="label-note">valfritt</span>
+                            <button type="button" id="btn-generate-description" class="label-action">Generera fördjupning</button>
+                        </span>
                     </label>
                     <textarea id="card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
@@ -766,13 +769,19 @@
                     <textarea id="edit-card-front" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="edit-card-back">Svar</label>
+                    <label for="edit-card-back" class="label-row">
+                        Svar
+                        <button type="button" id="btn-edit-generate-answer" class="label-action">Generera svar</button>
+                    </label>
                     <textarea id="edit-card-back" required></textarea>
                 </div>
                 <div class="form-group">
                     <label for="edit-card-description" class="label-row">
                         Fördjupning
-                        <span class="label-note">valfritt</span>
+                        <span class="label-aside">
+                            <span class="label-note">valfritt</span>
+                            <button type="button" id="btn-edit-generate-description" class="label-action">Generera fördjupning</button>
+                        </span>
                     </label>
                     <textarea id="edit-card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">

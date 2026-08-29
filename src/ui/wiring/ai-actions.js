@@ -1,5 +1,6 @@
 import { aiErrorMessage, callAI } from '../../ai/call.js';
 import { buildDeckContext } from '../../ai/client.js';
+import { fordjupningsPrompt, saknasForFordjupning } from '../../ai/fordjupning.js';
 import { fetchStudyAi } from '../../ai/study-ai.js';
 import { createNote } from '../../core/backup.js';
 import { S } from '../../core/state.js';
@@ -105,46 +106,118 @@ export function initUiWiringAiActions() {
           }
       });
 
-      document.getElementById('btn-generate-answer').addEventListener('click', async () => {
-          const frontText = document.getElementById('card-front').value.trim();
-          if (!frontText) {
-              showToast('Skriv en fråga på framsidan först!');
-              return;
-          }
+      /* Fyra knappar gör samma dans: lås, anropa, fyll fältet, återställ.
+       *
+       * Den låg tidigare utskriven en gång, och varje ny knapp hade kopierat
+       * den. Kopian bar dessutom med sig en detalj som bara syntes när den
+       * gick fel: knappens etikett skrevs tillbaka som en litteral sträng,
+       * med ett inledande blanksteg som ingen hade skrivit. Här läses den ur
+       * knappen i stället, så den kan inte glida ifrån markupen.
+       *
+       * @param {object} o
+       * @param {string} o.knappId
+       * @param {string} o.malId fältet som fylls
+       * @param {() => string|null} o.saknas felmeddelande, eller null
+       * @param {() => {system: string, user: string, maxTokens: number}} o.bygg
+       * @param {string} o.klarText
+       * @param {() => void} [o.efterat]
+       */
+      const kopplaGenerering = ({ knappId, malId, saknas, bygg, klarText, efterat }) => {
+          const btn = document.getElementById(knappId);
+          if (!btn) return;
+          const etikett = btn.textContent;
 
-          const btn = document.getElementById('btn-generate-answer');
-          const backField = document.getElementById('card-back');
-          const isLongFormInAdd = document.getElementById('card-longform')?.checked || false;
-          const isLongFormInEdit = document.getElementById('edit-card-longform')?.checked || false;
-          const isLongForm = isLongFormInAdd || isLongFormInEdit;
+          btn.addEventListener('click', async () => {
+              const fel = saknas();
+              if (fel) {
+                  showToast(fel);
+                  return;
+              }
 
-          btn.disabled = true;
-          btn.innerText = 'Laddar...';
+              btn.disabled = true;
+              btn.textContent = 'Laddar...';
+              try {
+                  const text = await callAI(bygg());
+                  document.getElementById(malId).value = text.trim();
+                  showToast(klarText);
+                  efterat?.();
+              } catch (e) {
+                  showToast(aiErrorMessage(e));
+              } finally {
+                  btn.disabled = false;
+                  btn.textContent = etikett;
+              }
+          });
+      };
 
-          const maxTokens = isLongForm ? 1500 : 300;
-          const promptInstruction = isLongForm 
+      /** Svaret, som det alltid genererats. Långformatet styrs av kryssrutan
+       * i SAMMA formulär — den lästes tidigare från båda formulären med eller
+       * emellan, så en ikryssad ruta i redigeringsmodalen gav långt svar i
+       * Nytt kort. */
+      const svarsPrompt = (frontId, longformId) => () => {
+          const frontText = document.getElementById(frontId).value.trim();
+          const isLongForm = document.getElementById(longformId)?.checked || false;
+          const promptInstruction = isLongForm
               ? "Din uppgift är att besvara flashcards med ett djupgående och detaljerat svar (långformat). Använd rubriker, listor och styckeindelningar för att göra informationen lättläst. Glöm inte LaTeX för matematik."
               : "Din uppgift är att besvara flashcards med max 50 ord. MYCKET VIKTIGT: Du får absolut inte hitta på information eller gissa (hallucinera inte). Om du inte är 100% säker på sanningen, ska du bara svara: \"Jag vet inte\". Formatera ALL matematik med LaTeX via dollartecken, t.ex. $\\frac{1}{2}$ eller $\\sin(x)$.";
 
-          try {
-              const text = await callAI({
-                  system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
-                  user: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`,
-                  maxTokens,
-              });
+          return {
+              system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
+              user: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`,
+              maxTokens: isLongForm ? 1500 : 300,
+          };
+      };
 
-              backField.value = text.trim();
-              showToast('Svar genererat!');
+      const kraverFraga = (frontId) => () =>
+          document.getElementById(frontId).value.trim() ? null : 'Skriv en fråga på framsidan först!';
 
-              // Auto-categorize into folder
-              runAutoFolder(frontText);
+      const fordjupningFran = (frontId, backId) => () =>
+          fordjupningsPrompt({
+              front: document.getElementById(frontId).value,
+              back: document.getElementById(backId).value,
+              deckContext: buildDeckContext(S.currentDeckId),
+          });
 
-          } catch (e) {
-              showToast(aiErrorMessage(e));
-          } finally {
-              btn.disabled = false;
-              btn.innerText = ' Generera svar';
-          }
+      const saknasFor = (frontId, backId) => () =>
+          saknasForFordjupning({
+              front: document.getElementById(frontId).value,
+              back: document.getElementById(backId).value,
+          });
+
+      // Nytt kort. Bara här sorteras kortet in i en mapp automatiskt — i
+      // redigeringsmodalen ligger kortet redan där användaren lade det.
+      kopplaGenerering({
+          knappId: 'btn-generate-answer',
+          malId: 'card-back',
+          saknas: kraverFraga('card-front'),
+          bygg: svarsPrompt('card-front', 'card-longform'),
+          klarText: 'Svar genererat!',
+          efterat: () => runAutoFolder(document.getElementById('card-front').value.trim()),
+      });
+
+      kopplaGenerering({
+          knappId: 'btn-generate-description',
+          malId: 'card-description',
+          saknas: saknasFor('card-front', 'card-back'),
+          bygg: fordjupningFran('card-front', 'card-back'),
+          klarText: 'Fördjupning genererad!',
+      });
+
+      // Redigera. Modalen hade ingen av de två knapparna, utan skäl.
+      kopplaGenerering({
+          knappId: 'btn-edit-generate-answer',
+          malId: 'edit-card-back',
+          saknas: kraverFraga('edit-card-front'),
+          bygg: svarsPrompt('edit-card-front', 'edit-card-longform'),
+          klarText: 'Svar genererat!',
+      });
+
+      kopplaGenerering({
+          knappId: 'btn-edit-generate-description',
+          malId: 'edit-card-description',
+          saknas: saknasFor('edit-card-front', 'edit-card-back'),
+          bygg: fordjupningFran('edit-card-front', 'edit-card-back'),
+          klarText: 'Fördjupning genererad!',
       });
 
       // Study Session
