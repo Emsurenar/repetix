@@ -73,14 +73,15 @@
 /* ======================================================================
  * AKTIVITETSKARTAN
  *
- * Tolv veckor i kolumner, måndag överst. Fyra steg i accentens egen ramp i
+ * Veckor i kolumner, måndag överst. Fyra steg i accentens egen ramp i
  * stället för en genomskinlighet per tal: en ruta ska gå att placera i skalan
  * med ögat.
  * ====================================================================== */
 
 /* Kartan har en egen bredd och ska inte sträckas: den är ett rutnät med
  * räknebara rutor. Den står till vänster som allt annat i vyn, men får inte
- * mer bredd än sina tolv veckor kräver. */
+ * mer bredd än sina veckor kräver. Antalet veckor räknas i vyn ur den plats
+ * som finns. */
 #view-playground .heat {
   display: inline-flex;
   flex-direction: column;
@@ -92,7 +93,8 @@
  * började — "aug" satt längst till höger utan att peka på något. */
 #view-playground .heat-months {
   display: grid;
-  grid-template-columns: repeat(12, 24px);
+  /* Kolumnantalet sätts av vyn, som vet hur många veckor som fick plats. */
+  grid-template-columns: repeat(var(--veckor, 12), 24px);
   padding-left: 26px;
 }
 
@@ -363,9 +365,13 @@
   margin-bottom: var(--s3);
 }
 
+/* auto-fit, inte auto-fill. Skillnaden syns bara när en grupp har färre
+ * poster än rutnätet har kolumner: auto-fill behåller de tomma spåren, så
+ * gruppen med tre prestationer slutade mitt på sidan med ett hål efter sig.
+ * auto-fit fäller ihop dem och låter posterna fylla raden. */
 #view-playground .arcade-ach-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: var(--s3);
 }
 

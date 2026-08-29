@@ -78,8 +78,19 @@ export const renderPlayground = ({ tona = true } = {}) => {
     const totalReviews = dailyCountValues.reduce((s, v) => s + v, 0);
     const avgPerDay = activeDays > 0 ? Math.round(totalReviews / activeDays) : 0;
 
-    // --- Heatmap (12 weeks, aligned to Mon-Sun) ---
-    const heatmapDays = 84;
+    /* --- Aktivitetskartan ---
+     *
+     * Antalet veckor räknas ur den plats som faktiskt finns, inte ur ett fast
+     * tal. Tolv veckor i en sektion som rymmer ett år lämnade tusen pixlar
+     * tomma till höger — och luften gick inte att fylla genom att sträcka
+     * rutorna, för då slutar de gå att räkna. Det som fyller ytan är mer
+     * historik, och den finns: kartan läser repetitionsloggen, som är
+     * append-only och aldrig gallras.
+     *
+     * Rutan är 19px plus 5px mellanrum, och veckodagsetiketterna tar 26px. */
+    const kartbredd = document.getElementById('playground-content')?.clientWidth || 0;
+    const veckor = Math.max(12, Math.min(53, Math.floor((kartbredd - 26) / 24) || 12));
+    const heatmapDays = veckor * 7;
     const heatmapData = [];
     
     // Find the Sunday of the current week to align rows to fixed weekdays
@@ -315,7 +326,7 @@ export const renderPlayground = ({ tona = true } = {}) => {
              parkerad ut; här står den bland de andra tillbakablickarna. -->
         <section class="arcade-section">
             <h2 class="arcade-heading">Aktivitet</h2>
-            <div class="heat">
+            <div class="heat" style="--veckor:${weeks.length}">
                 <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
                 <div class="heat-grid">
                     <div class="heat-days"><span>må</span><span></span><span>on</span><span></span><span>fr</span><span></span><span></span></div>
