@@ -209,7 +209,7 @@ export const renderLibrary = () => {
                     </div>
                     <div class="deck-card-nums">
                         <span class="deck-card-count num">${total} kort</span>
-                        <span class="deck-card-due num${dueCards === 0 ? ' is-clear' : ''}">${dueCards} förfallna</span>
+                        <span class="deck-card-due num${dueCards === 0 ? ' is-clear' : ''}">${dueCards} väntar</span>
                     </div>
                 </div>
             `;

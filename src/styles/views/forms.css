@@ -135,7 +135,8 @@
   border-color: transparent;
 }
 
-.view-danger-zone .btn:hover {
+.view-danger-zone .btn:hover,
+.view-danger-zone .btn:focus-visible {
   color: var(--danger);
   background: var(--danger-soft);
 }
@@ -551,30 +552,41 @@
   gap: var(--s3);
 }
 
+/* Rutorna är inbjudningar, inte listrader, och bär därför färgtvätten som
+ * "Dagens mapp" och kortlekens statusband. Var och en har sin egen bild ur
+ * public/wash/, satt i src/ui/wiring/create.js och alltid densamma — samma
+ * regel som för en kortlek: en bakgrund som byter mellan två besök är brus,
+ * inte identitet.
+ *
+ * Tre mörka ytor i rad är mer än designsystemet annars tillåter. Det är ett
+ * medvetet undantag: dialogen visas sällan, är hela sitt syfte, och tre val
+ * som ska kännas lika inbjudande måste väga lika. */
 .create-option-card {
   display: flex;
   align-items: center;
   gap: var(--s4);
   width: 100%;
-  min-height: calc(var(--control-h) + var(--s6));
+  min-height: calc(var(--control-h) + var(--s7));
   padding: var(--s4);
   text-align: left;
   font-family: inherit;
-  color: var(--text-1);
-  background: var(--surface-1);
-  border: 1px solid var(--line-strong);
+  color: var(--on-wash-1);
+  background: var(--wash-deep);
+  border: 1px solid transparent;
   border-radius: var(--r-md);
   cursor: pointer;
-  transition:
-    background var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease);
 }
 
+/* Ytan är redan bild; en ljusare bakgrund vid hovring hade legat under den och
+ * inte synts. Kanten är det som svarar. */
 .create-option-card:hover {
-  background: var(--surface-2);
-  border-color: var(--text-3);
+  border-color: var(--on-wash-line);
 }
 
+/* Märket vilar på tvätten och lånar dess ljusa toner. Ingen fylld platta
+ * bakom: mot ett fotografi blir en ljus fyrkant en lapp, och symbolen ska
+ * ligga på ytan, inte ovanpå den. */
 .create-option-icon {
   display: flex;
   align-items: center;
@@ -582,8 +594,9 @@
   flex: 0 0 auto;
   width: calc(var(--control-h) + var(--s2));
   height: calc(var(--control-h) + var(--s2));
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--on-wash-accent);
+  background: transparent;
+  border: 1px solid var(--on-wash-line);
   border-radius: var(--r-md);
 }
 
@@ -599,10 +612,12 @@
   font-weight: 600;
 }
 
+/* Underrubriken står på tvätten och måste vända med den. Kvar på --text-3
+ * blev den mörkgrå text på ett mörkt fotografi. */
 .create-option-desc {
   font-size: var(--t-xs);
   font-weight: 400;
-  color: var(--text-3);
+  color: var(--on-wash-2);
 }
 
 /* ======================================================================
@@ -820,12 +835,14 @@
   color: var(--text-1);
 }
 
+/* Ytan och kanten under det valda segmentet ritas av brickan i
+ * components.css, som glider mellan segmenten. Målades de även här skulle
+ * segmentet tändas i samma ögonblick som brickan lämnar det förra — två
+ * markeringar samtidigt under hela rörelsen. Kvar blir bara tonen. */
 #modal-topic-generator .btn-toggle.active,
 #modal-topic-generator .btn-option-qty.active,
 #modal-topic-generator .btn-option-diff.active {
   color: var(--accent);
-  background: var(--surface-1);
-  border-color: var(--accent-line);
   /* Den gamla stilmallen lägger en lila skugga under det valda segmentet.
    * Designsystemet har inga skuggor, så den nollas här. */
   box-shadow: none;

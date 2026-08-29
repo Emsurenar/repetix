@@ -41,6 +41,8 @@ import { initCoreStorage } from './core/storage.js';
 import { initUiImages } from './ui/images.js';
 import { initUiModalsWiring } from './ui/modals-wiring.js';
 import { initUiRouter } from './ui/router.js';
+import { initUiSegmented } from './ui/segmented.js';
+import { initUiSelects } from './ui/select.js';
 import { initUiPlayground } from './ui/playground.js';
 import { initUiLibrary } from './ui/library.js';
 import { initAiClient } from './ai/client.js';
@@ -67,6 +69,8 @@ export function start() {
   initUiImages();
   initUiModalsWiring();
   initUiRouter();
+  initUiSegmented();
+  initUiSelects();
   initUiPlayground();
   initUiLibrary();
   initAiClient();

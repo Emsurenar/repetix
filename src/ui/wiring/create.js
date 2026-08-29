@@ -3,6 +3,7 @@ import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { renderLibrary } from '../library.js';
 import { showToast } from '../toast.js';
+import { applyWash } from '../wash.js';
 
 
     // creation modal handlers
@@ -12,6 +13,13 @@ import { showToast } from '../toast.js';
     const modalDeck = document.getElementById('modal-new-deck');
 
 export function initUiWiringCreate() {
+      /* Varje val bär sin egen utblurrade bild, som en kortlek gör. Fröet är
+       * ordet och inte ett löpnummer: bilden ska följa saken, så att den som
+       * lärt sig att bokhyllan är den gröna hittar rätt utan att läsa. */
+      applyWash(document.getElementById('option-create-deck'), 'skapa:kortlek');
+      applyWash(document.getElementById('option-create-notebook'), 'skapa:block');
+      applyWash(document.getElementById('option-create-bookshelf'), 'skapa:bokhylla');
+
       document.getElementById('btn-create-item')?.addEventListener('click', () => {
           modalCreateOptions.classList.remove('hidden');
       });

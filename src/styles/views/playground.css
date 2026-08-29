@@ -592,3 +592,35 @@
     width: min(22rem, calc(100vw - var(--s5)));
   }
 }
+
+/* ----------------------------------------------------------------------
+ * TILLBAKABLICKARNA I TVÅ SPALTER
+ *
+ * Kartan är bred och låg, prestationslistan smal och hög. Under varandra
+ * lämnade kartan ett fält tomt under sig och sidan tog slut tre gånger.
+ * Bredvid varandra tar de slut ungefär samtidigt.
+ *
+ * Prestationerna spänner båda raderna, så att rekorden kan lägga sig under
+ * kartan utan att lämna ett hål när de saknas — en ny användare har inga
+ * rekord, och då ska spalten bara vara kortare, inte trasig.
+ * -------------------------------------------------------------------- */
+
+@media (min-width: 1100px) {
+  #view-playground .arcade-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* Samma tal som mellanrum i renderPlayground, som räknar ut hur många
+     * veckor kartan får plats med. Ändras det ena måste det andra ändras. */
+    column-gap: var(--s6);
+    align-items: start;
+  }
+
+  #view-playground .arcade-col-left {
+    grid-column: 1;
+  }
+
+  #view-playground .arcade-col-right {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+}

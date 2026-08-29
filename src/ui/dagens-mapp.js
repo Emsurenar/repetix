@@ -119,6 +119,12 @@ export const renderDagensMapp = () => {
                 </div>
             </section>
         `;
+        /* Tomma läget pekar inte på någon kortlek och har alltså inget id att
+         * räkna fram en bild ur. Utan bild blev panelen en svart platta —
+         * samma form som de andra två lägena, men utan det som gör dem till
+         * inbjudningar. Fröet är därför en konstant: alltid samma bild, för
+         * samma skäl som en kortlek alltid får sin egen. */
+        applyWash(container.querySelector('.today-folder'), 'dagens-mapp:tom');
         return;
     }
     

@@ -338,12 +338,15 @@ textarea:disabled {
   pointer-events: none;
 }
 
-/* Tysta lägen — klart, tomt. Salen slocknar: lamporna dras ned och färgen ur.
- * Panelen ska inte fortsätta lysa när ingenting väntar. */
+/* Tysta lägen — klart, tomt. Salen dämpas: lamporna dras ned och en del av
+ * färgen ur. Tidigare drogs de så långt att bilden slocknade helt och panelen
+ * blev en svart platta — och en platta är inte ett tystare läge av en
+ * inbjudan, den är en annan sorts yta. Bilden ska synas; det är skillnaden
+ * mot det aktiva läget som ska vara liten. */
 .hero-wash.is-quiet::before,
 .hero-wash.is-done::before,
 .hero-wash.is-empty::before {
-  filter: blur(7px) saturate(0.4) brightness(0.72);
+  filter: blur(7px) saturate(0.68) brightness(0.92);
 }
 
 /* ----------------------------------------------------------------------
@@ -704,4 +707,185 @@ textarea:disabled {
  * lägesmarkör och inte ett utfört kort. */
 .ticks > i.is-now {
   background: var(--text-1);
+}
+
+/* ----------------------------------------------------------------------
+ * SEGMENTERAD KONTROLL
+ *
+ * Ett val ur några få, alla synliga samtidigt. Gruppen är en nedsänkt ränna
+ * och valet en ljus bricka som ligger i den.
+ *
+ * Brickan är ETT element som flyttar sig, inte en bakgrund som tänds och
+ * släcks på olika knappar. Skillnaden syns först i rörelsen: det tända
+ * segmentet är två händelser, brickan är en. Positionen räknas fram i
+ * src/ui/segmented.js och kommer hit som variabler — stilmallen äger
+ * utseendet, modulen äger bara var den står.
+ * -------------------------------------------------------------------- */
+
+.segmented {
+  position: relative;
+}
+
+/* Segmenten ligger över brickan. Utan detta målar brickan över texten. */
+.segmented > * {
+  position: relative;
+  z-index: 1;
+}
+
+.segmented::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: var(--seg-w, 0);
+  height: var(--seg-h, 0);
+  transform: translate(var(--seg-x, 0), var(--seg-y, 0));
+  /* Fyllningen är utbytbar för att brickan ska kunna vara två saker: den
+   * ljusa ytan i en nedsänkt ränna, och den accenttonade brickan under en
+   * leverantörsruta. Formen och rörelsen är densamma; bara tonen skiljer. */
+  background: var(--seg-fill, var(--surface-1));
+  border: 1px solid var(--seg-line, var(--accent-line));
+  border-radius: var(--r-md);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented.has-thumb::before {
+  opacity: 1;
+}
+
+/* Övergången slås på först efter första mätningen, annars glider brickan in
+ * från hörnet varje gång en modal öppnas. Varaktigheterna nollas av tokens
+ * för den som bett om mindre rörelse, så ingen egen mediefråga behövs. */
+.segmented.is-ready::before {
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    width var(--dur-2) var(--ease-out),
+    height var(--dur-2) var(--ease-out),
+    opacity var(--dur-1) var(--ease-out);
+}
+
+/* ----------------------------------------------------------------------
+ * VÄLJARE
+ *
+ * Appens egen lista i stället för operativsystemets. Den nativa <select>
+ * ligger kvar och håller värdet, men göms — se src/ui/select.js.
+ *
+ * Knappen ÄR ett fält: samma höjd, samma kant, samma radie som input. Ett
+ * val och en inmatning är samma sorts sak i ett formulär och ska väga lika.
+ * -------------------------------------------------------------------- */
+
+.select-shell {
+  position: relative;
+}
+
+/* Göms för ögat men inte för hjälpmedel eller för koden: en select med
+ * display:none rapporterar noll bredd, och etikettens for/id ska fortsätta
+ * peka på något som finns. */
+.select-shell > select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  width: 100%;
+  min-height: var(--control-h);
+  padding: var(--s2) var(--s3);
+  font-family: inherit;
+  font-size: var(--t-md);
+  color: var(--text-1);
+  text-align: left;
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.select-trigger:hover {
+  border-color: var(--text-3);
+}
+
+/* Öppen väljare bär accentkanten, precis som ett fält med fokus. Det är samma
+ * påstående: den här kontrollen är den du håller på med. */
+.select-shell.is-open .select-trigger {
+  border-color: var(--accent);
+}
+
+.select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-caret {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--text-3);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.select-shell.is-open .select-caret {
+  transform: rotate(180deg);
+}
+
+/* Listan ligger i body för att inte kunna klippas av modalens rullning, och
+ * alltså med fasta koordinater från select.js. Över modalen (3000), under
+ * notisen (4000) — ett besked ska aldrig hamna bakom en lista. */
+.select-list {
+  position: fixed;
+  z-index: 3500;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--s1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  animation: panel-in var(--dur-2) var(--ease-out) both;
+}
+
+/* Raderna är rader, inte knappar: 16px hade gjort en 30px hög rad till en
+ * kapsel. Samma undantag som listrader och menyval, enligt tokens.css. */
+.select-option {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--s2);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.select-option:hover,
+.select-option:focus-visible {
+  background: var(--surface-2);
+}
+
+.select-option[aria-selected='true'] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.select-option:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
 }

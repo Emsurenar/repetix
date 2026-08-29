@@ -531,7 +531,11 @@
   border-color: transparent;
 }
 
-.deck-danger-zone .btn:hover {
+/* Färgen kommer när man siktar, inte innan. Fokus är med av samma skäl som
+ * hovring: den som tabbar sig genom vyn ska mötas av samma varning som den
+ * som pekar på raden, och inte upptäcka vad knappen gör först efteråt. */
+.deck-danger-zone .btn:hover,
+.deck-danger-zone .btn:focus-visible {
   color: var(--danger);
   background: var(--danger-soft);
 }

@@ -51,7 +51,7 @@ export const renderSidebar = () => {
         return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-deck-id="${attr(deck.id)}">
             <span class="sidebar-chip" aria-hidden="true"></span>
             <span class="sidebar-item-name">${escapeHtml(deck.title)}</span>
-            <span class="sidebar-count num ${due === 0 ? 'is-zero' : ''}"><span class="sr-only">förfallna: </span>${due}</span>
+            <span class="sidebar-count num ${due === 0 ? 'is-zero' : ''}"><span class="sr-only">väntar: </span>${due}</span>
         </button>`;
     };
 

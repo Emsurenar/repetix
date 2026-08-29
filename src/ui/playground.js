@@ -88,7 +88,16 @@ export const renderPlayground = ({ tona = true } = {}) => {
      * append-only och aldrig gallras.
      *
      * Rutan är 19px plus 5px mellanrum, och veckodagsetiketterna tar 26px. */
-    const kartbredd = document.getElementById('playground-content')?.clientWidth || 0;
+    const innehallsbredd = document.getElementById('playground-content')?.clientWidth || 0;
+
+    /* Kartan står numera i vänsterkolumnen bredvid prestationerna, alltså i
+     * halva bredden minus mellanrummet. Brytpunkten och mellanrummet läses ur
+     * mediefrågan och ur tokens i stället för att skrivas av: skrivs de av
+     * ritar kartan för många veckor så fort någon rör layouten, och de sista
+     * hamnar utanför kolumnen. */
+    const tvaSpalter = window.matchMedia('(min-width: 1100px)').matches;
+    const mellanrum = parseFloat(getComputedStyle(document.documentElement).fontSize) * 2;
+    const kartbredd = tvaSpalter ? (innehallsbredd - mellanrum) / 2 : innehallsbredd;
     const veckor = Math.max(12, Math.min(53, Math.floor((kartbredd - 26) / 24) || 12));
     const heatmapDays = veckor * 7;
     const heatmapData = [];
@@ -298,7 +307,7 @@ export const renderPlayground = ({ tona = true } = {}) => {
                     <i class="progress-fill" style="width:${masteredPct}%"></i>
                     <i class="progress-fill-soft" style="width:${learningPct}%"></i>
                 </div>
-                <p class="label arcade-total">${fmt(totalCards)} kort totalt${dueNow > 0 ? ` · ${fmt(dueNow)} förfallna` : ''}</p>
+                <p class="label arcade-total">${fmt(totalCards)} kort totalt${dueNow > 0 ? ` · ${fmt(dueNow)} väntar` : ''}</p>
             </div>
 
         </div>
@@ -321,10 +330,16 @@ export const renderPlayground = ({ tona = true } = {}) => {
             }).join('')}
         </div>
 
-        <!-- Aktivitetskartan är en historik, inte ett nuläge. Den satt
-             tidigare bredvid nyckeltalen i en obalanserad grid och såg
-             parkerad ut; här står den bland de andra tillbakablickarna. -->
-        <section class="arcade-section">
+        <!-- Aktivitetskartan är en historik, inte ett nuläge, och står därför
+             bland de andra tillbakablickarna.
+             
+             De tre står i två spalter. Var de under varandra blev kartan ett
+             brett band med hundratals tomma pixlar under sig, och sidan såg
+             ut att sluta tre gånger. Kartan och rekorden är korta och delar
+             vänsterspalten; prestationerna är långa och får hela högerspalten,
+             så att spalterna tar slut ungefär samtidigt. -->
+        <div class="arcade-columns">
+        <section class="arcade-section arcade-col-left">
             <h2 class="arcade-heading">Aktivitet</h2>
             <div class="heat" style="--veckor:${weeks.length}">
                 <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
@@ -342,13 +357,8 @@ export const renderPlayground = ({ tona = true } = {}) => {
             </div>
         </section>
 
-        <section class="arcade-section">
-            <h2 class="arcade-heading">Prestationer</h2>
-            ${achievementsHtml}
-        </section>
-
         ${rekord.length ? `
-        <section class="arcade-section">
+        <section class="arcade-section arcade-col-left">
             <h2 class="arcade-heading">Rekord</h2>
             <div class="arcade-records">
                 ${rekord.map((r) => `
@@ -358,6 +368,12 @@ export const renderPlayground = ({ tona = true } = {}) => {
                     </div>`).join('')}
             </div>
         </section>` : ''}
+
+        <section class="arcade-section arcade-col-right">
+            <h2 class="arcade-heading">Prestationer</h2>
+            ${achievementsHtml}
+        </section>
+        </div>
     `;
 
     container.innerHTML = html;

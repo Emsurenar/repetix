@@ -219,11 +219,20 @@
   transition-duration: var(--dur-1);
 }
 
-/* Det valda är ett tillstånd, och tillstånd bärs av accenten. */
+/* Det valda är ett tillstånd, och tillstånd bärs av accenten.
+ *
+ * Ytan och kanten ritas av brickan i components.css, som glider mellan
+ * brickorna i stället för att tändas på den ena och släckas på den andra.
+ * Rutan blir därför genomskinlig när den är vald och låter brickan synas —
+ * målade den sin egen accentyta hade två rutor lyst under hela rörelsen. */
+#view-settings .provider-grid {
+  --seg-fill: var(--accent-soft);
+}
+
 #view-settings .provider-option input:checked + .provider-face {
   color: var(--accent);
-  background: var(--accent-soft);
-  border-color: var(--accent-line);
+  background: transparent;
+  border-color: transparent;
 }
 
 #view-settings .provider-option input:checked + .provider-face svg {
@@ -413,4 +422,41 @@
   #view-settings .provider-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ----------------------------------------------------------------------
+ * RAD I RADEN
+ *
+ * Ett värde och den handling som hör till det står bredvid varandra, inte
+ * under. Stapling är förvalt i .set-field eftersom de flesta rader är fält
+ * med hjälptext — men ett kontos mejl och dess "Logga ut" är en enda sak,
+ * och två rader gjorde utgången till en egen inställning.
+ *
+ * Bryter till två rader när det blir trångt: en lång mejladress ska inte
+ * kunna trycka ut knappen ur panelen.
+ * -------------------------------------------------------------------- */
+
+#view-settings .set-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2) var(--s4);
+}
+
+/* Texten får krympa, knappen aldrig: det är knappen man siktar på. */
+#view-settings .set-inline > p {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+}
+
+#view-settings .set-inline > .btn {
+  flex: 0 0 auto;
+}
+
+/* Följden efter en radering står till höger om knappen och är därför inte
+ * längre radens första ord. Vänsterställd mot knappen, inte utspridd. */
+#view-settings .set-inline > .btn.danger + .set-hint {
+  flex: 1 1 14rem;
 }

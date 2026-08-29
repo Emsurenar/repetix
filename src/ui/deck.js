@@ -68,7 +68,7 @@ export const openDeck = (id, sectionId = null) => {
     if (metaEl) {
         const studyable = displayCards.filter(c => c.type !== 'note').length;
         metaEl.innerHTML = dueCount > 0
-            ? `${studyable} kort <span class="deck-heading-due">${dueCount} förfallna</span>`
+            ? `${studyable} kort <span class="deck-heading-due">${dueCount} väntar</span>`
             : `${studyable} kort`;
     }
 
@@ -94,7 +94,7 @@ export const openDeck = (id, sectionId = null) => {
         heroStatus.innerHTML = `
             <div class="deck-hero-body">
                 <p class="label deck-hero-kicker">Klart för idag</p>
-                <p class="deck-hero-title">Inget förfaller just nu</p>
+                <p class="deck-hero-title">Inget väntar just nu</p>
             </div>
             <button type="button" class="btn" data-hero-action="study-early">Träna ändå</button>
         `;
@@ -113,6 +113,15 @@ export const openDeck = (id, sectionId = null) => {
     }
 
     applyWash(heroStatus, S.currentDeckId);
+
+    /* AI-sortera vilar på att det finns lösa kort att lägga i mappar. Fanns
+     * knappen ändå var enda utfallet av ett klick ett meddelande om att den
+     * inte hade något att göra — en knapp som bara kan misslyckas. Villkoret
+     * är detsamma som fetchAiSort räknar fram, och gäller hela leken även när
+     * en mapp är öppen, eftersom sorteringen gör det. */
+    const osorterade = deck.cards.filter(c => !c.sectionId && c.type !== 'note').length;
+    const sortBtn = document.getElementById('btn-ai-sort');
+    if (sortBtn) sortBtn.hidden = osorterade === 0;
 
     heroStatus.querySelector('[data-hero-action]')?.addEventListener('click', (e) => {
         const handling = e.currentTarget.dataset.heroAction;
@@ -380,7 +389,7 @@ export const renderCards = (cards) => {
                     <span class="section-title">${escapeHtml(section.title)}</span>
                 </button>
                 <span class="section-count num">${cardsInSection.length} kort</span>
-                ${dueInSection > 0 ? `<button type="button" class="section-due num btn-section-study" title="Repetera mappen nu" aria-label="${dueInSection} förfallna kort, repetera mappen">${dueInSection}<span class="section-due-word"> förfallna</span></button>` : ''}
+                ${dueInSection > 0 ? `<button type="button" class="section-due num btn-section-study" title="Repetera mappen nu" aria-label="${dueInSection} kort väntar, repetera mappen">${dueInSection}<span class="section-due-word"> väntar</span></button>` : ''}
                 <div class="section-tools">
                     <button type="button" class="btn-icon btn-section-add-card" title="Lägg till kort i ${attr(section.title)}" aria-label="Lägg till kort i ${attr(section.title)}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

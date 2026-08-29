@@ -135,7 +135,7 @@
             <div id="library-summary" class="library-summary">
                 <div class="library-figure">
                     <span id="library-stat-due" class="library-figure-n num">0</span>
-                    <span class="library-figure-l">kort förfallna idag</span>
+                    <span class="library-figure-l">kort väntar idag</span>
                 </div>
                 <div class="library-figure">
                     <span id="library-stat-streak" class="library-figure-n num">0</span>
@@ -209,7 +209,7 @@
             </div>
 
             <div class="deck-danger-zone">
-                <button id="btn-delete-deck" class="btn danger">Ta bort kortlek och dess innehåll</button>
+                <button id="btn-delete-deck" class="btn danger">Ta bort kortleken</button>
             </div>
         </section>
 
@@ -524,8 +524,11 @@
                             <button type="button" id="btn-export-backup" class="btn">Exportera</button>
                             <button type="button" id="btn-import-backup" class="btn">Importera</button>
                             <input type="file" id="import-backup-input" accept="application/json,.json" hidden>
+                            <!-- Datumet hör till knapparna och står på deras rad.
+                                 Som egen rad under dem blev sektionen tre våningar
+                                 hög för två knappar och en upplysning. -->
+                            <p id="backup-status" class="set-hint"></p>
                         </div>
-                        <p id="backup-status" class="set-hint"></p>
                         <!-- Får stå kvar trots att vyn i övrigt är rensad från
                              förklaringar: den beskriver en följd som inte går
                              att ta tillbaka. -->
@@ -542,8 +545,13 @@
                 <div class="set-row">
                     <div class="set-label">Inloggad som</div>
                     <div class="set-field">
-                        <p id="settings-account-email" class="settings-account-email"></p>
-                        <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
+                        <!-- Mejlen och utgången på samma rad. Under varandra
+                             läste sig "Logga ut" som en ny inställning i stället
+                             för som något man gör med kontot ovanför. -->
+                        <div class="set-inline">
+                            <p id="settings-account-email" class="settings-account-email"></p>
+                            <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
+                        </div>
                     </div>
                 </div>
 
@@ -552,8 +560,13 @@
                 <div class="set-row" id="settings-delete-row" hidden>
                     <div class="set-label">Radera konto</div>
                     <div class="set-field">
-                        <p class="set-hint">Kortlekar, kort, bilder, repetitioner och din API-nyckel tas bort. Det går inte att ångra.</p>
-                        <button type="button" id="btn-settings-delete-account" class="btn danger">Radera kontot</button>
+                        <!-- Knappen först, följden bredvid. Stod följden över
+                             knappen läste man varningen innan man visste att
+                             det fanns något att varna för. -->
+                        <div class="set-inline">
+                            <button type="button" id="btn-settings-delete-account" class="btn danger">Radera kontot</button>
+                            <p class="set-hint">Kortlekar, kort, bilder, repetitioner och din API-nyckel tas bort. Det går inte att ångra.</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -567,12 +580,15 @@
             <h2 id="create-options-modal-title">Vad vill du skapa?</h2>
 
             <div class="create-options">
-                <!-- Deck Option -->
-                <button type="button" id="option-create-deck" class="create-option-card deck">
+                <!-- Kortlek: en trave kort, inte ett plustecken. Plus betyder
+                     "lägg till" och sa alltså samma sak som knappen man just
+                     tryckte på; en trave säger vad saken ÄR. -->
+                <button type="button" id="option-create-deck" class="create-option-card hero-wash deck">
                     <span class="create-option-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="8.5" y="2.5" width="12" height="15.5" rx="2.5"/>
+                            <rect x="3.5" y="6" width="12" height="15.5" rx="2.5"/>
+                            <path d="M6.5 11h6M6.5 14.5h3.5"/>
                         </svg>
                     </span>
                     <span class="create-option-text">
@@ -581,12 +597,15 @@
                     </span>
                 </button>
 
-                <!-- Notebook Option -->
-                <button type="button" id="option-create-notebook" class="create-option-card notebook">
+                <!-- Anteckningsblock: uppslaget block med spiral. Den gamla
+                     ikonen var två tomma sidor och gick inte att skilja från
+                     bokhyllan på en meters håll. -->
+                <button type="button" id="option-create-notebook" class="create-option-card hero-wash notebook">
                     <span class="create-option-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="6.5" y="2.5" width="13.5" height="19" rx="2.5"/>
+                            <path d="M10.5 8h6M10.5 12h6M10.5 16h3.5"/>
+                            <path d="M6.5 6h-3M6.5 12h-3M6.5 18h-3"/>
                         </svg>
                     </span>
                     <span class="create-option-text">
@@ -595,16 +614,20 @@
                     </span>
                 </button>
 
-                <!-- Bookshelf Option -->
-                <button type="button" id="option-create-bookshelf" class="create-option-card bookshelf">
+                <!-- Bokhylla: ryggar i olika höjd på en hylla. Olikheten är
+                     poängen — en hylla är något man ställer flera saker i. -->
+                <button type="button" id="option-create-bookshelf" class="create-option-card hero-wash bookshelf">
                     <span class="create-option-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 17H2a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2zm-4-4V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v8"/>
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2.5 20h19"/>
+                            <rect x="4" y="8" width="4" height="12" rx="0.5"/>
+                            <rect x="9.5" y="4.5" width="4" height="15.5" rx="0.5"/>
+                            <path d="M17.2 7.9l3.6 1.1-3 10.5-3.6-1.1z"/>
                         </svg>
                     </span>
                     <span class="create-option-text">
                         <span class="create-option-title">Bokhylla</span>
-                        <span class="create-option-desc">Gruppera och organisera</span>
+                        <span class="create-option-desc">Gruppera kortlekar och block</span>
                     </span>
                 </button>
             </div>
