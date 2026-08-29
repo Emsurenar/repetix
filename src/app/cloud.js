@@ -280,8 +280,37 @@ export async function signOutAndClear() {
   clearUrlCache();
   const { clearAll } = await import('../core/local-db.js');
   await clearAll().catch(() => {});
-  localStorage.removeItem('noji_clone_data');
+  rensaLokalaNycklar();
   window.location.reload();
+}
+
+/* Allt appen äger i localStorage, inte bara biblioteket.
+ *
+ * Utloggningen tog tidigare bara bort `noji_clone_data`. Kvar låg bland annat
+ * `repetix_lokal_data_innan_molnet` — hela biblioteket i klartext, med en
+ * kommentar som sa att den aldrig raderas automatiskt — plus dagens mapp och
+ * varje spelläges rekord. På en delad dator innebar det att nästa person hade
+ * kvar förra personens innehåll på disken.
+ *
+ * Dialogen lovar redan att "den lokala kopian på den här enheten tas bort".
+ * Det här är koden som gör påståendet sant.
+ *
+ * Prefixmatchning i stället för en lista: ett nytt spelläge som lägger till en
+ * rekordnyckel ska inte behöva komma ihåg att uppdatera den här funktionen. */
+const EGNA_PREFIX = ['noji_', 'pg_records', 'repetix_', 'spaced_rep_'];
+
+function rensaLokalaNycklar() {
+  try {
+    const attTa = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const nyckel = localStorage.key(i);
+      if (nyckel && EGNA_PREFIX.some((p) => nyckel.startsWith(p))) attTa.push(nyckel);
+    }
+    for (const nyckel of attTa) localStorage.removeItem(nyckel);
+  } catch {
+    /* Privat läge eller full kvot. IndexedDB är redan tömd, och sidan laddas
+     * om ändå — det är inte värt att avbryta en utloggning för. */
+  }
 }
 
 export { supabase };
