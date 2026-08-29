@@ -488,3 +488,36 @@
   }
 
 }
+
+/* ----------------------------------------------------------------------
+ * ÅTGÄRDSKNAPPEN PÅ ETT KORTLEKSKORT
+ *
+ * Menyn vilar tills pekaren är på kortet. Tre prickar bredvid varje titel
+ * gjorde rutnätet till en rad kontroller; utan dem läses biblioteket som
+ * innehåll, vilket är vad det är.
+ *
+ * BARA MED MUS. Designregeln säger att ingenting får kräva hovring, och på
+ * en pekskärm finns inget "över" — där står knappen kvar synlig, annars hade
+ * byt namn och flytta blivit onåbara med finger. Mediefrågan är alltså inte
+ * en detalj utan hela villkoret för att det här är tillåtet.
+ *
+ * Genomskinlighet och inte display: knappen behåller sin plats, så titeln
+ * inte hoppar i sidled när den tonar fram, och den ligger kvar i tabbordningen
+ * för den som inte använder mus alls.
+ * -------------------------------------------------------------------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .deck-card .row-menu-toggle {
+    opacity: 0;
+    transition: opacity var(--dur-1) var(--ease-soft);
+  }
+
+  /* Tre vägar tillbaka till synlighet: pekaren på kortet, tangentbordet på
+   * knappen, och en meny som redan står öppen — den sista behövs för att
+   * knappen inte ska tonas bort under menyn den just fällde ut. */
+  .deck-card:hover .row-menu-toggle,
+  .deck-card .row-menu-toggle:focus-visible,
+  .deck-card .row-menu[open] .row-menu-toggle {
+    opacity: 1;
+  }
+}
