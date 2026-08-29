@@ -139,3 +139,27 @@ Migrationer körs manuellt i Supabases SQL Editor, i ordning.
 - Schemaläggningen (`src/domain/srs.js`) är rena funktioner. Håll den så, och
   lägg till test när den ändras — invarianten `Igen ≤ Svårt < Bra < Lätt`
   provas över 196 tillstånd.
+
+## Commits
+
+**Repot är publikt.** Loggen är en del av det en främling läser, bredvid
+README:n — och till skillnad från en arbetskopia går den inte att städa i
+efterhand. Skriv varje meddelande till den läsaren, inte till den som satt i
+rummet när ändringen gjordes.
+
+- **Engelska**, Conventional Commits. Det är den globala regeln, och här finns
+  skälet till att den gäller: gränssnittet är svenskt med flit, men loggen ska
+  gå att läsa av vem som helst som klonar repot. Historiken är blandad —
+  merparten är på svenska, en del på engelska. Den lämnas som den är; det som
+  skrivs härifrån är på engelska.
+- **Meddelandet ska stå för sig självt.** Läsaren har ingen konversation att
+  falla tillbaka på. "Som vi pratade om", "fixar det förra" och "enligt
+  önskemål" betyder ingenting för den som kommer hit via en sökning ett år
+  senare.
+- **Beskriv varför, inte vad.** Diffen visar redan vad. Samma regel som för
+  kommentarer i koden: det som är värt att spara är resonemanget som inte syns
+  i raderna — vilket alternativ som valdes bort, och vad som gick sönder förut.
+- **Inget privat i kroppen.** Inga mejladresser, inga länkar till Vercel- eller
+  Supabase-projektet, inga id:n ur dashboarden, inga nyckelfragment. Det som
+  hamnar i loggen ligger kvar även sedan det tagits bort ur koden.
+- Ingen `Co-Authored-By`-rad eller annan attribution.
