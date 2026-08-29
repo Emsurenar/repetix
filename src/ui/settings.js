@@ -585,11 +585,16 @@ async function renderaAnvandning() {
 
   const idag = getLocalDateString();
   const manadsstart = `${idag.slice(0, 7)}-01`;
+  // Ingen "Z" här: manadsstart är ett lokalt kalenderdatum. Skrivs den ut som
+  // UTC-midnatt hamnar gränsen fel med tidszonens antal timmar och tappar
+  // rader från månadens första timmar. Utan zonbeteckning tolkar Date-parsern
+  // strängen som lokal tid, precis som getLocalDateString byggde den.
+  const manadsstartIso = new Date(`${manadsstart}T00:00:00`).toISOString();
 
   const { data, error } = await supabase
     .from('ai_usage')
     .select('model, feature, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, created_at')
-    .gte('created_at', `${manadsstart}T00:00:00.000Z`)
+    .gte('created_at', manadsstartIso)
     .order('created_at', { ascending: false });
 
   if (error) {

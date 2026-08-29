@@ -40,9 +40,12 @@ describe('summera', () => {
   });
 
   it('filtrerar på datumintervall i lokal tid', () => {
+    // Klockslag mitt på dagen, inte vid midnatt: en tidszon på upp till ±14h
+    // ska inte kunna knuffa datumet över till föregående eller nästa dygn och
+    // få testet att falla på maskiner utanför UTC.
     const rader = [
-      rad({ created_at: '2026-08-01T00:00:00.000Z', input_tokens: 1_000_000 }),
-      rad({ created_at: '2026-07-31T00:00:00.000Z', input_tokens: 1_000_000 }),
+      rad({ created_at: '2026-08-01T12:00:00.000Z', input_tokens: 1_000_000 }),
+      rad({ created_at: '2026-07-31T12:00:00.000Z', input_tokens: 1_000_000 }),
     ];
     const r = summera(rader, { fran: '2026-08-01', till: '2026-08-31' });
     expect(r.total).toBeCloseTo(5, 6);
