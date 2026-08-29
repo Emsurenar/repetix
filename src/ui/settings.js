@@ -26,7 +26,7 @@ import {
 import { S } from '../core/state.js';
 import { cloudConfigured, deleteAccount, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
 import { getLocalDateString } from '../domain/stats.js';
-import { summera } from '../domain/usage.js';
+import { budgetLage, summera } from '../domain/usage.js';
 import { openAuth } from './auth.js';
 import { updateBreadcrumb } from './breadcrumb.js';
 import { renderLibrary } from './library.js';
@@ -185,7 +185,7 @@ async function apiFetch(path, options = {}) {
  * Läser användarens sparade val. Saknas raden är det inget fel — den skapas
  * först när användaren sparar något.
  *
- * @returns {Promise<{provider: string, model: string}|null>}
+ * @returns {Promise<{provider: string, model: string, tak: number|null}|null>}
  */
 async function laddaVal() {
   const userId = getUserId();
@@ -193,12 +193,16 @@ async function laddaVal() {
 
   const { data, error } = await supabase
     .from('user_settings')
-    .select('ai_provider, ai_model')
+    .select('ai_provider, ai_model, ai_monthly_budget')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (error || !data) return null;
-  return { provider: data.ai_provider ?? '', model: data.ai_model ?? '' };
+  return {
+    provider: data.ai_provider ?? '',
+    model: data.ai_model ?? '',
+    tak: data.ai_monthly_budget ?? null,
+  };
 }
 
 /**
@@ -233,6 +237,25 @@ async function sparaVal(provider, model) {
     return { ok: false, error: 'Kunde inte spara valet. Kontrollera din uppkoppling.' };
   }
   return { ok: true };
+}
+
+/** Sparar månadstaket. Tomt fält betyder inget tak. */
+async function sparaTak(varde) {
+  const userId = getUserId();
+  if (!supabase || !userId) return { ok: false, error: 'Du är inte inloggad.' };
+
+  const tal = varde === '' ? null : Number(varde);
+  if (tal !== null && (!Number.isFinite(tal) || tal < 0)) {
+    return { ok: false, error: 'Taket måste vara ett positivt tal.' };
+  }
+
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert(
+      { user_id: userId, ai_monthly_budget: tal, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+  return error ? { ok: false, error: 'Kunde inte spara taket.' } : { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -574,6 +597,21 @@ const FUNKTIONSNAMN = {
  * än en cent, men det är månadssumman panelen finns för. */
 const dollar = (n) => `$${n.toFixed(2)}`;
 
+/* Varningen hör hemma där man ser den. Panelen i inställningarna öppnar man
+ * sällan; sidopanelen står framme hela tiden, och det är där appen redan säger
+ * "Lokalt läge" och "Kunde inte synka". */
+function visaBudgetvarning(total, tak) {
+  const node = el('budget-status');
+  if (!node) return;
+  const lage = budgetLage(total, tak);
+  node.hidden = lage === 'ok';
+  node.dataset.state = lage === 'over' ? 'error' : 'warn';
+  node.textContent =
+    lage === 'over'
+      ? `Månadstaket passerat: ${dollar(total)} av ${dollar(tak)}`
+      : `${dollar(total)} av månadstaket ${dollar(tak)}`;
+}
+
 /** Hämtar månadens ai_usage-rader och fyller Användning-panelen. Dold utan konto. */
 async function renderaAnvandning() {
   const sektion = el('settings-usage-section');
@@ -582,6 +620,9 @@ async function renderaAnvandning() {
   const userId = getUserId();
   sektion.hidden = !userId;
   if (!userId) return;
+
+  const val = await laddaVal();
+  el('settings-budget').value = val?.tak ?? '';
 
   const idag = getLocalDateString();
   const manadsstart = `${idag.slice(0, 7)}-01`;
@@ -626,6 +667,8 @@ async function renderaAnvandning() {
     li.append(namn, belopp);
     lista.appendChild(li);
   }
+
+  visaBudgetvarning(manad.total, val?.tak ?? null);
 }
 
 // ---------------------------------------------------------------------------
@@ -823,6 +866,12 @@ export function initSettings() {
 
   el('btn-settings-save-model')?.addEventListener('click', () => void onSparaVal());
   el('btn-settings-save-key')?.addEventListener('click', () => void onSparaNyckel());
+  el('btn-settings-save-budget')?.addEventListener('click', async () => {
+    const res = await sparaTak(el('settings-budget').value.trim());
+    if (!res.ok) return visaMeddelande(res.error, 'fel');
+    visaMeddelande('Månadstaket sparat.', 'ok');
+    void renderaAnvandning();
+  });
   el('btn-settings-delete-key')?.addEventListener('click', () => void onTaBortNyckel());
   el('btn-settings-signin')?.addEventListener('click', () => openAuth());
   el('btn-settings-signout')?.addEventListener('click', () => void signOutAndClear());

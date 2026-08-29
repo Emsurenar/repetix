@@ -57,3 +57,20 @@ export function summera(rader, { fran, till } = {}) {
       .sort((a, b) => b.kostnad - a.kostnad),
   };
 }
+
+/* Åttio procent, inte nittio: varningen ska komma medan det fortfarande går att
+ * ändra sig — byta modell, vänta till nästa månad — inte när pengarna redan är
+ * slut. Ett tak på noll eller null betyder inget tak, inte ett omöjligt tak. */
+const NARA = 0.8;
+
+/**
+ * @param {number} total månadens kostnad i dollar
+ * @param {number|null} tak månadstaket i dollar
+ * @returns {'ok'|'nara'|'over'}
+ */
+export function budgetLage(total, tak) {
+  if (!tak || tak <= 0) return 'ok';
+  if (total >= tak) return 'over';
+  if (total >= tak * NARA) return 'nara';
+  return 'ok';
+}

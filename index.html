@@ -93,6 +93,9 @@
                 <span class="sidebar-item-name">Konto</span>
             </button>
             <span id="sync-status" class="sync-status" data-state="local" role="status">Lokalt läge</span>
+            <!-- Egen rad, inte samma som synkstatusen: de två tillstånden är
+                 oberoende och kan behöva synas samtidigt. -->
+            <span id="budget-status" class="sync-status" data-state="warn" role="status" hidden></span>
         </div>
     </aside>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { summera } from '../src/domain/usage.js';
+import { budgetLage, summera } from '../src/domain/usage.js';
 
 const rad = (over) => ({
   model: 'claude-opus-5',
@@ -49,5 +49,24 @@ describe('summera', () => {
     ];
     const r = summera(rader, { fran: '2026-08-01', till: '2026-08-31' });
     expect(r.total).toBeCloseTo(5, 6);
+  });
+});
+
+/* Åttio procent, inte nittio: varningen ska komma medan det fortfarande går att
+ * ändra sig. Utan tak finns inget läge att varna om. */
+describe('budgetLage', () => {
+  it('är ok under åttio procent', () => {
+    expect(budgetLage(7.9, 10)).toBe('ok');
+  });
+  it('är nära från åttio procent', () => {
+    expect(budgetLage(8, 10)).toBe('nara');
+    expect(budgetLage(9.99, 10)).toBe('nara');
+  });
+  it('är över från hundra procent', () => {
+    expect(budgetLage(10, 10)).toBe('over');
+  });
+  it('är ok när inget tak är satt', () => {
+    expect(budgetLage(1000, null)).toBe('ok');
+    expect(budgetLage(1000, 0)).toBe('ok');
   });
 });

@@ -324,6 +324,13 @@
   color: var(--text-2);
 }
 
+/* Varningen lånar synkstatusens form. Ingen ny färg införs: accenten bär
+   tillstånd i hela appen, och den röda är redan den som betyder konsekvens.
+   En egen varningsgul hade varit en fjärde ton i en palett med tre. */
+.sync-status[data-state='warn'] {
+  color: var(--accent);
+}
+
 /* ======================================================================
  * INNEHÅLLSYTA
  * ====================================================================== */
