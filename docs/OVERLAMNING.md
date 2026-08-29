@@ -17,7 +17,7 @@ Vercel-deployen, som ägaren gör själv.
 | 5. Spellägena — åtta lägen ombyggda | **Klar** |
 | 6. Publicering — README, licens, CI, säkerhet | **Klar utom deploy** |
 
-541 tester, noll lintfel, bygget går igenom.
+558 tester, noll lintfel, bygget går igenom.
 
 ## Nästa steg, i ordning
 
@@ -367,14 +367,40 @@ Det som **inte** höll, och nu är åtgärdat:
 | **Trasig importfil låste appen** | `loadData()` låg först i `initApp`, så när den kastade kopplades aldrig importknappen — enda vägen tillbaka |
 | **`.env.example`** | Beskrev anon-nyckeln som RLS-kringgående. En självhostare kunde dra slutsatsen att en service role-nyckel behövdes och klistra in en — vilket hade slagit ut varenda policy |
 
+#### Takt-spärren — klar
+
+`supabase/migrations/0004_hardening.sql` och `api/_lib/limit.js`. Tabellen
+`api_usage` har en rad per användare, slutpunkt och fönster, och
+`bump_rate_limit` stegar räknaren i **ett enda** `insert ... on conflict do
+update` — atomärt, så två samtidiga anrop kan inte båda tro att de var under
+taket. Tabellen har RLS **utan en enda policy**: kan man skriva själv
+nollställer man sin räknare, och då är spärren en formsak. Räknaren städar sina
+egna utgångna rader, så inget schemalagt jobb behöver hållas vid liv.
+
+| Slutpunkt | Tak | Varför |
+|---|---|---|
+| `POST /api/ai` | 20/min **och** 120/h | Timfönstret är kostnadstaket, minutfönstret är parallellitetstaket. Ett timtak hindrar inte att alla 120 görs i samma sekund, och varje anrop binder en funktion i upp till 45 s |
+| `POST /api/ai-key`, nyckelkontrollen | 10/h | Att lägga in en nyckel görs med handen, någon enstaka gång per leverantör |
+
+**Spärren stänger när den inte går att nå** (503). En spärr som öppnar sig när
+databasen krånglar är verkningslös just när den behövs — och samma databas läses
+ändå två rader senare för att hämta nyckeln. **Praktisk följd: kör 0004 innan du
+deployar, annars svarar `/api/ai` 503.**
+
+Vad den **inte** täcker: den räknar per användare, så hundra konton ger hundra
+kvoter. Motmedlet är friktion vid registrering, och det ligger i Supabases
+inställningar. Ett oinloggat skräpanrop kostar fortfarande en invokation — bara
+inte längre ett nätanrop till GoTrue, eftersom token nu formkontrolleras först.
+Bara en regel på IP-nivå tar bort det.
+
+**SVG tas inte emot som kortbild.** En SVG är ett dokument som kan bära skript,
+och lagringen serverar filen bakom en signerad länk med angiven typ — en öppnad
+länk hade kört kod på lagringens domän. Hinken utesluter typen, och klienten
+avvisar den med ett besked i stället för att låta uppladdningen misslyckas långt
+senare.
+
 #### Kvar innan öppen registrering
 
-- **Takt-spärr i `/api/*`** — `/api/ai-key` är annars ett obegränsat
-  nyckelvalideringsorakel: svaret skiljer exakt på giltig och ogiltig nyckel,
-  verifieringen kostar noll tokens, och anropen går från Vercels IP:n.
-- **Migration 0004**: lagringshinken saknar `file_size_limit` och
-  `allowed_mime_types`, och `public` sattes aldrig (`on conflict do nothing`
-  rör inte en befintlig hink). Utan det är den gratis filhotell.
 - **Främmande nycklar validerar inte ägarskap** — ett kort kan peka på någon
   annans kortlek. Inte läsbart för offret, men `on delete cascade` och ett
   existens-orakel följer med.
@@ -389,13 +415,18 @@ Det som **inte** höll, och nu är åtgärdat:
    `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
    och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`
 3. Slå på **e-postbekräftelse** i Supabase Auth. Utan den kostar ett nytt konto
-   ingenting, och varje takt-spärr per användare går att kringgå.
+   ingenting, och varje takt-spärr per användare går att kringgå. Slå också på
+   **CAPTCHA** på registrering, och stäng av anonyma inloggningar om de är på.
+   Hittar PostgREST inte funktionen efter 0004: `notify pgrst, 'reload schema';`
 4. Lägg `/#aterstall` i Supabases **Redirect URLs**, annars avvisas
    återställningslänken tyst.
 5. Sätt de fem miljövariablerna i Vercel. **Ingen av dem är en service
    role-nyckel.**
-6. Överväg en brandväggsregel per IP på `/api/*` (kräver Pro), eller
-   Spend Management-tak på Hobby.
+6. **Sätt en IP-baserad taktregel på `/api/*` i Vercels brandvägg.** Det är det
+   lager databasen inte kan ersätta. På Hobby är alternativet Spend Management.
+   `maxDuration` måste förbli **strikt över 45**.
+   Slå på deployment protection för preview-deployer — annars ligger samma API
+   öppet på en preview-URL.
 7. `public/wash/` innehåller 25 bilder från Picsum under Unsplash-licens. MIT
    ger formellt rätt att sälja kopior, vilket inte gäller fotona. Härkomsten
    står i README; vill man ha det vattentätt byts de mot egna eller CC0.
