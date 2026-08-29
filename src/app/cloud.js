@@ -262,19 +262,27 @@ function renderSyncStatus(state) {
   node.dataset.state = state.status;
 }
 
-/** Loggar ut och tömmer den lokala spegeln, så att nästa användare inte ser den. */
-export async function signOutAndClear() {
-  const ok = await showConfirmModal(
-    'Logga ut?',
-    'Dina kort finns kvar i molnet. Den lokala kopian på den här enheten tas bort.',
-    'Logga ut',
-    true
-  );
-  if (!ok) return;
+/**
+ * Loggar ut och tömmer den lokala spegeln, så att nästa användare inte ser den.
+ *
+ * `tyst` används efter en kontoradering: då finns varken något att fråga om
+ * eller något att synka mot — kontot är redan borta, och en sista synk hade
+ * bara gett ett fel att svälja.
+ */
+export async function signOutAndClear({ tyst = false } = {}) {
+  if (!tyst) {
+    const ok = await showConfirmModal(
+      'Logga ut?',
+      'Dina kort finns kvar i molnet. Den lokala kopian på den här enheten tas bort.',
+      'Logga ut',
+      true
+    );
+    if (!ok) return;
+  }
 
   stopAutoSync?.();
   stopAutoSync = null;
-  await sync().catch(() => {});
+  if (!tyst) await sync().catch(() => {});
   await signOut();
 
   clearUrlCache();

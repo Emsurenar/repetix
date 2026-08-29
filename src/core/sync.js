@@ -164,16 +164,57 @@ async function pushOutbox() {
   for (const { table, ids } of deletes) {
     for (let i = 0; i < ids.length; i += BATCH) {
       const chunk = ids.slice(i, i + BATCH);
+      /* Bildens fil måste hämtas INNAN raden märks som raderad — efteråt är
+       * sökvägen inte längre läsbar. */
+      const filer = table === 'card_images' ? await hamtaBildvagar(chunk) : [];
+
       const { error } = await supabase
         .from(table)
         .update({ deleted_at: new Date().toISOString() })
         .in('id', chunk);
       if (error) throw error;
+
+      await taBortFiler(filer);
     }
   }
 
   await ackOutbox(pending.map((m) => m.seq));
   return pending.length;
+}
+
+/**
+ * Sökvägarna till de bilder som är på väg att raderas.
+ *
+ * Mjuk radering satte tidigare bara `deleted_at` och lämnade filen i hinken.
+ * Ur användarens synvinkel var raderingen alltså inte en radering: bilden låg
+ * kvar hos leverantören i obegränsad tid, och vid en kontoradering blev den
+ * dessutom föräldralös.
+ */
+async function hamtaBildvagar(ids) {
+  const { data, error } = await supabase
+    .from('card_images')
+    .select('storage_path')
+    .in('id', ids);
+  if (error) return [];
+  return (data ?? []).map((rad) => rad.storage_path).filter(Boolean);
+}
+
+/**
+ * Filen tas efter att raden märkts, inte före.
+ *
+ * Misslyckas det blir filen föräldralös — men raden är redan borta ur
+ * användarens vy, och att kasta här hade stoppat hela synken för en bild som
+ * ingen längre ser. En föräldralös fil är ett städproblem; en död synk är ett
+ * dataproblem.
+ */
+async function taBortFiler(vagar) {
+  if (!vagar.length) return;
+  try {
+    const { deleteImage } = await import('./image-store.js');
+    for (const vag of vagar) await deleteImage(vag);
+  } catch (fel) {
+    console.error('Kunde inte radera bildfiler', fel);
+  }
 }
 
 async function pushReviews() {

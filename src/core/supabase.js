@@ -64,6 +64,42 @@ export function onPasswordRecovery(fn) {
   return () => recoveryListeners.delete(fn);
 }
 
+/**
+ * Raderar kontot och allt det äger.
+ *
+ * Ordningen spelar roll: bilderna tas först, via lagrings-API:et. Databasraden
+ * försvinner ändå av kaskaden från auth.users, men en rad som tas bort med SQL
+ * tar inte alltid själva filen med sig — och en radering som lämnar kvar
+ * användarens bilder hos leverantören är ingen radering.
+ *
+ * Funktionen i databasen är security definer och härleder användaren ur
+ * auth.uid(). Den kan alltså bara radera anroparen själv, och ingen service
+ * role-nyckel behövs. Se migration 0005.
+ */
+export async function deleteAccount() {
+  if (!supabase) return { error: 'Molnlagring är inte konfigurerad.' };
+  try {
+    const { deleteAllMyImages } = await import('./image-store.js');
+    await deleteAllMyImages();
+  } catch (fel) {
+    // Bilderna gick inte att ta. Kontot raderas INTE då — annars blir filerna
+    // föräldralösa utan ägare som kan städa dem.
+    console.error('Kunde inte radera bilderna', fel);
+    return { error: 'Kunde inte radera dina bilder. Kontot är orört. Försök igen.' };
+  }
+
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) {
+    return {
+      error:
+        error.message?.includes('delete_my_account')
+          ? 'Databasen saknar funktionen för kontoradering. Kör migration 0005.'
+          : 'Kunde inte radera kontot. Försök igen.',
+    };
+  }
+  return { error: null };
+}
+
 export async function updatePassword(password) {
   if (!supabase) return { error: 'Molnlagring är inte konfigurerad.' };
   const { error } = await supabase.auth.updateUser({ password });

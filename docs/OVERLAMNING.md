@@ -399,18 +399,39 @@ länk hade kört kod på lagringens domän. Hinken utesluter typen, och klienten
 avvisar den med ett besked i stället för att låta uppladdningen misslyckas långt
 senare.
 
-#### Kvar innan öppen registrering
+#### Kontoradering och bildstädning — klart
 
-- **Främmande nycklar validerar inte ägarskap** — ett kort kan peka på någon
-  annans kortlek. Inte läsbart för offret, men `on delete cascade` och ett
-  existens-orakel följer med.
-- **`deleteImage` anropas aldrig.** Mjuk radering lämnar filerna i hinken för
-  alltid. Vid kontoradering blir de föräldralösa och överlever kontot.
-- **Ingen kontoradering finns** i appen alls.
+`supabase/migrations/0005_account_deletion.sql` och Inställningar → Konto.
+
+`delete_my_account()` är `security definer` och härleder användaren ur
+`auth.uid()` — den kan alltså bara radera anroparen själv, och **ingen service
+role-nyckel behövs**. Allt i `public` kaskaderar från `auth.users`, så en enda
+delete tar hela biblioteket.
+
+**Ordningen spelar roll:** klienten tar bilderna först, via lagrings-API:et. En
+rad som tas bort med SQL tar inte alltid själva filen med sig, och en radering
+som lämnar kvar användarens bilder hos leverantören är ingen radering.
+Misslyckas bildraderingen **avbryts hela operationen** — kontot lämnas orört,
+för annars blir filerna föräldralösa utan ägare som kan städa dem.
+
+Två steg i gränssnittet: först vad som försvinner, sedan att man skriver sin
+egen e-post. Ett andra klick är ingen spärr; att skriva något är det.
+
+`deleteImage` hade **noll anropare** — mjuk radering lämnade filerna i hinken
+för alltid. Den anropas nu från utkorgens raderingsgren, med sökvägarna hämtade
+*före* raden märks (efteråt går de inte att läsa). Misslyckas filraderingen
+loggas det men synken fortsätter: en föräldralös fil är ett städproblem, en död
+synk är ett dataproblem.
+
+Migration 0005 lägger också **ägarskap på främmande nycklar** — ett kort kunde
+tidigare peka på någon annans kortlek. Läs kommentaren i filen: kör
+kontrollfrågan först, den måste ge tomt.
+
+#### Kvar innan öppen registrering
 
 #### Lanseringschecklista — kräver ägaren
 
-1. Kör migration `0003` och `0004` i Supabases SQL Editor, i ordning.
+1. Kör migration `0003`, `0004` och `0005` i Supabases SQL Editor, i ordning.
 2. Verifiera RLS i det **körda** projektet, inte bara i filerna:
    `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
    och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`

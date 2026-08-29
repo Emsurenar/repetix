@@ -121,6 +121,45 @@ export async function deleteImage(storagePath) {
   signeradeUrler.delete(storagePath);
 }
 
+/**
+ * Alla bilder användaren äger, i en enda radering.
+ *
+ * Används av kontoraderingen. Databasraderna försvinner ändå av kaskaden från
+ * auth.users, men en rad som tas bort med SQL tar inte alltid själva filen med
+ * sig — därför går den här vägen genom lagrings-API:et. En radering som lämnar
+ * kvar användarens bilder hos leverantören är ingen radering.
+ *
+ * @returns {Promise<number>} antal raderade filer
+ */
+export async function deleteAllMyImages() {
+  if (!supabase) return 0;
+  const userId = getUserId();
+  if (!userId) return 0;
+
+  let borttagna = 0;
+  // Listningen är sidindelad; en användare kan ha fler bilder än ett svar bär.
+  for (let sida = 0; ; sida++) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list(userId, { limit: 100, offset: sida * 100 });
+    if (error) throw error;
+    if (!data?.length) break;
+
+    const vagar = data.map((fil) => `${userId}/${fil.name}`);
+    const { error: felVidRadering } = await supabase.storage.from(BUCKET).remove(vagar);
+    if (felVidRadering) throw felVidRadering;
+    for (const vag of vagar) signeradeUrler.delete(vag);
+    borttagna += vagar.length;
+
+    // Listningen börjar om från noll när raderna försvinner under oss, så
+    // offseten får inte räknas upp — nästa varv hämtar de hundra som nu ligger
+    // först. Slingan tar slut när listan är tom.
+    sida = -1;
+    if (borttagna > 10000) break; // haveriskydd mot en oändlig slinga
+  }
+  return borttagna;
+}
+
 // ---------------------------------------------------------------------------
 // Visning
 // ---------------------------------------------------------------------------

@@ -546,6 +546,16 @@
                         <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
                     </div>
                 </div>
+
+                <!-- Sista raden i sista sektionen. En radering som inte går att
+                     ångra ska inte gå att träffa på väg någon annanstans. -->
+                <div class="set-row" id="settings-delete-row" hidden>
+                    <div class="set-label">Radera konto</div>
+                    <div class="set-field">
+                        <p class="set-hint">Kortlekar, kort, bilder, repetitioner och din API-nyckel tas bort. Det går inte att ångra.</p>
+                        <button type="button" id="btn-settings-delete-account" class="btn danger">Radera kontot</button>
+                    </div>
+                </div>
             </section>
         </section>
 

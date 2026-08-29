@@ -24,11 +24,12 @@ import {
   providerLabel,
 } from '../ai/models.js';
 import { S } from '../core/state.js';
-import { cloudConfigured, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
+import { cloudConfigured, deleteAccount, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
 import { openAuth } from './auth.js';
 import { updateBreadcrumb } from './breadcrumb.js';
 import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
+import { showToast } from './toast.js';
 import { renderSidebar } from './modals-wiring.js';
 import { onViewChange, switchView } from './router.js';
 
@@ -407,9 +408,12 @@ function renderaInloggningslage() {
   const signInBtn = el('btn-settings-signin');
   const emailNode = el('settings-account-email');
   const signOutBtn = el('btn-settings-signout');
+  const deleteRow = el('settings-delete-row');
   if (!notice) return;
 
   const inloggad = Boolean(getUserId());
+  // Utan konto finns ingenting att radera, och raden vore bara skrämmande.
+  if (deleteRow) deleteRow.hidden = !inloggad;
 
   if (noticeText && signInBtn) {
     if (!cloudConfigured) {
@@ -702,6 +706,44 @@ export function initSettings() {
   el('btn-settings-delete-key')?.addEventListener('click', () => void onTaBortNyckel());
   el('btn-settings-signin')?.addEventListener('click', () => openAuth());
   el('btn-settings-signout')?.addEventListener('click', () => void signOutAndClear());
+
+  /* Kontoraderingen. Två steg med flit: den första frågan säger vad som
+   * försvinner, den andra kräver att man skriver sin egen e-post. Ett andra
+   * klick är ingen spärr — att skriva något är det, för det går inte att göra
+   * av misstag. */
+  el('btn-settings-delete-account')?.addEventListener('click', async () => {
+    const epost = getUser()?.email;
+    if (!epost) return;
+
+    const forstaSteget = await showConfirmModal(
+      'Radera kontot?',
+      'Alla kortlekar, kort, bilder, repetitioner och din API-nyckel tas bort ur molnet. Det går inte att ångra.',
+      'Fortsätt',
+      true
+    );
+    if (!forstaSteget) return;
+
+    // eslint-disable-next-line no-alert
+    const skrivet = window.prompt(`Skriv ${epost} för att bekräfta raderingen.`);
+    if (skrivet?.trim().toLowerCase() !== epost.toLowerCase()) {
+      if (skrivet !== null) showToast('E-posten stämde inte. Kontot är orört.');
+      return;
+    }
+
+    const knapp = el('btn-settings-delete-account');
+    knapp.disabled = true;
+    knapp.textContent = 'Raderar...';
+    const { error } = await deleteAccount();
+    if (error) {
+      knapp.disabled = false;
+      knapp.textContent = 'Radera kontot';
+      showToast(error);
+      return;
+    }
+    // Kontot finns inte längre; den lokala spegeln får inte ligga kvar och
+    // låtsas att det gör det.
+    await signOutAndClear({ tyst: true });
+  });
 
   // Routern känner inte till den här vyn, så den kan inte dölja den åt oss.
   onViewChange(() => stangSettings());
