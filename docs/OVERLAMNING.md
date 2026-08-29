@@ -5,7 +5,8 @@ Skriven 2026-08-28. Läs den här före [CLAUDE.md](../CLAUDE.md) och
 
 ## Var arbetet står
 
-Ombyggnaden är indelad i sex etapper. Fem är klara. Kvar är publiceringen.
+Ombyggnaden är indelad i sex etapper. Alla sex är klara utom själva
+Vercel-deployen, som ägaren gör själv.
 
 | Etapp | Status |
 |---|---|
@@ -16,7 +17,7 @@ Ombyggnaden är indelad i sex etapper. Fem är klara. Kvar är publiceringen.
 | 5. Spellägena — åtta lägen ombyggda | **Klar** |
 | 6. Publicering — README, licens, CI, säkerhet | **Klar utom deploy** |
 
-475 tester, noll lintfel, bygget går igenom.
+541 tester, noll lintfel, bygget går igenom.
 
 ## Nästa steg, i ordning
 
