@@ -1,10 +1,11 @@
 // Adaptrar för de fyra AI-leverantörerna.
 //
 // Alla anrop i appen är single-turn utan verktyg och utan strömning. Det som
-// skiljer leverantörerna åt kokar därför ner till fyra saker: hur nyckeln
-// skickas, var systemprompten hör hemma, vad tokengränsen heter och var texten
-// ligger i svaret. Adaptrarna är byggda för att vara symmetriska — samma fyra
-// medlemmar var, ingen leverantör med ett eget undantag i anropskoden.
+// skiljer leverantörerna åt kokar därför ner till ett fåtal saker: hur
+// nyckeln skickas, var systemprompten hör hemma, vad tokengränsen heter, var
+// texten ligger i svaret och var tokentalen för användningsmätaren står.
+// Adaptrarna är byggda för att vara symmetriska — samma medlemmar var, ingen
+// leverantör med ett eget undantag i anropskoden.
 //
 // Rå fetch, ingen SDK. Fyra SDK:er hade dragit in fyra beroenden med fyra egna
 // felformer och fyra uppdateringstakter, alltså precis den asymmetri som det

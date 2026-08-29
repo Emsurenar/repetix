@@ -53,7 +53,7 @@ describe('katalogen', () => {
     expect(() => getProvider(undefined)).toThrow(ApiError);
   });
 
-  it('har samma fyra medlemmar hos varje adapter', () => {
+  it('har buildRequest, extractText, verifyKey och en modellista hos varje adapter', () => {
     for (const id of providerIds) {
       const adapter = providers[id];
       expect(typeof adapter.buildRequest).toBe('function');

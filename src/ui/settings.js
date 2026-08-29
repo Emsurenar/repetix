@@ -187,7 +187,7 @@ async function apiFetch(path, options = {}) {
  *
  * @returns {Promise<{provider: string, model: string, tak: number|null}|null>}
  */
-async function laddaVal() {
+export async function laddaVal() {
   const userId = getUserId();
   if (!supabase || !userId) return null;
 
@@ -197,7 +197,27 @@ async function laddaVal() {
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (!error) return data ? tolkaVal(data) : null;
+
+  /* PostgREST avvisar HELA frågan (42703, okänd kolumn) om ai_monthly_budget
+   * inte finns än — migrationen som lägger till den kan vara okörd. Utan den
+   * här reträtten föll svaret bort, och uppdatera() tolkade det som "inget
+   * sparat": användarens riktiga leverantör och modell ersattes tyst av
+   * standardvärden i gränssnittet, och ett tryck på Spara skrev över dem på
+   * riktigt i databasen. Att förlora taket i det läget är ofarligt — det
+   * går bara inte att visa förrän kolumnen finns. Att gissa bort leverantören
+   * är det inte. */
+  const gammal = await supabase
+    .from('user_settings')
+    .select('ai_provider, ai_model')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (gammal.error || !gammal.data) return null;
+  return { ...tolkaVal(gammal.data), tak: null };
+}
+
+function tolkaVal(data) {
   return {
     provider: data.ai_provider ?? '',
     model: data.ai_model ?? '',
@@ -605,6 +625,11 @@ function visaBudgetvarning(total, tak) {
   if (!node) return;
   const lage = budgetLage(total, tak);
   node.hidden = lage === 'ok';
+  // En dold rad behöver ingen text. Det är också nödvändigt: utan tak (det
+  // vanliga läget — de flesta sätter aldrig ett) är `tak` null, och lage blir
+  // "ok" innan det finns något belopp att formatera.
+  if (lage === 'ok') return;
+
   node.dataset.state = lage === 'over' ? 'error' : 'warn';
   node.textContent =
     lage === 'over'
@@ -612,17 +637,17 @@ function visaBudgetvarning(total, tak) {
       : `${dollar(total)} av månadstaket ${dollar(tak)}`;
 }
 
-/** Hämtar månadens ai_usage-rader och fyller Användning-panelen. Dold utan konto. */
-async function renderaAnvandning() {
-  const sektion = el('settings-usage-section');
-  if (!sektion) return;
-
-  const userId = getUserId();
-  sektion.hidden = !userId;
-  if (!userId) return;
-
+/**
+ * Hämtar användarens val och månadens ai_usage-rader.
+ *
+ * Delas av renderaAnvandning (panelen i Inställningar) och
+ * uppdateraBudgetvarning (sidopanelens statusrad), så att frågan mot
+ * ai_usage bara finns skriven på ett ställe.
+ *
+ * @returns {Promise<{val: object|null, data: Array<object>|null, error: object|null, idag: string, manadsstart: string}>}
+ */
+async function hamtaManadensAnvandning() {
   const val = await laddaVal();
-  el('settings-budget').value = val?.tak ?? '';
 
   const idag = getLocalDateString();
   const manadsstart = `${idag.slice(0, 7)}-01`;
@@ -638,16 +663,67 @@ async function renderaAnvandning() {
     .gte('created_at', manadsstartIso)
     .order('created_at', { ascending: false });
 
+  return { val, data, error, idag, manadsstart };
+}
+
+/**
+ * Uppdaterar sidopanelens budgetvarning.
+ *
+ * Anropas villkorslöst från auth-lyssnaren i initSettings, även när
+ * Inställningar aldrig öppnats — se kommentaren där. Utan konto, eller om
+ * frågan misslyckas, döljs raden hellre än att visa ett läge som kan vara fel.
+ */
+export async function uppdateraBudgetvarning() {
+  const node = el('budget-status');
+  if (!getUserId()) {
+    if (node) node.hidden = true;
+    return;
+  }
+
+  const { val, data, error, idag, manadsstart } = await hamtaManadensAnvandning();
+  if (error) {
+    if (node) node.hidden = true;
+    return;
+  }
+
+  const manad = summera(data, { fran: manadsstart, till: idag });
+  visaBudgetvarning(manad.total, val?.tak ?? null);
+}
+
+/* "$0.00" påstår att inget kostat något. När ingen modell i loggen har ett
+ * pris är sanningen att vi inte VET vad det kostade — samma ärliga-lucka-regel
+ * som redan gäller kostnadsberäkningen. Ett streck säger det rakt av i stället
+ * för att låtsas ett facit panelen saknar. */
+const beloppEllerOkant = (total, okändaModeller) => (total === 0 && okändaModeller ? '–' : dollar(total));
+
+/** Hämtar månadens ai_usage-rader och fyller Användning-panelen. Dold utan konto. */
+export async function renderaAnvandning() {
+  const sektion = el('settings-usage-section');
+  if (!sektion) return;
+
+  const userId = getUserId();
+  sektion.hidden = !userId;
+  if (!userId) return;
+
+  const { val, data, error, idag, manadsstart } = await hamtaManadensAnvandning();
+  el('settings-budget').value = val?.tak ?? '';
+
   if (error) {
     el('usage-month').textContent = 'Kunde inte läsa';
+    // Annars blandas ett aktuellt fel med förra lyckade renderingens siffror —
+    // halva panelen hade fortsatt påstå att den fortfarande gällde.
+    el('usage-today').textContent = '';
+    el('usage-month-tokens').textContent = '';
+    el('usage-breakdown-row').hidden = true;
+    el('budget-status').hidden = true;
     return;
   }
 
   const manad = summera(data, { fran: manadsstart, till: idag });
   const dag = summera(data, { fran: idag, till: idag });
 
-  el('usage-month').textContent = dollar(manad.total);
-  el('usage-today').textContent = dollar(dag.total);
+  el('usage-month').textContent = beloppEllerOkant(manad.total, manad.okändaModeller);
+  el('usage-today').textContent = beloppEllerOkant(dag.total, dag.okändaModeller);
   el('usage-month-tokens').textContent =
     `${manad.tokens.in.toLocaleString('sv-SE')} in · ${manad.tokens.ut.toLocaleString('sv-SE')} ut` +
     (manad.okändaModeller ? ' · någon modell saknar pris' : '');
@@ -921,6 +997,13 @@ export function initSettings() {
   onAuthChange(() => {
     renderaInloggningslage();
     if (!view.classList.contains('hidden')) void uppdatera();
+
+    // Körs VILLKORSLÖST, utanför gissningen ovan om vyn är synlig. #view-settings
+    // ligger dold vid appstart, och den gissningen gjorde tidigare att
+    // sidopanelens budgetvarning aldrig ritades förrän användaren själv öppnat
+    // Inställningar — precis den plats specen avfärdade ("En varning som bara
+    // står i Inställningar ser man aldrig") som skäl att lägga den i sidopanelen.
+    void uppdateraBudgetvarning();
   });
 
   window.openSettings = openSettings;
