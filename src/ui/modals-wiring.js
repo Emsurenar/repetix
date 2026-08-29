@@ -19,6 +19,12 @@ import { switchView } from './router.js';
  * gick de inte att nå med tangentbord alls — och den rad som visas bär
  * aria-current="page" så att man hör var man står.
  */
+/* Attributvärde. escapeHtml() går via innerHTML och lämnar citattecken orörda,
+ * vilket duger i textinnehåll men inte i ett attribut. Id:n är inte alltid
+ * appens egna: en importerad backupfil bestämmer dem fritt, och ett id med ett
+ * citattecken i hade annars kunnat stänga attributet och öppna ett eget. */
+const attr = (value) => escapeHtml(String(value)).replace(/"/g, '&quot;');
+
 /* Sidopanelens rader lägger sig på plats en gång per sidladdning, inte en
  * gång per omritning. */
 let harLagtSig = false;
@@ -42,7 +48,7 @@ export const renderSidebar = () => {
     const deckRow = (deck) => {
         const aktiv = S.currentViewName === 'deck' && S.currentDeckId === deck.id;
         const due = dueCount(deck);
-        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-deck-id="${deck.id}">
+        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-deck-id="${attr(deck.id)}">
             <span class="sidebar-chip" aria-hidden="true"></span>
             <span class="sidebar-item-name">${escapeHtml(deck.title)}</span>
             <span class="sidebar-count num ${due === 0 ? 'is-zero' : ''}"><span class="sr-only">förfallna: </span>${due}</span>
@@ -51,7 +57,7 @@ export const renderSidebar = () => {
 
     const notebookRow = (nb) => {
         const aktiv = S.currentViewName === 'notebook' && S.currentNotebookId === nb.id;
-        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-notebook-id="${nb.id}">
+        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-notebook-id="${attr(nb.id)}">
             <span class="sidebar-chip" aria-hidden="true"></span>
             <span class="sidebar-item-name">${escapeHtml(nb.title)}</span>
             <span class="sidebar-count num is-zero"><span class="sr-only">anteckningar: </span>${nb.notes.length}</span>
@@ -71,7 +77,7 @@ export const renderSidebar = () => {
         // En tom hylla visas bara när den är det man sökt efter. Etiketten
         // "Utan bokhylla" utan rader under sig är ingen upplysning.
         if (!decks.length && !notebooks.length) return shelfMatches ? emptyGroup(labelHtml) : '';
-        return `<div class="sidebar-group" role="group" aria-labelledby="shelf-${shelfId ?? 'root'}">
+        return `<div class="sidebar-group" role="group" aria-labelledby="shelf-${attr(shelfId ?? 'root')}">
             ${labelHtml}
             ${decks.map(deckRow).join('')}
             ${notebooks.map(notebookRow).join('')}
@@ -83,8 +89,7 @@ export const renderSidebar = () => {
     S.appData.bookshelves.forEach((shelf, idx) => {
         const aktiv = S.currentBookshelfFilterId === shelf.id && S.currentViewName === 'library';
         const label = `<button type="button" class="sidebar-group-label sidebar-shelf-item ${aktiv ? 'active' : ''}"${current(aktiv)}
-                id="shelf-${shelf.id}" draggable="false" data-shelf-idx="${idx}" data-shelf-id="${shelf.id}"
-                onclick="filterBookshelf('${shelf.id}')">
+                id="shelf-${attr(shelf.id)}" draggable="false" data-shelf-idx="${idx}" data-shelf-id="${attr(shelf.id)}">
             <span class="sidebar-drag-handle" aria-hidden="true">&#10287;</span>
             <span class="sidebar-item-name">${escapeHtml(shelf.title)}</span>
         </button>`;
@@ -130,6 +135,11 @@ export const renderSidebar = () => {
     let dragSrcIdx = null;
 
     shelfItems.forEach(el => {
+        // Hyllan filtrerar biblioteket. Id:t bärs av data-attributet i stället
+        // för av en kodsträng i markupen — det kommer från en importerad fil
+        // och ska aldrig kunna läsas som kod.
+        el.addEventListener('click', () => filterBookshelf(el.dataset.shelfId));
+
         // Toggle draggable property on mousedown, only allowing drag when using the grab handle
         el.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('sidebar-drag-handle')) {

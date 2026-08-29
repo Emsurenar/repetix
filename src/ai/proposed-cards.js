@@ -1,5 +1,6 @@
 import { aiErrorMessage, callAI } from './call.js';
 import { S } from '../core/state.js';
+import { escapeHtml } from '../core/utils.js';
 import { showToast } from '../ui/toast.js';
 
 
@@ -19,16 +20,20 @@ export const renderProposedCards = () => {
         /* Klasser i stallet for inline-stilar. Raden bar tidigare sin egen
          * lila (#7C3AED), sin egen radie och sin egen bakgrund direkt i
          * markupen — tre varden utanfor tokens som ingen kunde hitta. */
+        /* Modellens svar escapas. En textarea skyddar ingenting: `</textarea>`
+         * i svaret stänger fältet och resten av strängen blir markup. Ett kort
+         * kan komma från en webbsida användaren klistrat in, så texten är inte
+         * appens egen. */
         div.innerHTML = `
             <input type="checkbox" class="ai-card-select-checkbox" data-index="${index}" checked aria-label="Behall kortet">
             <div class="ai-card-fields">
                 <label class="ai-card-field-group">
                     <span class="label">Framsida (Fråga)</span>
-                    <textarea class="ai-card-front-input" rows="2" data-index="${index}">${card.front}</textarea>
+                    <textarea class="ai-card-front-input" rows="2" data-index="${index}">${escapeHtml(card.front)}</textarea>
                 </label>
                 <label class="ai-card-field-group">
                     <span class="label">Baksida (Svar)</span>
-                    <textarea class="ai-card-back-input" rows="2" data-index="${index}">${card.back}</textarea>
+                    <textarea class="ai-card-back-input" rows="2" data-index="${index}">${escapeHtml(card.back)}</textarea>
                 </label>
             </div>
             <div class="ai-card-actions">

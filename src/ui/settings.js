@@ -27,9 +27,10 @@ import { S } from '../core/state.js';
 import { cloudConfigured, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
 import { openAuth } from './auth.js';
 import { updateBreadcrumb } from './breadcrumb.js';
+import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
 import { renderSidebar } from './modals-wiring.js';
-import { onViewChange } from './router.js';
+import { onViewChange, switchView } from './router.js';
 
 /** Värdet i modellväljaren som betyder "jag skriver in id:t själv". */
 const CUSTOM_MODEL = '__eget__';
@@ -650,7 +651,7 @@ export function openSettings() {
 
   window.scrollTo(0, 0);
   updateBreadcrumb([
-    { label: 'Bibliotek', action: "renderLibrary();switchView('library');renderSidebar();" },
+    { label: 'Bibliotek', action: () => { renderLibrary(); switchView('library'); renderSidebar(); } },
     { label: 'Inställningar' },
   ]);
   renderSidebar();

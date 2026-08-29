@@ -12,6 +12,7 @@ import {
   ackOutbox,
   ackReviews,
   appendReviews,
+  clearAll,
   enqueue,
   getAllRows,
   getMeta,
@@ -30,11 +31,21 @@ import { getUserId, supabase } from './supabase.js';
  *  lyckas på en skakig mobiluppkoppling. */
 const BATCH = 200;
 
-/** Markör för inkrementell hämtning: allt som ändrats efter denna tidpunkt. */
-const CURSOR_KEY = 'sync:cursor';
+/**
+ * Markör för inkrementell hämtning: allt som ändrats efter denna tidpunkt.
+ *
+ * Namnrymdad per användare. En delad markör hade betytt att nästa konto på
+ * samma enhet börjar hämta från förra kontots synktid, och allt äldre än så
+ * hade aldrig kommit ner — ett halvtomt bibliotek utan felmeddelande.
+ */
+const cursorKey = (userId) => `sync:cursor:${userId}`;
+
+/** Vem den lokala spegeln tillhör. Se claimMirror. */
+const OWNER_KEY = 'sync:owner';
 
 const listeners = new Set();
 const remoteListeners = new Set();
+const wipeListeners = new Set();
 let state = { status: 'idle', pending: 0, lastSyncedAt: null, error: null };
 let running = null;
 let queued = false;
@@ -185,7 +196,8 @@ async function pushReviews() {
 // ---------------------------------------------------------------------------
 
 async function pull() {
-  const since = await getMeta(CURSOR_KEY, new Date(0).toISOString());
+  const nyckel = cursorKey(getUserId());
+  const since = await getMeta(nyckel, new Date(0).toISOString());
   let newest = since;
 
   for (const table of TABLES) {
@@ -211,7 +223,7 @@ async function pull() {
   // Markören flyttas först när hela hämtningen lyckats. Avbryts den halvvägs
   // hämtas samma intervall om nästa gång, vilket är ofarligt — men att flytta
   // markören för tidigt hade tappat rader för alltid.
-  if (newest !== since) await setMeta(CURSOR_KEY, newest);
+  if (newest !== since) await setMeta(nyckel, newest);
   return newest !== since;
 }
 
@@ -232,6 +244,38 @@ export function scheduleSync({ delayMs = 1500 } = {}) {
 }
 
 /**
+ * Vem spegeln tillhör — och att tömma den när svaret är "någon annan".
+ *
+ * Utloggningsknappen tömde spegeln, men den är bara EN av vägarna ut ur en
+ * session. Går sessionen förlorad på annat sätt — förnyelsetoken avvisas,
+ * utloggning i en annan flik, en återkallad session — öppnas bara
+ * inloggningsrutan, och nästa användare loggar in ovanpå förra användarens
+ * lokala data. Då läser molnlagret spegeln, ser ett fullt bibliotek, och
+ * visar det. Det var en fullständig läcka mellan två konton på samma dator.
+ *
+ * Kontrollen ligger här och inte i gränssnittet därför att det här är sista
+ * stället datan passerar innan den blir någons: vilken väg man än kom in
+ * genom måste man förbi den.
+ */
+async function claimMirror(userId) {
+  const agare = await getMeta(OWNER_KEY, null);
+  if (agare && agare !== userId) {
+    await clearAll();
+    try {
+      localStorage.removeItem('noji_clone_data');
+    } catch { /* privat läge: spegeln är ändå tömd */ }
+    for (const fn of wipeListeners) fn();
+  }
+  if (agare !== userId) await setMeta(OWNER_KEY, userId);
+}
+
+/** Sagt till när spegeln tömts för att den tillhörde någon annan. */
+export function onMirrorWiped(fn) {
+  wipeListeners.add(fn);
+  return () => wipeListeners.delete(fn);
+}
+
+/**
  * Kor en synkomgang: skickar utkorgen, laddar upp repetitioner och hamtar
  * serverns andringar. Flera samtidiga anrop delar samma korning.
  */
@@ -247,6 +291,9 @@ export function sync() {
   running = (async () => {
     setState({ status: 'syncing', error: null });
     try {
+      // Före allt annat: är spegeln vår? Att skicka utkorgen först hade
+      // laddat upp förra användarens köade ändringar under det nya kontot.
+      await claimMirror(getUserId());
       await pushOutbox();
       await pushReviews();
       const changed = await pull();

@@ -23,15 +23,24 @@ export const QUALITY = 0.82;
  * Skiljer en gammal base64-post från en ny storage_path. Detta är hela
  * åtskillnaden appen behöver: migreringen kan stå halvvägs, så båda formerna
  * förekommer i samma `backImages`-array.
+ *
+ * Kravet på `image/` är en spärr, inte en formalitet: svaret avgör vad som
+ * sätts rakt in i `img.src`, och en importerad backupfil eller ett AI-svar kan
+ * bära vilken data-URL som helst. Ett prefixtest på bara `data:` hade släppt
+ * igenom `data:text/html`.
  */
-export const isDataUrl = (value) => typeof value === 'string' && value.startsWith('data:');
+export const isDataUrl = (value) => typeof value === 'string' && /^data:image\//i.test(value);
 
 /**
  * Delar upp en data-URL i mime-typ och nyttolast.
  * Returnerar null för allt som inte är en data-URL.
+ *
+ * Prövar prefixet själv i stället för att gå via isDataUrl: den här funktionen
+ * beskriver formen på en data-URL, medan isDataUrl avgör om innehållet får
+ * visas. Den skillnaden ska inte smälta ihop.
  */
 export function parseDataUrl(dataUrl) {
-  if (!isDataUrl(dataUrl)) return null;
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return null;
   const komma = dataUrl.indexOf(',');
   if (komma < 0) return null;
   const huvud = dataUrl.slice('data:'.length, komma);

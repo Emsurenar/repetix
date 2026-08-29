@@ -1,5 +1,14 @@
 import { S } from './state.js';
 import { loadData } from './storage.js';
+import {
+    collectBackupImages,
+    collectCloudImagePaths,
+    formatBytes,
+    inlineBackupImages,
+    writeWithinQuota,
+} from './backup-images.js';
+import { imageCloudReady, resolveMany } from './image-store.js';
+import { cloudConfigured, onAuthChange } from './supabase.js';
 import { renderDecks } from '../ui/deck.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
 import { showConfirmModal } from '../ui/modals.js';
@@ -9,9 +18,19 @@ import { showToast } from '../ui/toast.js';
 // --- BACKUP / DATA SAFETY ---
 // Everything the app persists lives under these three keys. A backup file
 // captures the raw stored strings verbatim so a restore is byte-for-byte.
+//
+// Kortbilderna ligger inte längre i de strängarna. Efter bildmigreringen bär
+// kortet en sökväg till molnlagringen, så en fil med enbart de här nycklarna är
+// en fil med pekare: raderas kontot eller hinken är bilderna borta. Därför
+// hämtas de hem vid export och läggs i ett eget fält bredvid — se
+// backup-images.js — och sökvägarna lämnas orörda i strängen ovan, så att
+// kravet "byte-for-byte" och en äldre importör fortfarande håller.
 const BACKUP_KEYS = ['noji_clone_data', 'noji_dagens_mapp', 'pg_records'];
 const BACKUP_APP_ID = 'noji-spaced-rep';
-const BACKUP_VERSION = 1;
+// Version 2 bär bilddata bredvid sökvägarna. Sökvägarna står kvar orörda i
+// noji_clone_data, så en importör som bara känner version 1 läser samma sträng
+// som förut i stället för att avvisa filen.
+const BACKUP_VERSION = 2;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Count real flashcards (notes excluded) in an appData-shaped object.
@@ -38,7 +57,17 @@ const backupFilename = () => {
     return `spaced-repetition-backup-${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}.json`;
 };
 
-const buildBackupObject = () => {
+// Vad filen faktiskt saknar räknas mot biblioteket som skrivs ut, inte mot
+// listan hämtningen började med: ett kort kan ha fått eller tappat en bild
+// medan hämtningen pågick, och det är den utskrivna datan som ska stämma.
+const missingInFile = (bilder) => {
+    const skal = new Map(bilder.missing.map(m => [m.path, m.reason]));
+    return collectCloudImagePaths(S.appData)
+        .filter(p => !(p in bilder.images))
+        .map(p => ({ path: p, reason: skal.get(p) ?? 'Bilden tillkom medan exporten pågick.' }));
+};
+
+const buildBackupObject = (bilder, saknas) => {
     const data = {};
     BACKUP_KEYS.forEach(k => {
         const v = localStorage.getItem(k);
@@ -49,6 +78,14 @@ const buildBackupObject = () => {
         version: BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         cardCount: countCards(S.appData),
+        // Filen säger själv om den är självbärande. Utan flaggan har den som
+        // öppnar en gammal fil om ett år ingen möjlighet att se skillnad på
+        // "inga bilder" och "bilderna kom aldrig med".
+        imagesEmbedded: saknas.length === 0,
+        imageCount: Object.keys(bilder.images).length,
+        imageBytes: bilder.bytes,
+        imagesMissing: saknas,
+        images: bilder.images,
         data
     };
 };
@@ -72,40 +109,152 @@ const backupSignature = () => {
     return `${countCards(S.appData)}:${totalLen}`;
 };
 
-const markBackupDone = () => {
+const markBackupDone = (saknade = 0) => {
     try {
         localStorage.setItem('noji_backup_last_at', String(Date.now()));
         localStorage.setItem('noji_backup_last_sig', backupSignature());
+        localStorage.setItem('noji_backup_last_missing', String(saknade));
     } catch (e) { /* ignore */ }
 };
 
-export const exportBackup = (opts = {}) => {
+// Sant medan en export pågår. Både knapparna och statusraden läser den: en
+// hämtning av bilder tar tid, och under tiden får appen inte se ut som om
+// ingenting händer eller som om en ny export kan startas ovanpå den första.
+let exportPagar = false;
+
+const setStatusText = (text) => {
+    const el = document.getElementById('backup-status');
+    if (el) el.textContent = text;
+};
+
+const setDataButtonsDisabled = (avstangda) => {
+    ['btn-export-backup', 'btn-import-backup'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = avstangda;
+    });
+};
+
+// Väntar in inloggningen innan bilderna hämtas.
+//
+// initCloud() startar EFTER initApp(), så vid en automatisk backup vid uppstart
+// finns ingen session ännu. Utan väntan hade varje molnbild räknats som omöjlig
+// att hämta, och den automatiska kopian blivit exakt den pekarfil som hela det
+// här arbetet handlar om att bli av med.
+const LOGIN_TIMEOUT_MS = 12000;
+
+const waitForLogin = (timeoutMs = LOGIN_TIMEOUT_MS) => new Promise((resolve) => {
+    if (!cloudConfigured || imageCloudReady()) { resolve(); return; }
+    let klar = false;
+    let sluta = null;
+    let timer = null;
+    const avsluta = () => {
+        if (klar) return;
+        klar = true;
+        if (timer) clearTimeout(timer);
+        if (sluta) sluta();
+        resolve();
+    };
+    timer = setTimeout(avsluta, timeoutMs);
+    // onAuthChange anropar lyssnaren direkt med nuvarande värde, alltså innan
+    // `sluta` fått sitt värde. Därför avslutas prenumerationen även här nedanför.
+    sluta = onAuthChange((user) => { if (user) avsluta(); });
+    if (klar) sluta();
+});
+
+// Hämtar hem bilderna som ska bäddas in, eller null om användaren avbryter.
+const gatherImagesForExport = async (opts) => {
+    const sokvagar = collectCloudImagePaths(S.appData);
+    if (sokvagar.length === 0) return { images: {}, bytes: 0, total: 0, missing: [] };
+
+    setStatusText(`Hämtar bilder — 0 av ${sokvagar.length}`);
+    const bilder = await collectBackupImages(S.appData, {
+        resolve: resolveMany,
+        fetch: (url) => fetch(url),
+        onProgress: ({ hanterade, totalt }) => setStatusText(`Hämtar bilder — ${hanterade} av ${totalt}`),
+    });
+
+    if (bilder.missing.length === 0) return bilder;
+
+    // Ett tyst läge har ingen att fråga — den automatiska kopian körs vid
+    // uppstart och säkerhetskopian före en import är redan påbörjad. Där skrivs
+    // filen ändå, med bristen bokförd i den och ett besked på skärmen.
+    if (opts.silent) return bilder;
+
+    const ok = await showConfirmModal(
+        'Bilder kunde inte hämtas',
+        `${bilder.missing.length} av ${bilder.total} bilder gick inte att hämta. Exportfilen blir ofullständig — de bilderna finns bara kvar i molnet.`,
+        'Exportera ändå',
+        true
+    );
+    return ok ? bilder : null;
+};
+
+/**
+ * Skriver en exportfil med allt som behövs för att återställa utan nät och
+ * utan konto: appdatan, och bilderna hämtade hem som data-URL:er.
+ *
+ * @returns {Promise<{imageCount:number, missing:number, bytes:number}|null>}
+ *   null när exporten avbröts eller misslyckades.
+ */
+export const exportBackup = async (opts = {}) => {
+    if (exportPagar) {
+        if (!opts.silent) showToast('En export pågår redan.');
+        return null;
+    }
+    exportPagar = true;
+    setDataButtonsDisabled(true);
     try {
-        downloadJson(buildBackupObject(), backupFilename());
-        markBackupDone();
-        if (!opts.silent) showToast('Backup exporterad ✔');
-        return true;
+        const bilder = await gatherImagesForExport(opts);
+        if (!bilder) return null;
+
+        const saknas = missingInFile(bilder);
+        downloadJson(buildBackupObject(bilder, saknas), backupFilename());
+        markBackupDone(saknas.length);
+
+        const antal = Object.keys(bilder.images).length;
+        if (!opts.silent) {
+            if (saknas.length > 0) {
+                showToast(`Backup exporterad — ${saknas.length} av ${antal + saknas.length} bilder saknas i filen.`);
+            } else if (antal > 0) {
+                showToast(`Backup exporterad — ${antal} bilder, ${formatBytes(bilder.bytes)} ✔`);
+            } else {
+                showToast('Backup exporterad ✔');
+            }
+        }
+        return { imageCount: antal, missing: saknas.length, bytes: bilder.bytes };
     } catch (e) {
         console.error('Export failed', e);
         showToast('Kunde inte exportera backup.');
-        return false;
+        return null;
+    } finally {
+        // Även en misslyckad hämtning ska lämna knapparna klickbara och raden
+        // med sin vanliga text. Ett halvläge här är ett läge man inte tar sig ur.
+        exportPagar = false;
+        setDataButtonsDisabled(false);
+        renderBackupStatus();
     }
 };
 
 // Download a fresh backup automatically if the data changed AND it's been at
 // least a day since the last one. Skipped when there's nothing to protect or a
 // load failed. A file on disk is the only backup that survives clearing site data.
-export const maybeAutoBackup = () => {
+export const maybeAutoBackup = async () => {
     try {
         if (S.dataLoadBlocked || isEffectivelyEmpty(S.appData)) return;
         const lastAt = parseInt(localStorage.getItem('noji_backup_last_at') || '0', 10);
         const lastSig = localStorage.getItem('noji_backup_last_sig') || '';
         const changed = backupSignature() !== lastSig;
         const stale = (Date.now() - lastAt) >= DAY_MS;
-        if (changed && stale) {
-            if (exportBackup({ silent: true })) {
-                showToast('Automatisk backup nedladdad ✔');
-            }
+        if (!(changed && stale)) return;
+
+        if (collectCloudImagePaths(S.appData).length > 0) await waitForLogin();
+
+        const resultat = await exportBackup({ silent: true });
+        if (!resultat) return;
+        if (resultat.missing > 0) {
+            showToast(`Automatisk backup nedladdad — ${resultat.missing} bilder kunde inte hämtas.`);
+        } else {
+            showToast('Automatisk backup nedladdad ✔');
         }
     } catch (e) { console.error('auto-backup failed', e); }
 };
@@ -113,6 +262,9 @@ export const maybeAutoBackup = () => {
 export const renderBackupStatus = () => {
     const el = document.getElementById('backup-status');
     if (!el) return;
+    // Under en pågående export bär raden hämtningens framsteg. init.js ritar om
+    // statusen direkt efter klicket, alltså mitt i hämtningen.
+    if (exportPagar) return;
     const lastAt = parseInt(localStorage.getItem('noji_backup_last_at') || '0', 10);
     if (!lastAt) {
         // Ett konstaterande, inte en uppmaning. Knappen bredvid heter redan
@@ -122,13 +274,18 @@ export const renderBackupStatus = () => {
     }
     const days = Math.floor((Date.now() - lastAt) / DAY_MS);
     const label = days <= 0 ? 'idag' : (days === 1 ? 'igår' : `${days} dagar sedan`);
-    el.textContent = `Senaste backup: ${label}`;
+    const missing = parseInt(localStorage.getItem('noji_backup_last_missing') || '0', 10);
+    el.textContent = missing > 0
+        ? `Senaste backup: ${label} — ${missing} bilder saknas i filen`
+        : `Senaste backup: ${label}`;
 };
 
 // Restore from a user-picked backup file. Accepts our wrapper format or a raw
 // noji_clone_data export. Always downloads the current state first, confirms via
 // the app modal, then replaces all three keys.
 export const importBackupFromFile = async (file) => {
+    if (exportPagar) { showToast('Vänta tills exporten är klar.'); return; }
+
     let text;
     try { text = await file.text(); }
     catch (e) { showToast('Kunde inte läsa filen.'); return; }
@@ -138,8 +295,12 @@ export const importBackupFromFile = async (file) => {
     catch (e) { showToast('Ogiltig backup-fil (inte JSON).'); return; }
 
     let data = null;
+    let images = {};
     if (obj && obj.data && typeof obj.data === 'object' && obj.data.noji_clone_data) {
         data = obj.data;                                   // our wrapper format
+        // Bilddatan ligger bredvid appdatan, aldrig inuti den. En fil från före
+        // version 2 har inget här och läses precis som förut.
+        if (obj.images && typeof obj.images === 'object') images = obj.images;
     } else if (obj && Array.isArray(obj.decks)) {
         data = { noji_clone_data: JSON.stringify(obj) };   // raw appData export
     }
@@ -156,24 +317,74 @@ export const importBackupFromFile = async (file) => {
         return;
     }
 
+    // Bilderna läggs tillbaka i korten innan något skrivs. Efter bytet är de
+    // base64 i localStorage igen, precis som före migreringen, och de kräver
+    // varken konto eller nät för att visas. Nästa inloggning flyttar upp dem på
+    // nytt — under den inloggades egen sökväg, vilket är det enda som fungerar
+    // när filen kommer från ett annat konto.
+    const { ersatta, kvar, inlagda } = inlineBackupImages(parsed, images);
+
     const incomingCards = countCards(parsed);
     const currentCards = countCards(S.appData);
+    const bildrad = ersatta > 0 ? ` ${ersatta} bilder följer med filen.` : '';
+    // En fil utan bilddata är inte fel, men den är ofullständig — och det ska
+    // sägas före ersättningen, inte upptäckas när ett kort visar en tom ruta.
+    const saknasrad = kvar > 0
+        ? ` ${kvar} bilder saknar bilddata i filen och går bara att visa med konto och uppkoppling.`
+        : '';
     const ok = await showConfirmModal(
         'Importera backup',
-        `Nuvarande: ${currentCards} kort → Import: ${incomingCards} kort. Detta ersätter allt nuvarande innehåll. En säkerhetskopia av nuvarande data laddas ner först.`,
+        `Nuvarande: ${currentCards} kort → Import: ${incomingCards} kort. Detta ersätter allt nuvarande innehåll. En säkerhetskopia av nuvarande data laddas ner först.${bildrad}${saknasrad}`,
         'Ersätt allt',
         true
     );
     if (!ok) return;
 
-    exportBackup({ silent: true });                        // safety net for current data
+    // Inväntas: säkerhetsnätet hämtar numera hem bilder, och en ersättning får
+    // inte hinna börja innan filen med det som ersätts ligger på disk.
+    const natet = await exportBackup({ silent: true });
+    if (!natet) {
+        showToast('Säkerhetskopian av nuvarande data kunde inte laddas ner.');
+    } else if (natet.missing > 0) {
+        showToast(`Säkerhetskopian saknar ${natet.missing} bilder som inte gick att hämta.`);
+    }
 
+    // De två små nycklarna först. Bilderna fyller lagringen ända till kanten,
+    // och det får inte vara de här två kilobytena som blir kvar utanför. Går
+    // biblioteket sedan inte in alls läggs de tillbaka som de var.
+    const smaNycklar = BACKUP_KEYS.filter(k => k !== 'noji_clone_data');
+    const foreImport = new Map(smaNycklar.map(k => [k, localStorage.getItem(k)]));
+    const aterstallSma = () => {
+        foreImport.forEach((v, k) => {
+            if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+        });
+    };
+
+    const arKvotfel = (e) => Boolean(e) && (e.name === 'QuotaExceededError' || e.code === 22);
+
+    let aterstallda = ersatta;
     try {
-        BACKUP_KEYS.forEach(k => {
+        smaNycklar.forEach(k => {
             if (data[k] !== undefined && data[k] !== null) localStorage.setItem(k, data[k]);
         });
+        if (inlagda.length === 0) {
+            // Inget att bädda in: strängen ur filen skrivs som den är, byte för byte.
+            localStorage.setItem('noji_clone_data', data.noji_clone_data);
+        } else {
+            const { behallna, utelamnade } = writeWithinQuota(
+                inlagda,
+                (text) => localStorage.setItem('noji_clone_data', text),
+                () => JSON.stringify(parsed),
+                arKvotfel
+            );
+            aterstallda = behallna;
+            if (utelamnade > 0) {
+                showToast(`Lagringen räckte inte till ${utelamnade} av bilderna. De ligger kvar i filen.`);
+            }
+        }
     } catch (e) {
         console.error('Import write failed', e);
+        aterstallSma();
         showToast('Kunde inte spara importerad data (lagringsfel).');
         return;
     }
@@ -182,9 +393,10 @@ export const importBackupFromFile = async (file) => {
     loadData();
     renderDecks();
     renderSidebar();
-    markBackupDone();
+    markBackupDone(kvar);
     renderBackupStatus();
-    showToast(`Import klar — ${countCards(S.appData)} kort återställda ✔`);
+    const bilder = aterstallda > 0 ? ` och ${aterstallda} bilder` : '';
+    showToast(`Import klar — ${countCards(S.appData)} kort${bilder} återställda ✔`);
 };
 
 // Fast regex-based HTML tag stripping

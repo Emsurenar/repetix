@@ -1,7 +1,9 @@
 import { S } from '../core/state.js';
 import { updateBreadcrumb } from './breadcrumb.js';
 import { views } from './dom.js';
+import { renderLibrary } from './library.js';
 import { renderSidebar } from './modals-wiring.js';
+import { openDeck, openNotebook } from './deck.js';
 import { renderPlayground } from './playground.js';
 
 
@@ -63,26 +65,31 @@ export const switchView = (viewName, sectionId = null) => {
     for (const fn of viewListeners) fn(viewName);
 
     // Update breadcrumb
-    const lib = { label: 'Bibliotek', action: "renderLibrary();switchView('library');renderSidebar();" };
+    /* Handlingen är en funktion, inte en kodsträng: id:t bakas in här och kan
+     * därmed aldrig läsas som kod. Det fångas i en lokal konstant så att
+     * smulan pekar på den lek man stod i när den ritades, precis som förut. */
+    const lib = { label: 'Bibliotek', action: () => { renderLibrary(); switchView('library'); renderSidebar(); } };
+    const deckId = S.currentDeckId;
+    const notebookId = S.currentNotebookId;
     if (viewName === 'library') {
         updateBreadcrumb([{ label: 'Bibliotek' }]);
     } else if (viewName === 'deck') {
         const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
         const section = sectionId ? deck.sections?.find(s => s.id === sectionId) : null;
         if (section) {
-            updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: `openDeck('${S.currentDeckId}')` }, { label: section.title }]);
+            updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: () => openDeck(deckId) }, { label: section.title }]);
         } else {
             updateBreadcrumb([lib, { label: deck?.title || 'Kortlek' }]);
         }
     } else if (viewName === 'addCard') {
         const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-        updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: `openDeck('${S.currentDeckId}')` }, { label: 'Nytt kort' }]);
+        updateBreadcrumb([lib, { label: deck?.title || 'Kortlek', action: () => openDeck(deckId) }, { label: 'Nytt kort' }]);
     } else if (viewName === 'notebook') {
         const nb = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
         updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock' }]);
     } else if (viewName === 'addNote') {
         const nb = S.appData.notebooks.find(n => n.id === S.currentNotebookId);
-        updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock', action: `openNotebook('${S.currentNotebookId}')` }, { label: 'Anteckning' }]);
+        updateBreadcrumb([lib, { label: nb?.title || 'Anteckningsblock', action: () => openNotebook(notebookId) }, { label: 'Anteckning' }]);
     } else if (viewName === 'study') {
         // Repetitionen bar sin egen toppslist med kortlek, mapp och kolangd.
         // En brodsmula ovanfor den hade sagt samma sak en gang till.

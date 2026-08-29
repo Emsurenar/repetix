@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { compressDataUrl, isDataUrl } from '../core/image-compress.js';
 import { imageCloudReady, resolveMany, uploadImage } from '../core/image-store.js';
@@ -154,6 +155,16 @@ const openLightbox = (src) => {
     document.body.appendChild(lb);
 };
 
+/**
+ * Vad saneringen får släppa igenom.
+ *
+ * MathML och SVG står med vid sidan av html därför att det är formen en
+ * renderad formel har — KaTeX bygger båda. Idag renderas matematiken efter det
+ * här steget, men den dagen redan renderad text tar vägen hit ska saneringen
+ * inte vara det som tömmer formeln.
+ */
+const SANERING = { USE_PROFILES: { html: true, mathMl: true, svg: true } };
+
 // Protect LaTeX blocks from Marked.js mangling backslashes
 export const safeParse = (text) => {
     const placeholders = [];
@@ -180,9 +191,16 @@ export const safeParse = (text) => {
     let html = marked.parse(safe);
     // Restore LaTeX blocks
     placeholders.forEach((original, i) => {
-        html = html.replace(`%%LATEX_${i}%%`, original);
+        /* Funktionsform, inte sträng: en sträng som ersättning tolkar sina
+         * dollartecken som mönsterreferenser. `$$a+b$$` blev `$a+b$` — varje
+         * blockformel kollapsade till inline-matematik — och ett `$&` i
+         * formeln lade tillbaka platshållaren i texten. */
+        html = html.replace(`%%LATEX_${i}%%`, () => original);
     });
-    return html;
+    /* Sanering allra sist. Formlerna ovan är råtext som marked aldrig såg, och
+     * hade den här raden legat före återställningen vore just de oskyddade —
+     * `$$<img src=x onerror=...>$$` är en egen väg in, oberoende av markdown. */
+    return DOMPurify.sanitize(html, SANERING);
 };
 
 export const fixLatexInCards = (cards) => {
