@@ -373,3 +373,8 @@ consider replacing them with your own.
 
 Bundled dependencies keep their own licenses: `marked` and KaTeX are MIT,
 DOMPurify is dual-licensed under MPL-2.0 or Apache-2.0.
+
+The four provider marks in the settings view come from
+[Simple Icons](https://simpleicons.org) (CC0). The brands themselves remain
+trademarks of Anthropic, OpenAI, Google and OpenRouter, and are used here only
+to identify which provider a setting applies to.
