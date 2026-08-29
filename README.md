@@ -90,6 +90,11 @@ user from their Supabase token and decrypts the key inside the function.
 Anthropic (default `claude-opus-5`), OpenAI, Google and OpenRouter. The model
 list is a convenience — any model id can be typed in by hand.
 
+One known limitation: an Anthropic key that is *identity-linked* also needs an
+`anthropic-workspace-id` header naming the workspace the request acts in, and
+the app has no field for it. Such a key is rejected with a 400 whose message
+says so. Use a key created inside a workspace instead.
+
 In code, every AI call goes through one function, `callAI()` in
 `src/ai/call.js`. Never add a direct provider call elsewhere. The endpoint
 contract is [`docs/api-contract.md`](docs/api-contract.md), and it is meant to

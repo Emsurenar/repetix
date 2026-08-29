@@ -26,9 +26,18 @@ describe('felmeddelande', () => {
     expect(text).toContain('429');
   });
 
-  it('lägger uppmaningen sist, efter vad som hände', () => {
-    const text = felmeddelande('provider_error', 'Ingen kontakt med leverantören.');
-    expect(text).toBe('Ingen kontakt med leverantören. Prova igen om en liten stund.');
+  /* Uppmaningen "prova igen om en liten stund" stod tidigare efter varje
+   * leverantörsfel. Den var direkt felaktig för det fel som tog längst tid att
+   * hitta — ett 400 som krävde ett workspace-id — eftersom den begäran skulle
+   * misslyckas likadant hur många gånger som helst. Har servern förklarat sig
+   * får den tala till punkt. */
+  it('hänger inte på ett retförslag när servern förklarat sig', () => {
+    const text = felmeddelande(
+      'provider_error',
+      'Leverantören svarade med fel (400) när nyckeln skulle kontrolleras: anthropic-workspace-id is required.'
+    );
+    expect(text).toContain('workspace-id');
+    expect(text).not.toContain('Prova igen');
   });
 
   it('faller tillbaka på en hel mening när servern inte sa något', () => {

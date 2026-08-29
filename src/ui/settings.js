@@ -89,14 +89,24 @@ function felText(code) {
  * Serverns beskrivning står först, eftersom den säger vad som hände.
  * Uppmaningen står sist, eftersom den säger vad man gör åt det.
  */
-const UPPMANING = {
-  provider_error: 'Prova igen om en liten stund.',
-  bad_request: 'Kontrollera leverantör och modell.',
-};
+const SERVERN_VET_MER = new Set(['provider_error', 'bad_request']);
 
 export function felmeddelande(code, serverText) {
   const servern = typeof serverText === 'string' ? serverText.trim() : '';
-  if (servern && UPPMANING[code]) return `${servern} ${UPPMANING[code]}`;
+
+  /* När servern vet mer får den tala till punkt, utan påhängd uppmaning.
+   *
+   * Här stod tidigare "Prova igen om en liten stund". Det rådet gäller ett
+   * avbrott eller en överbelastad leverantör — det gällde inte det fel som tog
+   * längst tid att hitta: ett 400 där Anthropic förklarade att nyckeln krävde
+   * ett workspace-id. Den begäran hade misslyckats likadant hur många gånger
+   * som helst, och rådet skickade användaren i cirklar.
+   *
+   * För koder där klienten vet mer om SAMMANHANGET — vad användaren just
+   * försökte göra — gäller fortfarande klientens text: "din inloggning har
+   * gått ut" är mer användbart än serverns "din session gäller inte längre". */
+  if (servern && SERVERN_VET_MER.has(code)) return servern;
+
   // Tom sträng är inte nullish och skulle passera ?? som ett giltigt
   // meddelande — alltså en ruta med ingenting i.
   return felText(code) || servern || 'Något gick fel på servern.';
