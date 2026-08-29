@@ -32,13 +32,21 @@ const renderSuggestionCard = (card, container) => {
             <div class="deck-ai-suggestion-back">${safeParse(card.back)}</div>
             ${card.reasoning ? `<div style="font-size:0.75rem;color:var(--text-secondary);opacity:0.7;font-style:italic;margin-top:0.15rem;">${escapeHtml(card.reasoning)}</div>` : ''}
             <div class="deck-ai-suggestion-actions">
-                <button class="btn btn-add-suggestion" onclick="addSuggestedCard(this)">+ Lägg till</button>
-                <button class="btn btn-skip-suggestion" onclick="refreshSuggestedCard()">↻ Nytt förslag</button>
+                <button type="button" class="btn btn-add-suggestion" data-forslag="lagg-till">+ Lägg till</button>
+                <button type="button" class="btn btn-skip-suggestion" data-forslag="nytt">↻ Nytt förslag</button>
             </div>
         </div>
     `;
     renderLatex(container);
     container._pendingCard = card;
+
+    /* Handlingarna kopplas här i stället för att bo i onclick-attribut. Ett
+     * attribut som körs som kod går inte att sanera och hindrar en CSP med
+     * script-src 'self'; funktionerna finns dessutom redan. */
+    container.querySelector('[data-forslag="lagg-till"]')
+        ?.addEventListener('click', (e) => window.addSuggestedCard(e.currentTarget));
+    container.querySelector('[data-forslag="nytt"]')
+        ?.addEventListener('click', () => window.refreshSuggestedCard());
 };
 
 const fetchSuggestion = async (deck, info, signal) => {

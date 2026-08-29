@@ -4,6 +4,7 @@ import { getLocalDateString } from '../domain/stats.js';
 import { uppskattadTid } from '../domain/estimate.js';
 import { ticksHtml } from './ticks.js';
 import { applyWash } from './wash.js';
+import { openDeck, studyDagensMapp } from './deck.js';
 
 
 // --- DAGENS MAPP (DAILY RECOMMENDATION) ---
@@ -74,6 +75,22 @@ const getDagensMapp = () => {
     return chosen;
 };
 
+/* Knapparna bar tidigare kortlekens och mappens id i ett onclick-attribut.
+ * Ett id kan komma från en importerad backupfil och kunde alltså bryta ut ur
+ * citattecknen och köra egen kod. Här får de i stället sitt id ur stängningen
+ * över `dagens`, och en sträng behöver aldrig bli kod. */
+function kopplaHandlingar(container, dagens) {
+    for (const knapp of container.querySelectorAll('[data-mapp-handling]')) {
+        knapp.addEventListener('click', () => {
+            if (knapp.dataset.mappHandling === 'repetera') {
+                studyDagensMapp(dagens.deckId, dagens.sectionId);
+            } else {
+                openDeck(dagens.deckId, dagens.sectionId);
+            }
+        });
+    }
+}
+
 export const renderDagensMapp = () => {
     const container = document.getElementById('dagens-mapp-container');
     if (!container) return;
@@ -122,11 +139,12 @@ export const renderDagensMapp = () => {
                     <p class="today-folder-meta num">${escapeHtml(dagens.sectionTitle)} · ${totalCards} kort</p>
                 </div>
                 <div class="today-folder-actions">
-                    <button type="button" class="btn text" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Öppna mappen</button>
+                    <button type="button" class="btn text" data-mapp-handling="oppna">Öppna mappen</button>
                 </div>
             </section>
         `;
         applyWash(container.querySelector('.today-folder'), dagens.deckId);
+        kopplaHandlingar(container, dagens);
         return;
     }
 
@@ -142,12 +160,13 @@ export const renderDagensMapp = () => {
                 </p>
             </div>
             <div class="today-folder-actions">
-                <button type="button" class="btn text" onclick="openDeck('${dagens.deckId}', '${dagens.sectionId}')">Gå till mappen</button>
-                <button type="button" class="btn primary lg" onclick="studyDagensMapp('${dagens.deckId}', '${dagens.sectionId}')">Repetera mappen</button>
+                <button type="button" class="btn text" data-mapp-handling="oppna">Gå till mappen</button>
+                <button type="button" class="btn primary lg" data-mapp-handling="repetera">Repetera mappen</button>
             </div>
         </section>
     `;
     // Panelen pekar på en kortlek och bär därför den lekens bild — samma som
     // man möter när man går in i den.
     applyWash(container.querySelector('.today-folder'), dagens.deckId);
+    kopplaHandlingar(container, dagens);
 };

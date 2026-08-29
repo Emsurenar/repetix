@@ -338,7 +338,10 @@ export const renderLibrary = () => {
     if (shelfId) {
         const backBtn = document.createElement('div');
         backBtn.className = 'library-filter-row';
-        backBtn.innerHTML = `<button type="button" class="chip" onclick="filterBookshelf(null)">← Visa alla</button>`;
+        backBtn.innerHTML = '<button type="button" class="chip">← Visa alla</button>';
+        // Samma skäl som överallt annars: ett onclick-attribut är kod i en
+        // sträng, och det hindrar en CSP med script-src 'self'.
+        backBtn.querySelector('button').addEventListener('click', () => window.filterBookshelf(null));
         deckList.appendChild(backBtn);
     }
 
