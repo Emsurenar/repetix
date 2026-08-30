@@ -1,6 +1,6 @@
 import { filterBookshelf } from '../ui/modals-wiring.js';
 import { deleteSection } from '../ai/client.js';
-import { exportBackup, importBackupFromFile, maybeAutoBackup, renderBackupStatus } from '../core/backup.js';
+import { exportBackup, importBackupFromFile, renderBackupStatus } from '../core/backup.js';
 import { S } from '../core/state.js';
 import { showToast } from '../ui/toast.js';
 import { loadData, saveData } from '../core/storage.js';
@@ -49,7 +49,8 @@ const initApp = () => {
     }, true);
 
         // Knapparna är redan kopplade ovanför; här behövs bara tillståndet.
-        maybeAutoBackup();
+        // Ingen automatisk kopia: uppstarten laddade tidigare ner hela
+        // biblioteket som en fil, innan användaren ens loggat in.
         renderBackupStatus();
 
     // Global click handler for closing modals
