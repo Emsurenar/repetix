@@ -697,9 +697,13 @@ textarea:disabled {
 }
 
 /* Påbörjade kort dämpas i stället för att få en egen kulör: positionen bär
- * redan hur långt man kommit, och de två andelarna ska ändå gå att skilja. */
+ * redan hur långt man kommit, och de två andelarna ska ändå gå att skilja.
+ *
+ * 35 % och inte 55: vid den senare blev en knappt påbörjad lek — som bara har
+ * en påbörjad andel och ingen mogen — en nästan vit stump, alltså lika vag som
+ * markören var innan den fick färg alls. */
 .deck-card .progress-fill-soft {
-  background: color-mix(in srgb, var(--surface-1) 55%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 35%, transparent);
 }
 
 /* Resten av spåret täcks från höger, så att gradienten bara syns så långt
