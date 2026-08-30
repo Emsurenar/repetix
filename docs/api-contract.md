@@ -44,7 +44,26 @@ Utför ett AI-anrop med den inloggade användarens nyckel.
   // vet varför anropet görs.
   "feature": "topic"
 }
+```
 
+Två valfria fält styr kostnaden. **Bara Anthropic-adaptern läser dem**; de
+övriga tre ignorerar dem tyst, så en klient behöver inte veta vilken leverantör
+användaren valt.
+
+```jsonc
+{
+  // Cachar systemprompten hos leverantören i en timme. Sätts när samma långa
+  // text ska frågas om flera gånger — en cachad läsning kostar en tiondel.
+  "cache": true,
+
+  // Skär ned modellens tänkande, som debiteras som utdata. Enda tillåtna
+  // värdet är "low". Skickas ALDRIG till claude-haiku-4-5, som avvisar
+  // parametern; servern utelämnar den då själv.
+  "effort": "low"
+}
+```
+
+```jsonc
 // Svar 200
 {
   "text": "...",
