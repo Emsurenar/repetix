@@ -39,7 +39,8 @@ finns för.
 
 ## Datamodell
 
-Migration `0006_ai_usage.sql`. Tabellen är **append-only**, byggd som
+Migration `0007_ai_usage.sql` (numret blev 0007 sedan 0006 tagits av en
+parallell migration). Tabellen är **append-only**, byggd som
 `reviews`: select och insert, aldrig update eller delete. Ingen
 `updated_at`-trigger och ingen `deleted_at` — en bokföringsrad ändras inte och
 raderas inte.
@@ -232,7 +233,7 @@ Panelen och statusraden verifieras i webbläsaren, som övriga vyer.
 
 ## Etapper
 
-1. Migration `0006`, körd och verifierad.
+1. Migration `0007`, körd och verifierad.
 2. Kontraktet i `docs/api-contract.md`.
 3. `extractUsage` per adapter, med tester.
 4. `feature` genom `callAI()` och de sju anropsställena.

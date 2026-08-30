@@ -36,6 +36,7 @@ export const fetchAiSort = async (deck) => {
             user: `Här är korten att sortera:\n${JSON.stringify(cardSummaries)}`,
             maxTokens: 4000,
             json: true,
+            feature: 'sort',
         });
 
         // Extraktionen behålls trots json: true som skydd mot en leverantör som

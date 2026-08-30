@@ -37,7 +37,7 @@ export function saknasForFordjupning({ front, back }) {
  * Bygger anropet. Anropas först när saknasForFordjupning gett null.
  *
  * @param {{front: string, back: string, deckContext?: string}} kort
- * @returns {{system: string, user: string, maxTokens: number}}
+ * @returns {{system: string, user: string, maxTokens: number, feature: string}}
  */
 export function fordjupningsPrompt({ front, back, deckContext = '' }) {
   const system = [
@@ -56,5 +56,9 @@ export function fordjupningsPrompt({ front, back, deckContext = '' }) {
 
   const user = `Fråga: ${text(front)}\nSvar: ${text(back)}${deckContext}`;
 
-  return { system, user, maxTokens: MAX_TOKENS };
+  /* Fördjupningen är en egen post i användningsmätaren, inte samma som
+   * förklaringen i card-ai.js: den ena sparas på kortet, den andra visas en
+   * gång under en repetition. Slogs de ihop gick det inte att se vilken av dem
+   * som kostade. */
+  return { system, user, maxTokens: MAX_TOKENS, feature: 'fordjupning' };
 }

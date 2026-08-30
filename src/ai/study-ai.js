@@ -16,6 +16,7 @@ export const fetchStudyAi = async (card, question) => {
             system: 'Du är en tutor. Svara kort och pedagogiskt på elevens fråga utifrån flashcard-kontexten. Håll dig till ämnet. Inga långdragna introduktioner, svara rakt på sak!',
             user: instructions,
             maxTokens: 600,
+            feature: 'tutor',
         });
 
         document.getElementById('study-ai-loading').classList.add('hidden');

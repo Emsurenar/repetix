@@ -67,6 +67,19 @@ describe('callAI', () => {
     expect(body).toMatchObject({ system: 'S', user: 'U', maxTokens: 42, json: true });
   });
 
+  it('skickar med feature i kroppen', async () => {
+    const skickat = [];
+    globalThis.fetch = async (url, init) => {
+      skickat.push(JSON.parse(init.body));
+      return svar(200, { text: 'ett svar' });
+    };
+
+    await callAI({ user: 'hej', feature: 'tutor' });
+
+    expect(skickat).toHaveLength(1);
+    expect(skickat[0].feature).toBe('tutor');
+  });
+
   it('kraver inloggning', async () => {
     session.value = null;
     vi.stubGlobal('fetch', vi.fn());

@@ -33,19 +33,38 @@ Utför ett AI-anrop med den inloggade användarens nyckel.
 ```jsonc
 // Begäran
 {
-  "system": "valfri systemprompt",
-  "user": "meddelandet",
-  "maxTokens": 1000,        // valfritt, standard 1024
-  "json": false,            // valfritt, be leverantören svara med ren JSON
-  "provider": "anthropic",  // valfritt, annars användarens inställning
-  "model": "claude-opus-5"  // valfritt, annars användarens inställning
+  "system": "...",
+  "user": "...",
+  "maxTokens": 1024,
+  "json": false,
+  "provider": "anthropic",
+  "model": "claude-opus-5",
+  // Vilken funktion i appen som frågar. Loggas i ai_usage så att panelen kan
+  // visa vad pengarna gick till. Servern kan inte härleda det — bara klienten
+  // vet varför anropet görs.
+  "feature": "topic"
+}
+
+// Svar 200
+{
+  "text": "...",
+  "provider": "anthropic",
+  "model": "claude-opus-5",
+  // Leverantörens egna tokental. Fält som leverantören inte rapporterar är 0.
+  "usage": {
+    "inputTokens": 12040,
+    "outputTokens": 830,
+    "cacheReadTokens": 0,
+    "cacheWriteTokens": 0
+  }
 }
 ```
 
-```jsonc
-// Svar 200
-{ "text": "...", "provider": "anthropic", "model": "claude-opus-5" }
-```
+`feature` är obligatoriskt och högst 40 tecken. Värdet lagras som det kommer,
+utan lista över tillåtna värden: ett nytt AI-läge ska inte kräva en migration.
+
+`usage` skrivs också till `ai_usage`. Misslyckas den skrivningen returneras
+svaret ändå — en bokföringsrad får aldrig sänka det användaren bad om.
 
 ```jsonc
 // Fel
@@ -123,6 +142,7 @@ fält gör slutpunkten till en förstärkare av vår egen utgående bandbredd.
 | Hela kroppen | 1 MB, avvisas på `content-length` innan den läses |
 | `user` | 200 000 tecken |
 | `system` | 200 000 tecken |
+| `feature` | 40 tecken, obligatoriskt |
 | `model` | 128 tecken, och bara `A–Z a–z 0–9 . _ : @ / -` |
 | `provider` | 40 tecken, och måste finnas i katalogen |
 | `maxTokens` | positivt heltal, kapas till 16 384 |

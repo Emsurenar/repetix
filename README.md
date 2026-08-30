@@ -95,6 +95,15 @@ One known limitation: an Anthropic key that is *identity-linked* also needs an
 the app has no field for it. Such a key is rejected with a 400 whose message
 says so. Use a key created inside a workspace instead.
 
+*Inställningar → Användning* also tracks what each call costs, with a monthly
+cap that warns in the sidebar as the total gets close. Two more limitations
+worth knowing:
+
+- The meter starts at zero the day it is deployed. It has no way to know what
+  happened before; that history only exists with the provider.
+- It only counts calls that go through the app. The same key used elsewhere
+  will not show up here, and the total will not match the provider's invoice.
+
 In code, every AI call goes through one function, `callAI()` in
 `src/ai/call.js`. Never add a direct provider call elsewhere. The endpoint
 contract is [`docs/api-contract.md`](docs/api-contract.md), and it is meant to

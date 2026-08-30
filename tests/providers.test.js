@@ -53,7 +53,7 @@ describe('katalogen', () => {
     expect(() => getProvider(undefined)).toThrow(ApiError);
   });
 
-  it('har samma fyra medlemmar hos varje adapter', () => {
+  it('har buildRequest, extractText, verifyKey och en modellista hos varje adapter', () => {
     for (const id of providerIds) {
       const adapter = providers[id];
       expect(typeof adapter.buildRequest).toBe('function');
@@ -295,5 +295,122 @@ describe('verifyKey: vad som når användaren', () => {
     );
     expect(fel.message).toContain('503');
     expect(fel.message).not.toContain('undefined');
+  });
+});
+
+/* Tokentalen heter olika hos varje leverantör, och ett fält som saknas ska bli
+ * noll och aldrig undefined: summeringen i panelen adderar dem rakt av, och en
+ * enda undefined hade gjort hela månadssumman till NaN.
+ *
+ * Formen för de tre icke-Anthropic-leverantörerna är antagen och inte
+ * verifierad mot ett riktigt svar. Därför är noll det säkra utfallet: gissar vi
+ * fel fält får vi nollor, inte påhittade tal. */
+describe('extractUsage', () => {
+  it('läser Anthropics fält, cache inräknad', () => {
+    expect(
+      providers.anthropic.extractUsage({
+        usage: {
+          input_tokens: 1200,
+          output_tokens: 340,
+          cache_creation_input_tokens: 900,
+          cache_read_input_tokens: 8000,
+        },
+      })
+    ).toEqual({
+      inputTokens: 1200,
+      outputTokens: 340,
+      cacheWriteTokens: 900,
+      cacheReadTokens: 8000,
+    });
+  });
+
+  it('läser OpenAI:s fält', () => {
+    expect(
+      providers.openai.extractUsage({
+        usage: { prompt_tokens: 500, completion_tokens: 120 },
+      })
+    ).toEqual({
+      inputTokens: 500,
+      outputTokens: 120,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 0,
+    });
+  });
+
+  it('läser OpenAI:s cachade tokens ur det nästlade fältet', () => {
+    expect(
+      providers.openai.extractUsage({
+        usage: {
+          prompt_tokens: 500,
+          completion_tokens: 120,
+          prompt_tokens_details: { cached_tokens: 400 },
+        },
+      })
+    ).toEqual({
+      inputTokens: 500,
+      outputTokens: 120,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 400,
+    });
+  });
+
+  it('läser Googles fält', () => {
+    expect(
+      providers.google.extractUsage({
+        usageMetadata: { promptTokenCount: 700, candidatesTokenCount: 90 },
+      })
+    ).toEqual({
+      inputTokens: 700,
+      outputTokens: 90,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 0,
+    });
+  });
+
+  it('läser Googles cachade tokens', () => {
+    expect(
+      providers.google.extractUsage({
+        usageMetadata: {
+          promptTokenCount: 700,
+          candidatesTokenCount: 90,
+          cachedContentTokenCount: 500,
+        },
+      })
+    ).toEqual({
+      inputTokens: 700,
+      outputTokens: 90,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 500,
+    });
+  });
+
+  it('läser OpenRouters fält', () => {
+    expect(
+      providers.openrouter.extractUsage({
+        usage: { prompt_tokens: 60, completion_tokens: 10 },
+      })
+    ).toEqual({
+      inputTokens: 60,
+      outputTokens: 10,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 0,
+    });
+  });
+
+  it('ger nollor när svaret saknar usage helt', () => {
+    for (const id of providerIds) {
+      expect(providers[id].extractUsage({})).toEqual({
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheWriteTokens: 0,
+        cacheReadTokens: 0,
+      });
+      expect(providers[id].extractUsage(null)).toEqual({
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheWriteTokens: 0,
+        cacheReadTokens: 0,
+      });
+    }
   });
 });

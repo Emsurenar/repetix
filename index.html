@@ -93,6 +93,9 @@
                 <span class="sidebar-item-name">Konto</span>
             </button>
             <span id="sync-status" class="sync-status" data-state="local" role="status">Lokalt läge</span>
+            <!-- Egen rad, inte samma som synkstatusen: de två tillstånden är
+                 oberoende och kan behöva synas samtidigt. -->
+            <span id="budget-status" class="sync-status" data-state="warn" role="status" hidden></span>
         </div>
     </aside>
 
@@ -539,6 +542,48 @@
                              förklaringar: den beskriver en följd som inte går
                              att ta tillbaka. -->
                         <p class="set-hint">Importen skriver över allt som finns i appen. En kopia av nuläget laddas ner först.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Användning. Visas bara med konto: mätaren mäter molnanrop, och
+                 lokalt läge gör inga. -->
+            <section class="settings-section" id="settings-usage-section" aria-labelledby="settings-usage-title" hidden>
+                <div class="settings-section-head">
+                    <h2 id="settings-usage-title" class="settings-section-title">Användning</h2>
+                </div>
+
+                <div class="set-row">
+                    <div class="set-label">Denna månad</div>
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <p id="usage-month" class="usage-sum num">–</p>
+                            <p id="usage-month-tokens" class="set-hint num"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <div class="set-label">Idag</div>
+                    <div class="set-field">
+                        <p id="usage-today" class="usage-sum num">–</p>
+                    </div>
+                </div>
+
+                <div class="set-row" id="usage-breakdown-row" hidden>
+                    <div class="set-label">Per funktion</div>
+                    <div class="set-field">
+                        <ul id="usage-breakdown" class="usage-list"></ul>
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <label class="set-label" for="settings-budget">Månadstak</label>
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <input type="number" id="settings-budget" class="field" min="0" step="1" inputmode="decimal" placeholder="Inget tak">
+                            <button type="button" id="btn-settings-save-budget" class="btn">Spara tak</button>
+                        </div>
                     </div>
                 </div>
             </section>

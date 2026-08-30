@@ -17,6 +17,7 @@ import {
 } from './_lib/http.js';
 import { enforceRateLimit } from './_lib/limit.js';
 import { extractProviderMessage, getProvider, isAuthFailure } from './_lib/providers.js';
+import { recordUsage } from './_lib/usage.js';
 
 /**
  * Kontraktets gräns, och den måste ligga under maxDuration i vercel.json.
@@ -46,6 +47,11 @@ const MAX_USER_CHARS = 200_000;
 const MAX_SYSTEM_CHARS = 200_000;
 const MAX_MODEL_CHARS = 128;
 const MAX_PROVIDER_CHARS = 40;
+
+/* Funktionens namn är vårt eget och kort. Taket finns av samma skäl som de
+ * andra: ett obegränsat fält gör slutpunkten till en väg att skriva godtycklig
+ * mängd data till databasen. */
+const MAX_FEATURE_CHARS = 40;
 
 /**
  * Tecken som får förekomma i ett modell-id. Snedstrecket behövs av OpenRouter
@@ -81,6 +87,11 @@ export default async function handler(req, res) {
 
     const user = readTextField(body.user, { name: 'user', max: MAX_USER_CHARS, required: true });
     const system = readTextField(body.system, { name: 'system', max: MAX_SYSTEM_CHARS });
+    const feature = readTextField(body.feature, {
+      name: 'feature',
+      max: MAX_FEATURE_CHARS,
+      required: true,
+    });
 
     const { providerName, provider, model } = await resolveTarget(body, db, userId);
     const apiKey = await loadApiKey(db, providerName, provider.label);
@@ -94,8 +105,13 @@ export default async function handler(req, res) {
       key: apiKey,
     });
 
-    const text = await callProvider(provider, request);
-    sendJson(res, 200, { text, provider: providerName, model });
+    const { text, usage } = await callProvider(provider, request);
+
+    // Efter att svaret säkrats, före att det skickas. Skrivningen kan inte
+    // kasta, så ordningen kostar ingenting.
+    await recordUsage(db, { userId, provider: providerName, model, feature, usage });
+
+    sendJson(res, 200, { text, provider: providerName, model, usage });
   } catch (err) {
     sendError(res, err);
   }
@@ -244,7 +260,7 @@ async function callProvider(provider, request) {
   if (!text) {
     throw new ApiError(502, 'provider_error', 'Leverantören svarade utan någon text.');
   }
-  return text;
+  return { text, usage: provider.extractUsage(data) };
 }
 
 function translateFailure(res, bodyText) {

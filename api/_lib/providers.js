@@ -1,10 +1,11 @@
 // Adaptrar för de fyra AI-leverantörerna.
 //
 // Alla anrop i appen är single-turn utan verktyg och utan strömning. Det som
-// skiljer leverantörerna åt kokar därför ner till fyra saker: hur nyckeln
-// skickas, var systemprompten hör hemma, vad tokengränsen heter och var texten
-// ligger i svaret. Adaptrarna är byggda för att vara symmetriska — samma fyra
-// medlemmar var, ingen leverantör med ett eget undantag i anropskoden.
+// skiljer leverantörerna åt kokar därför ner till ett fåtal saker: hur
+// nyckeln skickas, var systemprompten hör hemma, vad tokengränsen heter, var
+// texten ligger i svaret och var tokentalen för användningsmätaren står.
+// Adaptrarna är byggda för att vara symmetriska — samma medlemmar var, ingen
+// leverantör med ett eget undantag i anropskoden.
 //
 // Rå fetch, ingen SDK. Fyra SDK:er hade dragit in fyra beroenden med fyra egna
 // felformer och fyra uppdateringstakter, alltså precis den asymmetri som det
@@ -112,6 +113,15 @@ async function probeKey(url, headers) {
 }
 
 /**
+ * Ett tal, eller noll.
+ *
+ * Leverantörernas svar är inte kontrakt vi äger: ett fält kan saknas, byta namn
+ * eller komma som null. Summeringen i panelen adderar de här talen rakt av, och
+ * en enda undefined hade gjort hela månadssumman till NaN.
+ */
+const tal = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
+/**
  * Adaptrarna. Varje leverantör har:
  *
  * - `models` och `defaultModel` — katalogen från kontraktet. Den är en
@@ -121,6 +131,9 @@ async function probeKey(url, headers) {
  * - `buildRequest({ system, user, maxTokens, model, json, key })` som ger
  *   `{ url, headers, body }`. Kroppen är ett objekt; anroparen serialiserar.
  * - `extractText(responseJson)` som ger svarets text.
+ * - `extractUsage(responseJson)` som ger `{ inputTokens, outputTokens,
+ *   cacheWriteTokens, cacheReadTokens }` — alla tal, aldrig undefined. Varje
+ *   leverantör rapporterar tokentalen under olika namn; adaptern läser rätt fält.
  * - `verifyKey(key)` som ger true eller false.
  */
 export const providers = {
@@ -163,6 +176,17 @@ export const providers = {
         .filter((block) => block?.type === 'text')
         .map((block) => block.text ?? '')
         .join('');
+    },
+
+    // enda leverantören som rapporterar cache separat
+    extractUsage(data) {
+      const u = data?.usage;
+      return {
+        inputTokens: tal(u?.input_tokens),
+        outputTokens: tal(u?.output_tokens),
+        cacheWriteTokens: tal(u?.cache_creation_input_tokens),
+        cacheReadTokens: tal(u?.cache_read_input_tokens),
+      };
     },
 
     // Modellistan kräver samma nyckel som meddelanden men kostar ingenting.
@@ -208,6 +232,16 @@ export const providers = {
       return data?.choices?.[0]?.message?.content ?? '';
     },
 
+    extractUsage(data) {
+      const u = data?.usage;
+      return {
+        inputTokens: tal(u?.prompt_tokens),
+        outputTokens: tal(u?.completion_tokens),
+        cacheWriteTokens: 0,
+        cacheReadTokens: tal(u?.prompt_tokens_details?.cached_tokens),
+      };
+    },
+
     verifyKey(key) {
       return probeKey('https://api.openai.com/v1/models', { authorization: `Bearer ${key}` });
     },
@@ -243,6 +277,16 @@ export const providers = {
 
     extractText(data) {
       return (data?.candidates?.[0]?.content?.parts ?? []).map((part) => part?.text ?? '').join('');
+    },
+
+    extractUsage(data) {
+      const u = data?.usageMetadata;
+      return {
+        inputTokens: tal(u?.promptTokenCount),
+        outputTokens: tal(u?.candidatesTokenCount),
+        cacheWriteTokens: 0,
+        cacheReadTokens: tal(u?.cachedContentTokenCount),
+      };
     },
 
     verifyKey(key) {
@@ -286,6 +330,17 @@ export const providers = {
 
     extractText(data) {
       return data?.choices?.[0]?.message?.content ?? '';
+    },
+
+    // OpenAI-kompatibelt svar
+    extractUsage(data) {
+      const u = data?.usage;
+      return {
+        inputTokens: tal(u?.prompt_tokens),
+        outputTokens: tal(u?.completion_tokens),
+        cacheWriteTokens: 0,
+        cacheReadTokens: 0,
+      };
     },
 
     verifyKey(key) {
