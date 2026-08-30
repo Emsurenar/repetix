@@ -611,10 +611,37 @@
  * ====================================================================== */
 
 @media (max-width: 768px) {
+  /* De två rutorna delar rad i stället för att stå på varandra.
+   *
+   * Under varandra tog de fyra våningar — två rubriker och två knappar — mitt
+   * emellan kortlekens ingång och dess kort, alltså den plats man kom hit för
+   * att se. Bredvid varandra är de två.
+   *
+   * Den lilla versalrubriken faller bort på köpet. Knappen under den heter
+   * "Sammanfatta kortleken", och rubriken sade "SAMMANFATTNING" — samma ord
+   * en gång till, ovanför det som redan bar det. */
   .deck-ai-insights {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--s3);
     margin-bottom: var(--s5);
+  }
+
+  .deck-ai-summary-header,
+  .deck-ai-suggestion-header {
+    display: none;
+  }
+
+  .deck-ai-summary,
+  .deck-ai-suggestion {
+    padding: var(--s3);
+  }
+
+  /* Knappen bryter hellre rad än spränger sin halva. */
+  .deck-ai-generate {
+    width: 100%;
+    padding: var(--s2);
+    font-size: var(--t-sm);
+    white-space: normal;
   }
 }
 

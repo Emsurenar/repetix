@@ -598,7 +598,7 @@
                     <h2 id="settings-account-title" class="settings-section-title">Konto</h2>
                 </div>
 
-                <div class="set-row">
+                <div class="set-row set-row-tat">
                     <div class="set-label">Inloggad som</div>
                     <div class="set-field">
                         <!-- Mejlen och utgången på samma rad. Under varandra
@@ -613,8 +613,10 @@
 
                 <!-- Sista raden i sista sektionen. En radering som inte går att
                      ångra ska inte gå att träffa på väg någon annanstans. -->
-                <div class="set-row" id="settings-delete-row" hidden>
-                    <div class="set-label">Radera konto</div>
+                <!-- Ingen etikett. Knappen heter "Radera kontot" och raden hette
+                     "Radera konto" — samma ord två gånger, varav det ena inte
+                     gick att trycka på. -->
+                <div class="set-row set-row-bred" id="settings-delete-row" hidden>
                     <div class="set-field">
                         <!-- Knappen först, följden bredvid. Stod följden över
                              knappen läste man varningen innan man visste att
