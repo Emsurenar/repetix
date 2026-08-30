@@ -117,15 +117,6 @@ export const openDeck = (id, sectionId = null) => {
 
     applyWash(heroStatus, S.currentDeckId);
 
-    /* AI-sortera vilar på att det finns lösa kort att lägga i mappar. Fanns
-     * knappen ändå var enda utfallet av ett klick ett meddelande om att den
-     * inte hade något att göra — en knapp som bara kan misslyckas. Villkoret
-     * är detsamma som fetchAiSort räknar fram, och gäller hela leken även när
-     * en mapp är öppen, eftersom sorteringen gör det. */
-    const osorterade = deck.cards.filter(c => !c.sectionId && c.type !== 'note').length;
-    const sortBtn = document.getElementById('btn-ai-sort');
-    if (sortBtn) sortBtn.hidden = osorterade === 0;
-
     heroStatus.querySelector('[data-hero-action]')?.addEventListener('click', (e) => {
         const handling = e.currentTarget.dataset.heroAction;
         if (handling === 'new') document.getElementById('btn-add-card').click();
@@ -318,6 +309,22 @@ export const renderCards = (cards) => {
     cardList.innerHTML = '';
     const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
+
+    /* AI-sortera vilar på att det finns lösa kort att lägga i mappar. Fanns
+     * knappen ändå var enda utfallet av ett klick ett meddelande om att den
+     * inte hade något att göra — en knapp som bara kan misslyckas.
+     *
+     * Härledningen låg tidigare i openDeck, och uppdaterades därför bara när
+     * kortleken öppnades. Sparade man AI-genererade kort ritades listan om
+     * men knappen inte, så den dök upp först efter en omladdning. Här är den
+     * granne med samma data den vilar på, och varje väg som ritar om listan
+     * uppdaterar den.
+     *
+     * Villkoret räknar HELA leken även när en mapp är öppen, eftersom
+     * sorteringen gör det. */
+    const osorterade = deck.cards.filter(c => !c.sectionId && c.type !== 'note').length;
+    const sortBtn = document.getElementById('btn-ai-sort');
+    if (sortBtn) sortBtn.hidden = osorterade === 0;
 
     /* Vyn är den delmängd anroparen skickade in, inte hela leken.
      *

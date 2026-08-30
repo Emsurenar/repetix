@@ -10,6 +10,7 @@ import { renderLibrary } from '../ui/library.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
 import { closeTopModal, setExpanded, showPromptModal } from '../ui/modals.js';
 import { switchView } from '../ui/router.js';
+import { aterstallSenastePlats } from '../ui/senaste-plats.js';
 import { closeGlobalSearch, navigateSearchResults, openGlobalSearch, performGlobalSearch, triggerActiveSearchResult } from '../ui/search.js';
 import { startBookshelfStudy, startSectionStudy } from '../ui/study.js';
 import { handleBackgroundBack } from '../ui/wiring/navigation.js';
@@ -242,6 +243,24 @@ const initApp = () => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 document.getElementById('form-add-note')?.requestSubmit();
+            }
+        });
+
+        /* Sist, och en mikrotask senare.
+         *
+         * openDeck ritar hela kortlekens vy, så datan måste vara laddad — den
+         * är den här, inne i try-blocket. Men initApp kan köra synkront direkt
+         * ur main.js, och då har raderna EFTER anropet till initAppInit ännu
+         * inte kopplat sina moduler. En mikrotask lägger återställningen efter
+         * hela den synkrona uppstarten, oavsett vilken av de två vägarna som
+         * togs. */
+        queueMicrotask(() => {
+            try {
+                aterstallSenastePlats();
+            } catch (fel) {
+                // Att inte minnas var man var är en obekvämlighet. Att appen
+                // inte startar är det inte.
+                console.error('Kunde inte återställa senaste plats', fel);
             }
         });
     } catch (err) {

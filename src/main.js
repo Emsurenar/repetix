@@ -62,6 +62,7 @@ import { initUiWiringStudy } from './ui/wiring/study.js';
 import { initAppInit } from './app/init.js';
 import { initUiSearch } from './ui/search.js';
 import { initSettings } from './ui/settings.js';
+import { initSenastePlats } from './ui/senaste-plats.js';
 
 export function start() {
   initCoreState();
@@ -90,6 +91,10 @@ export function start() {
   initAppInit();
   initUiSearch();
   initSettings();
+  /* Sparar var man står. Ligger efter initAppInit med flit: uppstarten byter
+   * ingen vy själv, och dess återställning är skjuten till en mikrotask — som
+   * alltså kör efter den här raden och därmed med lyssnaren på plats. */
+  initSenastePlats();
 }
 
 start();

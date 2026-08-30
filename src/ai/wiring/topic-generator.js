@@ -2,6 +2,7 @@ import { nyttId } from '../../core/utils.js';
 import { updateSaveCountBadge } from '../proposed-cards.js';
 import { fetchCardsByTopic } from '../topic-generator.js';
 import { createCard } from '../../domain/model.js';
+import { kortIVyn } from '../../domain/deck-view.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { renderCards } from '../../ui/deck.js';
@@ -235,7 +236,9 @@ export function initAiWiringTopicGenerator() {
           });
 
           saveData();
-          renderCards(deck.cards);
+          // Vyns delmängd, inte hela leken: sparar man kort medan en mapp är
+          // öppen ska listan stanna i mappen.
+          renderCards(kortIVyn(deck, S.currentSectionId));
           showToast(`${cardsToSave.length} kort sparades!`);
           closeTopicModal();
       });
