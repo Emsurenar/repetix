@@ -1,12 +1,9 @@
 import { openMoveItemModal } from '../ai/client.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
-import { getReviewLog } from '../core/sync.js';
 import { escapeHtml } from '../core/utils.js';
-import { currentStreak, dailyCounts, mergeLegacyCounts } from '../domain/history.js';
 import { grupperaPaHylla } from '../domain/hyllgruppering.js';
 import { valjMenyplacering } from '../domain/menyplacering.js';
-import { loadRecords } from '../domain/stats.js';
 import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook } from './deck.js';
 import { deckList } from './dom.js';
@@ -70,50 +67,6 @@ const itemMatchesFilter = (item, type, flt) => {
     return false;
 };
 
-/* Nyckeltalen överst i biblioteket.
- *
- * Streak och totalsumma räknas ur repetitionsloggen och inte ur
- * card.lastReviewed: det fältet skrivs över vid varje ny repetition och tappar
- * därmed all historik bakåt. Dagsräkningarna från tiden före loggen vävs in,
- * annars skulle en befintlig användares streak nollställas vid uppgraderingen.
- */
-const renderLibrarySummary = () => {
-    const dueEl = document.getElementById('library-stat-due');
-    const streakEl = document.getElementById('library-stat-streak');
-    const reviewsEl = document.getElementById('library-stat-reviews');
-    if (!dueEl || !streakEl || !reviewsEl) return;
-
-    const now = Date.now();
-    const cards = S.appData.decks.flatMap(d => d.cards.filter(c => c.type !== 'note'));
-    const due = cards.filter(c => c.nextReviewDate <= now).length;
-
-    const counts = mergeLegacyCounts(dailyCounts(getReviewLog()), loadRecords().dailyCounts);
-    const total = [...counts.values()].reduce((sum, n) => sum + n, 0);
-
-    // Svenskt tusentalsavstånd: 1 340 läses snabbare än 1340 i en kolumn.
-    const fmt = (n) => n.toLocaleString('sv-SE');
-
-    /* Ett tal som ändrats bekräftar det en gång och är sedan tyst. Utan det
-     * byter siffran i tysthet medan man tittar någon annanstans, och man får
-     * aldrig veta att repetitionen räknades. Gäller alla tre — att bara ett av
-     * dem svarade såg ut som ett fel i de andra två. */
-    const satt = (el, varde) => {
-        const forra = el.textContent;
-        el.textContent = varde;
-        if (!forra || forra === varde) return;
-        el.classList.remove('is-updated');
-        // Framtvingar omstart av animationen även när klassen precis togs bort.
-        void el.offsetWidth;
-        el.classList.add('is-updated');
-    };
-
-    satt(dueEl, fmt(due));
-    // Accent bara när det finns något kvar att göra. En nolla ska inte ropa.
-    dueEl.classList.toggle('is-accent', due > 0);
-    satt(streakEl, fmt(currentStreak(counts)));
-    satt(reviewsEl, fmt(total));
-};
-
 /**
  * Flyttar det som dras till en hylla, eller ut ur alla när `hyllId` är null.
  *
@@ -143,9 +96,7 @@ export const flyttaTillHylla = (hyllId) => {
 };
 
 export const renderLibrary = () => {
-    document.getElementById('library-summary')?.removeAttribute('hidden');
     document.getElementById('dagens-mapp-container')?.removeAttribute('hidden');
-    renderLibrarySummary();
     renderDagensMapp();
     deckList.innerHTML = '';
     const filter = S.librarySearchFilter.toLowerCase();
@@ -160,10 +111,8 @@ export const renderLibrary = () => {
     };
 
     if (S.appData.decks.length === 0 && S.appData.notebooks.length === 0 && S.appData.bookshelves.length === 0) {
-        /* Tre nollor är inget att visa någon som inte hunnit börja. Nyckeltalen
-         * och dagens mapp döljs tills de har något att säga, så att sidan har
-         * en enda sak på sig: inbjudan. */
-        document.getElementById('library-summary')?.setAttribute('hidden', '');
+        /* Dagens mapp döljs tills den har något att säga, så att sidan har en
+         * enda sak på sig: inbjudan. */
         document.getElementById('dagens-mapp-container')?.setAttribute('hidden', '');
 
         /* Ett tomt läge är en inbjudan, inte ett kvitto på att det är tomt.

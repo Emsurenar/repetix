@@ -52,51 +52,6 @@
 }
 
 /* ======================================================================
- * NYCKELTAL
- *
- * Tre tal i rad. Talen sätts i monospace med tabellsiffror så att de står i
- * kolumn i stället för att dansa när de ändras, och etiketten går under talet:
- * man läser siffran först och får förklaringen efteråt.
- *
- * Inga linjer alls — varken lodräta mellan talen eller vågräta över och under.
- * Mockupen har de vågräta, men ägaren har underkänt båda sorterna, och
- * instruktionen gäller före mockupen. Tillsammans gjorde de tre siffror till
- * ett inramat block mitt på sidan, och blocket vägde mer än det talen säger.
- * Luften omkring räcker för att visa att de hör ihop och slutar här.
- * ====================================================================== */
-
-.library-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--s5);
-  margin-bottom: var(--s7);
-  padding: var(--s2) 0 0;
-}
-
-.library-figure-n {
-  display: block;
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--t-xl);
-  font-weight: 500;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--track-tight);
-  color: var(--text-1);
-}
-
-/* Accent bara när talet betyder något att göra. En nolla ska inte skrika. */
-.library-figure-n.is-accent {
-  color: var(--accent);
-}
-
-.library-figure-l {
-  display: block;
-  margin-top: var(--s1);
-  font-size: var(--t-xs);
-  color: var(--text-3);
-}
-
-/* ======================================================================
  * DAGENS MAPP
  *
  * En enda panel, inte en banderoll med gradient och ikonplatta. Accentlinjen
@@ -516,27 +471,6 @@
    * hit för, och står nu närmast rubriken i stället för längst ut i kanten. */
   #view-library .view-actions .btn.primary {
     order: -1;
-  }
-
-  /* Talen på EN rad. De låg tidigare i två våningar med det första över hela
-   * bredden, vilket gjorde tre tal till en tabell. Tre tal är en rad. */
-  .library-summary {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--s3);
-    margin-bottom: var(--s5);
-    padding: var(--s3) 0;
-  }
-
-  .library-figure-n {
-    font-size: var(--t-lg);
-  }
-
-  /* Etiketterna får bryta rad inuti sin egen tredjedel. "repetitioner totalt"
-   * ryms inte på en rad i 114 pixlar, och att korta ned orden hade kostat mer
-   * än en radbrytning gör. */
-  .library-figure-l {
-    font-size: var(--t-micro);
-    line-height: var(--lh-tight);
   }
 
   .today-folder {
