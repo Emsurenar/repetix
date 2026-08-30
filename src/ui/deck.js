@@ -146,14 +146,20 @@ export function initUiKallfraga() {
     const text = falt.value.trim();
     if (!text || !fragadKalla) return;
 
+    // Vilken källa frågan gällde. Panelen kan ha bytt källa medan svaret var på
+    // väg, och ett svar som landar i fel källas historik följer sedan med som
+    // sammanhang till ett helt annat dokument.
+    const gallerKalla = fragadKalla;
+
     knapp.disabled = true;
     knapp.textContent = 'Frågar...';
     try {
       const svar = await fragaKallan({
-        sourceId: fragadKalla.id,
+        sourceId: gallerKalla.id,
         fraga: text,
         historik: fragehistorik,
       });
+      if (fragadKalla !== gallerKalla) return;
       fragehistorik = laggTill(fragehistorik, text, svar);
       falt.value = '';
       ritaHistorik();
@@ -199,6 +205,16 @@ export const aiGenerateButton = (vilken) =>
 export const renderDecks = renderLibrary;
 
 export const openDeck = (id, sectionId = null) => {
+    /* Frågepanelen hör till en källa i EN kortlek. Den är en enda nod som alla
+     * lekar delar, så utan den här återställningen står förra lekens källa och
+     * svar kvar under den nya lekens rubrik — och en ny fråga går fortfarande
+     * till fel dokument. */
+    fragadKalla = null;
+    fragehistorik = [];
+    document.getElementById('deck-kallfraga')?.classList.add('hidden');
+    const svarsrutan = document.getElementById('deck-kallfraga-svar');
+    if (svarsrutan) svarsrutan.innerHTML = '';
+
     S.currentDeckId = id;
     S.currentSectionId = sectionId;
     const deck = S.appData.decks.find(d => d.id === id);
