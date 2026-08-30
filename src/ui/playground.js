@@ -332,13 +332,16 @@ export const renderPlayground = ({ tona = true } = {}) => {
         <!-- Aktivitetskartan är en historik, inte ett nuläge, och står därför
              bland de andra tillbakablickarna.
              
-             De tre står i två spalter. Var de under varandra blev kartan ett
-             brett band med hundratals tomma pixlar under sig, och sidan såg
-             ut att sluta tre gånger. Kartan och rekorden är korta och delar
-             vänsterspalten; prestationerna är långa och får hela högerspalten,
-             så att spalterna tar slut ungefär samtidigt. -->
+             De två korta står bredvid varandra på en rad, den långa under dem
+             över hela bredden. Prestationerna spände tidigare båda raderna i
+             högerspalten, och eftersom rutnätet delar en spännande rutas höjd
+             över de rader den täcker blåstes översta raden upp från 267 till
+             823 pixlar: rekorden trycktes ner till botten med ett 557 pixlar
+             högt hål ovanför sig. Över hela bredden får prestationernas eget
+             rutnät dessutom fyra kolumner i stället för två, så listan blir
+             ungefär hälften så hög. -->
         <div class="arcade-columns">
-        <section class="arcade-section arcade-col-left">
+        <section class="arcade-section arcade-col-aktivitet">
             <h2 class="arcade-heading">Aktivitet</h2>
             <div class="heat" style="--veckor:${weeks.length}">
                 <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
@@ -357,7 +360,7 @@ export const renderPlayground = ({ tona = true } = {}) => {
         </section>
 
         ${rekord.length ? `
-        <section class="arcade-section arcade-col-left">
+        <section class="arcade-section arcade-col-rekord">
             <h2 class="arcade-heading">Rekord</h2>
             <div class="arcade-records">
                 ${rekord.map((r) => `
@@ -368,7 +371,7 @@ export const renderPlayground = ({ tona = true } = {}) => {
             </div>
         </section>` : ''}
 
-        <section class="arcade-section arcade-col-right">
+        <section class="arcade-section arcade-col-prestationer">
             <h2 class="arcade-heading">Prestationer</h2>
             ${achievementsHtml}
         </section>
