@@ -964,6 +964,7 @@
                     <div class="toggle-button-group">
                         <button type="button" id="toggle-source-topic" class="btn-toggle active">Ämne / Koncept</button>
                         <button type="button" id="toggle-source-text" class="btn-toggle">Klistra in text / Anteckningar</button>
+                        <button type="button" id="toggle-source-kalla" class="btn-toggle" hidden>Från PDF</button>
                     </div>
                 </div>
 
@@ -976,6 +977,11 @@
                 <div id="text-input-container" class="form-group hidden">
                     <label for="input-source-text">Klistra in din text eller dina anteckningar</label>
                     <textarea id="input-source-text" rows="6"></textarea>
+                </div>
+
+                <div id="kalla-input-container" class="form-group hidden">
+                    <label>Källa</label>
+                    <p id="kalla-vald-namn" class="form-hint"></p>
                 </div>
 
                 <!-- Settings Grid -->

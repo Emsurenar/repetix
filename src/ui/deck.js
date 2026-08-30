@@ -80,6 +80,21 @@ export async function renderaKallor(deckId) {
         generera.className = 'btn';
         generera.dataset.kallaHandling = 'generera';
         generera.textContent = 'Generera kort';
+        generera.addEventListener('click', () => {
+          // 1. Öppna modalen. Detta nollställer S.aiGeneratorOptions helt.
+          document.getElementById('btn-open-topic-generator').click();
+
+          // 2. Först nu går det att peka ut källan — ett sourceId satt före
+          //    klicket hade skrivits över av återställningen.
+          S.aiGeneratorOptions.sourceId = kalla.id;
+
+          // 3. Visa segmentet och välj det. Återställningen gömde det, eftersom den
+          //    inte kan veta att modalen öppnades från en källa.
+          const segment = document.getElementById('toggle-source-kalla');
+          segment.hidden = false;
+          segment.click();
+          document.getElementById('kalla-vald-namn').textContent = kalla.title;
+        });
 
         const fraga = document.createElement('button');
         fraga.type = 'button';

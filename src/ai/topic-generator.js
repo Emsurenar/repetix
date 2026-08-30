@@ -2,6 +2,7 @@ import { aiErrorMessage, callAIDetailed } from './call.js';
 import { parseKortlista } from './svarstolk.js';
 import { renderProposedCards } from './proposed-cards.js';
 import { S } from '../core/state.js';
+import { hamtaKalltext } from '../core/sources.js';
 import { fixLatexInCards } from '../ui/images.js';
 import { showToast } from '../ui/toast.js';
 
@@ -35,9 +36,22 @@ export const fetchCardsByTopic = async (topic, modifier = null, deck = null) => 
         contextSnippet = `\n\nFöljande frågor finns redan i denna kortlek, du får ABSOLUT INTE skapa dubbletter av dessa eller frågor som är mycket lika dem:\n${existingFronts}\n\nFör att du ska förstå svårighetsgrad och tonaliteten, här är några fullständiga exempel på existerande kort:\n${sampleCards}\n\nDin uppgift är att skapa ${isAuto ? 'ett lämpligt antal' : qty} HELT UNIKA och NYA kort som kompletterar de befintliga!`;
     }
 
+    /* Källans text hämtas först här, inte när källan valdes: den är hundra
+     * kilobyte och behövs bara i det ögonblick den ska skickas. */
+    let kallText = null;
+    if (S.aiGeneratorOptions.sourceType === 'kalla') {
+        kallText = await hamtaKalltext(S.aiGeneratorOptions.sourceId);
+        if (!kallText) {
+            showToast('Kunde inte läsa källans text.');
+            return;
+        }
+    }
+
     // 2. Build instructions based on settings
     let sourceInstruction = "";
-    if (S.aiGeneratorOptions.sourceType === 'text') {
+    if (S.aiGeneratorOptions.sourceType === 'kalla') {
+        sourceInstruction = `Du MÅSTE utgå strikt ifrån följande föreläsningstext som källmaterial. Hämta all information och fakta från denna text:\n\n"""\n${kallText}\n"""`;
+    } else if (S.aiGeneratorOptions.sourceType === 'text') {
         sourceInstruction = `Du MÅSTE utgå strikt ifrån följande text/anteckningar som källmaterial. Hämta all information och fakta från denna text:\n\n"""\n${topic}\n"""`;
     } else {
         sourceInstruction = `Generera kort baserat på följande ämne/nyckelord: "${topic}".`;
@@ -87,7 +101,7 @@ ${contextSnippet}`;
             user: instructions,
             maxTokens: 3500,
             json: true,
-            feature: 'topic',
+            feature: S.aiGeneratorOptions.sourceType === 'kalla' ? 'kalla-kort' : 'topic',
         });
 
         /* Vakten låg tidigare EFTER fixLatexInCards, som redan hade anropat

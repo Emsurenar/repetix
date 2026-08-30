@@ -43,6 +43,15 @@ export function initAiWiringTopicGenerator() {
           document.getElementById('topic-input-container').classList.remove('hidden');
           document.getElementById('text-input-container').classList.add('hidden');
 
+          /* Källsegmentet göms alltid vid öppning och visas bara av den som
+           * öppnar modalen FRÅN en källa. Ordningen spelar roll: raden ovanför
+           * skriver om hela S.aiGeneratorOptions, så ett sourceId satt före
+           * klicket hade försvunnit här. Därför sätts det efteråt i stället. */
+          document.getElementById('toggle-source-kalla').classList.remove('active');
+          document.getElementById('toggle-source-kalla').hidden = true;
+          document.getElementById('kalla-input-container').classList.add('hidden');
+          S.aiGeneratorOptions.sourceId = null;
+
           // Reset option buttons in DOM
           document.querySelectorAll('.btn-option-qty').forEach(btn => {
               btn.classList.toggle('active', btn.getAttribute('data-qty') === 'auto');
@@ -91,6 +100,16 @@ export function initAiWiringTopicGenerator() {
           document.getElementById('text-input-container').classList.remove('hidden');
           document.getElementById('topic-input-container').classList.add('hidden');
           S.aiGeneratorOptions.sourceType = 'text';
+      });
+
+      document.getElementById('toggle-source-kalla').addEventListener('click', () => {
+          document.getElementById('toggle-source-kalla').classList.add('active');
+          document.getElementById('toggle-source-topic').classList.remove('active');
+          document.getElementById('toggle-source-text').classList.remove('active');
+          document.getElementById('kalla-input-container').classList.remove('hidden');
+          document.getElementById('topic-input-container').classList.add('hidden');
+          document.getElementById('text-input-container').classList.add('hidden');
+          S.aiGeneratorOptions.sourceType = 'kalla';
       });
 
       // Qty and Diff Options Handlers
@@ -143,13 +162,15 @@ export function initAiWiringTopicGenerator() {
                   showToast("Fyll i ett ämne eller koncept!");
                   return;
               }
-          } else {
+          } else if (S.aiGeneratorOptions.sourceType === 'text') {
               inputVal = document.getElementById('input-source-text').value.trim();
               if (!inputVal) {
                   showToast("Klistra in anteckningar eller text först!");
                   return;
               }
           }
+          // 'kalla': källans text hämtas i fetchCardsByTopic själv, så det
+          // finns inget fält här att kräva ett värde ifrån.
 
           S.currentTopicRawInput = inputVal;
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
