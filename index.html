@@ -606,17 +606,18 @@
                     <h2 id="settings-account-title" class="settings-section-title">Konto</h2>
                 </div>
 
+                <!-- Påståendet och handlingen är två saker och står som två.
+                     Utgången låg tidigare inne i samma rad som mejlen, och på
+                     en 375 pixlar bred skärm fick de två inte plats bredvid
+                     varandra: knappen trillade ner på en egen rad indragen
+                     under mejlen, som om den hamnat där av misstag. Nu är den
+                     en egen rad över hela bredden, högerställd. -->
                 <div class="set-row set-row-tat">
                     <div class="set-label">Inloggad som</div>
                     <div class="set-field">
-                        <!-- Mejlen och utgången på samma rad. Under varandra
-                             läste sig "Logga ut" som en ny inställning i stället
-                             för som något man gör med kontot ovanför. -->
-                        <div class="set-inline">
-                            <p id="settings-account-email" class="settings-account-email"></p>
-                            <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
-                        </div>
+                        <p id="settings-account-email" class="settings-account-email"></p>
                     </div>
+                    <button type="button" id="btn-settings-signout" class="btn text settings-danger set-row-action" hidden>Logga ut</button>
                 </div>
 
                 <!-- Sista raden i sista sektionen. En radering som inte går att

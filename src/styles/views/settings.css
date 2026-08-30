@@ -121,6 +121,15 @@
   grid-column: 1 / -1;
 }
 
+/* Radens egen handling: en rad för sig över hela bredden, högerställd. Den
+ * linjerar därmed med panelens kant i stället för att hänga indragen under
+ * värdet den hör till. */
+#view-settings .set-row-action {
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin-right: calc(var(--s2) * -1);
+}
+
 /* Raden som bär ett val i full bredd i stället för i högerspalten.
  * Leverantörsbrickorna behöver hela panelen för att fyra namn ska få stå
  * bredvid varandra utan att brytas. */
