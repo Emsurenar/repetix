@@ -70,6 +70,19 @@
   --mark-0: #dededa;
   --mark-1: #bfc4c2;
 
+  /* --- Framsteg -----------------------------------------------------
+   * Kortlekskortets markör, och enda stället rött bär en mängd i stället
+   * för en fara. Gradienten ligger över SPÅRET: färgen på ett ställe säger
+   * hur långt in i leken man är, längden hur mycket. En knappt påbörjad lek
+   * visar en kort röd stump, en färdig hela svepet ut i grönt.
+   *
+   * Det går emot betygsskalans skäl att inte använda rött — "att ha glömt
+   * ett kort är normalt, inte ett fel" — och är därför ett eget beslut, taget
+   * med öppna ögon och inte som en bieffekt. Färgerna används INTE någon
+   * annanstans. */
+  --progress-start: #e8322e;
+  --progress-end: #17a836;
+
   /* --- Färgtvätten ------------------------------------------------------
    * Inbjudningspanelerna bär en fullt utblurrad bild, en per kortlek. Här
    * bor bara det som inte kommer ur bilden: grundtonen under den, och den

@@ -677,6 +677,40 @@ textarea:disabled {
   transition: width var(--dur) var(--ease);
 }
 
+/* Kortlekskortets markör.
+ *
+ * Scopat till .deck-card med flit. .progress delas med arenans klocka i
+ * spelen, och den ska fortsätta vara en accentfärgad stapel som krymper —
+ * en gradient där hade sagt något om framsteg mitt i en nedräkning.
+ *
+ * Gradienten ligger på spåret, inte på fyllningen. Låg den på fyllningen
+ * hade varje lek börjat om på rött och slutat i grönt oavsett hur långt den
+ * kommit, och färgen hade slutat betyda något. */
+.deck-card .progress {
+  height: 5px;
+  background-image: linear-gradient(90deg, var(--progress-start), var(--progress-end));
+}
+
+/* Mogna kort låter gradienten stå fram som den är. */
+.deck-card .progress-fill {
+  background: transparent;
+}
+
+/* Påbörjade kort dämpas i stället för att få en egen kulör: positionen bär
+ * redan hur långt man kommit, och de två andelarna ska ändå gå att skilja. */
+.deck-card .progress-fill-soft {
+  background: color-mix(in srgb, var(--surface-1) 55%, transparent);
+}
+
+/* Resten av spåret täcks från höger, så att gradienten bara syns så långt
+ * fyllningen når. Ett pseudoelement duger: i en flexrad är det ett barn som
+ * alla andra, och alternativet hade varit ett tomt element i markupen. */
+.deck-card .progress::after {
+  content: '';
+  flex: 1 1 auto;
+  background: var(--mark-0);
+}
+
 /* ======================================================================
  * TICKSKALA
  *

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { washStyle, washUrl } from '../src/ui/wash.js';
@@ -48,5 +50,29 @@ describe('washUrl', () => {
       expect(nummer).toBeGreaterThanOrEqual(1);
       expect(nummer).toBeLessThanOrEqual(30);
     }
+  });
+});
+
+/* Spelhallens id:n står på två ställen och kan glida isär.
+ *
+ * Listan lägena byggs ur ligger inuti renderPlayground() och går inte att
+ * importera, så wash.js bär en egen kopia av id:na. Lägger någon till ett läge
+ * utan att lägga till nyckeln får den nya brickan en bild ur den rena hashen —
+ * alltså kanske samma som en annan ruta, vilket är precis det tilldelningen
+ * finns till för att undvika. Testet ser till att det märks här i stället.
+ */
+describe('spellägenas nycklar', () => {
+  const kalla = readFileSync('src/ui/playground.js', 'utf8');
+  const iPlayground = [...kalla.matchAll(/^\s{12}id: '([a-z]+)',$/gm)].map((m) => m[1]);
+  const iWash = [...readFileSync('src/ui/wash.js', 'utf8').matchAll(/^\s{4}'([a-z]+)',$/gm)]
+    .map((m) => m[1])
+    .filter((id) => !id.startsWith('skapa') && !id.startsWith('dagens'));
+
+  it('hittar lägena i playground.js', () => {
+    expect(iPlayground.length).toBeGreaterThan(0);
+  });
+
+  it('är samma uppsättning på båda ställena', () => {
+    expect([...iWash].sort()).toEqual([...iPlayground].sort());
   });
 });
