@@ -538,6 +538,17 @@ body.sidebar-collapsed .sidebar-toggle {
     display: inline-flex;
   }
 
+  /* Knappen försvinner när panelen är utfälld.
+   *
+   * Den ligger fast i övre vänstra hörnet med z-index 110, alltså ovanför
+   * både överlägget och panelen — och panelens eget märke står på exakt samma
+   * plats. Utfälld låg den därför ovanpå ordet Repetix. Vägen ut finns kvar i
+   * två former: ett tryck vid sidan om, och infällningsknappen i panelens
+   * eget huvud. */
+  body.sidebar-open .sidebar-toggle {
+    display: none;
+  }
+
   body.focus-mode .sidebar-toggle {
     display: none;
   }

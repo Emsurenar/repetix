@@ -953,9 +953,14 @@ export function openSettings() {
   }
   view.classList.remove('hidden');
 
-  // På mobil ligger sidopanelen över innehållet och måste stängas, annars
-  // skulle ett tryck på Inställningar se ut att inte göra någonting.
-  document.getElementById('sidebar')?.classList.remove('open');
+  /* På mobil ligger sidopanelen över innehållet och måste stängas, annars ser
+   * ett tryck på Inställningar ut att inte göra någonting.
+   *
+   * Raden gjorde exakt det den skulle förhindra: den tog bort klassen `open`
+   * från PANELEN, medan läget bärs av `sidebar-open` på <body>. Den har alltså
+   * aldrig stängt något. Vyn går inte genom switchView — den finns inte i
+   * routerns vy-tabell — så den kan inte förlita sig på stängningen där. */
+  document.body.classList.remove('sidebar-open');
 
   window.scrollTo(0, 0);
   updateBreadcrumb([

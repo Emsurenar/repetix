@@ -420,10 +420,18 @@
  * ====================================================================== */
 
 @media (max-width: 600px) {
-  /* Åtgärderna byter ordning och tyngd. Repetitionen är det man kommit hit
-   * för och tar hela bredden överst; de tre andra delar på raden under, som i
-   * mobilmockupen. Med tummen är en full rad lättare att träffa än tre
-   * knappar som råkar hamna först. */
+  /* Alla tre åtgärderna på EN rad.
+   *
+   * Repetitionen tog tidigare hela bredden på en egen rad ovanför de andra
+   * två, alltså två våningar knappar innan man såg ett enda tal. På en 375
+   * pixlar bred skärm är det en fjärdedel av sidan. De delar raden nu, och
+   * repetitionen står först och får mer av den — den är fortfarande det man
+   * kommit hit för, den bär det bara med sin plats och sin fyllning i stället
+   * för med en egen våning.
+   *
+   * Texten går ned ett steg och luften inuti krymper. Utan det ryms inte
+   * "Repetera allt" i en tredjedel av raden, och en knapp vars ord bryts på
+   * mitten är sämre än en som är liten. */
   #view-library .view-header {
     flex-direction: column;
     align-items: stretch;
@@ -432,34 +440,44 @@
 
   #view-library .view-actions {
     width: 100%;
+    flex-wrap: nowrap;
   }
 
   #view-library .view-actions .btn {
     flex: 1 1 0;
+    min-width: 0;
     justify-content: center;
+    padding: 0 var(--s2);
+    font-size: var(--t-sm);
+    white-space: nowrap;
   }
 
   #view-library .view-actions .btn.primary {
     order: -1;
-    flex: 1 1 100%;
-    min-height: var(--control-h-lg);
-    border-radius: var(--r-md);
+    /* Ett halvt steg bredare än de andra två: den bär flest tecken, och det
+     * är den som ska gå att träffa utan att sikta. */
+    flex: 1.5 1 0;
   }
 
+  /* Talen på EN rad. De låg tidigare i två våningar med det första över hela
+   * bredden, vilket gjorde tre tal till en tabell. Tre tal är en rad. */
   .library-summary {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--s4);
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s3);
     margin-bottom: var(--s5);
     padding: var(--s3) 0;
   }
 
-  .library-figure:first-child {
-    grid-column: 1 / -1;
+  .library-figure-n {
+    font-size: var(--t-lg);
   }
 
-  .library-figure:nth-child(2) .library-figure-n,
-  .library-figure:nth-child(3) .library-figure-n {
-    font-size: var(--t-lg);
+  /* Etiketterna får bryta rad inuti sin egen tredjedel. "repetitioner totalt"
+   * ryms inte på en rad i 114 pixlar, och att korta ned orden hade kostat mer
+   * än en radbrytning gör. */
+  .library-figure-l {
+    font-size: var(--t-micro);
+    line-height: var(--lh-tight);
   }
 
   .today-folder {
