@@ -194,7 +194,7 @@ const renderCardItem = (card, deck) => {
     listItem.innerHTML = `
         <div class="list-item-content">
             <div class="question">${safeParse(card.front)}</div>
-            <div class="answer">${safeParse(card.back)}</div>
+            <div class="answer"><div class="answer-inner"><div class="answer-body">${safeParse(card.back)}</div></div></div>
         </div>
         <div class="list-item-right">
             <span class="card-state${isDue ? ' is-due' : ''}" title="${isDue ? 'Ska repeteras' : 'Väntar'}"></span>

@@ -400,20 +400,58 @@
 }
 
 /* Baksidan finns i listan men visas först när raden fällts ut. Utan detta
- * blir listan en vägg av svar, och man ser aldrig frågorna i följd. */
+ * blir listan en vägg av svar, och man ser aldrig frågorna i följd.
+ *
+ * Den låg tidigare på display: none och byttes till block. Det gick inte att
+ * animera — svaret slog upp i en bildruta — så utfällningen använder samma
+ * rutnätsteknik som mappen längre upp i filen: raden växer från 0fr till
+ * innehållets höjd, vilket är det enda sättet att animera "så högt som
+ * innehållet är" utan att räkna pixlar i JS.
+ *
+ * Samma krav gäller här: .answer måste ha EXAKT ETT barn. grid-template-rows
+ * styr bara de explicita raderna, så ett andra syskon hade hamnat i en
+ * implicit auto-rad som regeln aldrig når.
+ *
+ * Kortare än mappens --dur-3: ett svar är några rader text, och mappens längd
+ * på den sträckan känns trög i stället för mjuk. */
 #card-list .answer {
-  display: none;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-2) var(--ease-out);
+  /* Barnets ram är en pixel hög även i en nollhög rad — en ram går inte att
+   * pressa ihop. Utan den här klippningen låg ett streck kvar under varje
+   * ihopfälld fråga. */
+  overflow: hidden;
 }
 
 #card-list .list-item.expanded .answer {
-  display: block;
+  grid-template-rows: 1fr;
+}
+
+/* Tre nivåer, en uppgift var, och den tredje är inte en nivå för mycket.
+ *
+ * .answer äger rörelsen, .answer-inner är rutnätsbarnet som krymper till noll,
+ * och .answer-body bär luften och linjen. Chromet MÅSTE ligga på den tredje:
+ * min-height: 0 pressar bara ihop innehållsrutan, medan padding och en ram
+ * behåller sin höjd. Låg de på rutnätsbarnet blev stängt läge en 25 pixlar
+ * hög remsa med ett streck i under varje fråga — mätt, inte gissat.
+ *
+ * Och de kan inte heller ligga under .expanded: klassen försvinner i första
+ * bildrutan när man stänger, medan höjden fortfarande animerar. Då hoppar
+ * just den rörelse som skulle bli mjuk. */
+#card-list .answer-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+#card-list .answer-body {
   margin-top: var(--s3);
   padding-top: var(--s3);
+  border-top: 1px solid var(--line);
   font-family: var(--font-content);
   font-size: var(--t-sm);
   line-height: var(--lh-loose);
   color: var(--text-2);
-  border-top: 1px solid var(--line);
 }
 
 .list-item-right {
