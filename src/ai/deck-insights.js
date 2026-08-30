@@ -1,4 +1,5 @@
 import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
+import { parseObjekt } from './svarstolk.js';
 import { createCard } from '../domain/model.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
@@ -70,33 +71,15 @@ Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga kort
         signal,
     });
 
-    /* Ett avhugget svar kan aldrig bli giltig JSON, och felet ska säga det.
+    /* truncated skickas vidare i stället för att avgöra saken här.
      *
-     * JSON.parse kastar ett SyntaxError, som inte är ett AiError — och då
-     * faller aiErrorMessage tillbaka på "Något gick fel med AI-anropet.", en
-     * mening som beskriver varje tänkbart fel lika illa. Den som läste den
-     * fick veta att något gick sönder, inte att modellen inte hann skriva
-     * klart och att taket är det som ska höjas. */
-    if (truncated) {
-        throw new AiError(
-            'Modellen hann inte skriva klart förslaget innan tokentaket tog slut.',
-            'provider_error'
-        );
-    }
-
-    // Fence-strippningen står kvar trots json: true — den är billig och skyddar
-    // mot en leverantör som ändå lägger på ett markdown-block.
-    let raw = text.trim();
-    if (raw.startsWith('```json')) raw = raw.replace(/^```json/, '').replace(/```$/, '').trim();
-    else if (raw.startsWith('```')) raw = raw.replace(/^```/, '').replace(/```$/, '').trim();
-
-    let card;
-    try {
-        card = JSON.parse(raw);
-    } catch {
-        throw new AiError('Modellen svarade med något annat än JSON.', 'provider_error');
-    }
-    if (!card || !card.front || !card.back) {
+     * Ett avhugget svar är inte automatiskt oanvändbart: hade modellen redan
+     * skrivit klart objektet när taket tog slut är förslaget helt, och att
+     * kasta det hade betytt att användaren betalade för ett kort som fanns.
+     * Tolken avvisar bara när texten faktiskt inte går att läsa — och säger
+     * då att den avbröts, i stället för det generiska "något gick fel". */
+    const card = parseObjekt(text, { truncated });
+    if (!card.front || !card.back) {
         throw new AiError('Modellens förslag saknade fråga eller svar.', 'provider_error');
     }
     return card;

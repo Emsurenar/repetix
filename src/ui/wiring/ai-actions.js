@@ -1,4 +1,5 @@
-import { aiErrorMessage, callAI } from '../../ai/call.js';
+import { aiErrorMessage, callAI, callAIDetailed } from '../../ai/call.js';
+import { parseObjekt } from '../../ai/svarstolk.js';
 import { buildDeckContext } from '../../ai/client.js';
 import { fordjupningsPrompt, saknasForFordjupning } from '../../ai/fordjupning.js';
 import { fetchStudyAi } from '../../ai/study-ai.js';
@@ -20,7 +21,7 @@ import { populateAddCardSections } from './add-card.js';
             const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
             const existingSections = (deck.sections || []).map(s => ({ id: s.id, title: s.title }));
 
-            const text = await callAI({
+            const { text, truncated } = await callAIDetailed({
                 system: `Du är en expert på att organisera flashcards i mappar/kategorier. Analysera flashcard-frågan och välj den mest passande mappen från listan över befintliga mappar. Om ingen av de befintliga mapparna passar (eller om listan är tom), föreslå en helt ny passande mapp med ett kort, koncist och beskrivande namn (skrivet på samma språk som frågan, oftast svenska eller engelska).\n\nBefintliga mappar:\n${JSON.stringify(existingSections)}\n\nRegler för svar:\n- Om en befintlig mapp passar bra (tematiskt relaterad till frågan), välj den och svara med denna exakta JSON:\n{\n  "action": "existing",\n  "folderId": "id_på_mappen",\n  "folderTitle": "namn_på_mappen"\n}\n- Om ingen av de befintliga mapparna passar bra, eller om inga mappar finns, föreslå en ny och svara med denna exakta JSON:\n{\n  "action": "new",\n  "folderTitle": "Föreslaget Mappnamn"\n}\n\nSvara ENBART med den råa JSON-koden. Ingen introduktion, inga förklaringar, ingen markdown-kodblock.`,
                 user: `Fråga: "${questionText}"`,
                 maxTokens: 200,
@@ -28,16 +29,7 @@ import { populateAddCardSections } from './add-card.js';
                 feature: 'autofolder',
             });
 
-            // Extraktionen behålls trots json: true som skydd mot en leverantör
-            // som ändå lägger på inledning eller markdown-block.
-            let rawContent = text.trim();
-            const jsonStart = rawContent.indexOf('{');
-            const jsonEnd = rawContent.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-                rawContent = rawContent.slice(jsonStart, jsonEnd + 1);
-            }
-
-            const result = JSON.parse(rawContent);
+            const result = parseObjekt(text, { truncated });
             if (result.action === 'existing') {
                 const foundSec = deck.sections.find(s => s.id === result.folderId);
                 if (foundSec) {

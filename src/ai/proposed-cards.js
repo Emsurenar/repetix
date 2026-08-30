@@ -1,4 +1,5 @@
-import { aiErrorMessage, callAI } from './call.js';
+import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
+import { parseObjekt } from './svarstolk.js';
 import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
 import { showToast } from '../ui/toast.js';
@@ -161,7 +162,7 @@ ${deckContext}
 Svara med ett enda JSON-objekt.`;
 
     try {
-        const text = await callAI({
+        const { text, truncated } = await callAIDetailed({
             system: systemInstructions,
             user: userInstructions,
             maxTokens: 1000,
@@ -169,17 +170,13 @@ Svara med ett enda JSON-objekt.`;
             feature: 'regenerate',
         });
 
-        // Fence-strippningen behålls trots json: true som skydd mot en
-        // leverantör som ändå lägger på ett markdown-block.
-        let rawContent = text.trim();
-
-        if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
-        else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
-
-        const newCard = JSON.parse(rawContent);
-        if (newCard && newCard.front && newCard.back) {
-            S.proposedTopicCards[index] = { front: newCard.front, back: newCard.back };
+        const newCard = parseObjekt(text, { truncated });
+        if (!newCard.front || !newCard.back) {
+            // Tyst utbyte av kortet mot ingenting var svårare att förstå än ett
+            // felmeddelande: rutan såg likadan ut som innan man tryckte.
+            throw new AiError('Det nya kortet saknade fråga eller svar.', 'provider_error');
         }
+        S.proposedTopicCards[index] = { front: newCard.front, back: newCard.back };
         renderProposedCards();
     } catch (e) {
         showToast(aiErrorMessage(e));

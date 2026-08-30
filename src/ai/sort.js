@@ -1,5 +1,6 @@
 import { nyttId } from '../core/utils.js';
-import { aiErrorMessage, callAI } from './call.js';
+import { aiErrorMessage, callAIDetailed } from './call.js';
+import { parseLista } from './svarstolk.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
@@ -31,7 +32,7 @@ export const fetchAiSort = async (deck) => {
     const cardSummaries = unsortedCards.map(c => ({ id: c.id, front: c.front, back: c.back }));
 
     try {
-        const text = await callAI({
+        const { text, truncated } = await callAIDetailed({
             system: `Du är en expert på att organisera flashcards i logiska mappar/kategorier. Analysera korten noggrant och gruppera dem i mappar baserat på ämne, tema, eller logisk koppling.\n\nBefintliga mappar i kortleken: ${existingSections.length > 0 ? JSON.stringify(existingSections) : '(inga mappar finns ännu)'}\n\nRegler:\n- Använd befintliga mappar om de passar. Matcha exakt på namn.\n- Skapa nya mappar med tydliga, koncisa namn när inget befintligt passar.\n- Varje kort MÅSTE tilldelas exakt en mapp.\n- Tänk djupt på den bästa grupperingen. Kort som hör ihop tematiskt ska hamna i samma mapp.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar.\n- Mapp-namn ska vara korta och beskrivande.\n\nSvara med ENBART en ren JSON-array:\n[{"cardId": "...", "section": "mappnamn"}]`,
             user: `Här är korten att sortera:\n${JSON.stringify(cardSummaries)}`,
             maxTokens: 4000,
@@ -39,22 +40,13 @@ export const fetchAiSort = async (deck) => {
             feature: 'sort',
         });
 
-        // Extraktionen behålls trots json: true som skydd mot en leverantör som
-        // ändå lägger på inledning eller markdown-block.
-        let rawContent = text.trim();
-
-        // Extract only the JSON array block robustly (ignores preambles and markdown block wraps)
-        const arrayStart = rawContent.indexOf('[');
-        const arrayEnd = rawContent.lastIndexOf(']');
-        if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-            rawContent = rawContent.slice(arrayStart, arrayEnd + 1);
-        } else {
-            if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
-            else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
+        // Sorteringen listar {cardId, section}, inte kort — därför den råa
+        // listtolkningen. Ett avhugget svar sorterar de kort som hann med i
+        // stället för inga alls.
+        const { poster: sortResult, avhugget } = parseLista(text, { truncated });
+        if (avhugget) {
+            showToast(`Modellen hann inte skriva klart. ${sortResult.length} kort sorterades.`);
         }
-
-        const sortResult = JSON.parse(rawContent);
-        if (!Array.isArray(sortResult)) throw new Error("AI returnerade inte en array.");
 
         const sectionGroups = {};
         sortResult.forEach(item => {

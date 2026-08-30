@@ -1,4 +1,5 @@
-import { aiErrorMessage, callAI } from './call.js';
+import { aiErrorMessage, callAIDetailed } from './call.js';
+import { parseKortlista } from './svarstolk.js';
 import { S } from '../core/state.js';
 import { fixLatexInCards, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
@@ -21,7 +22,7 @@ export const fetchDiaryCards = async (diaryText) => {
     const bookshelfStr = bookshelfNames.length > 0 ? bookshelfNames.join(', ') : '(inga bokhyllor finns ännu)';
 
     try {
-        const text = await callAI({
+        const { text, truncated } = await callAIDetailed({
             system: `Du är en pedagogisk expert. Användaren skriver fritt om vad de lärt sig idag. Din uppgift är att extrahera nyckelinsikter och skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block. Formatet MÅSTE vara:\n[{"front": "fråga", "back": "svar", "suggestedDeck": "Namn på föreslagen kortlek", "suggestedBookshelf": "Namn på bokhylla eller null", "suggestedSection": "Namn på mapp i kortleken eller null"}]\n\nAnvändarens befintliga kortlekar med bokhyllor och mappar: ${deckListStr}\nBefintliga bokhyllor: [${bookshelfStr}]\n\nRegler:\n- Om en lärdom passar i en befintlig kortlek, använd det exakta namnet.\n- Om ingen kortlek passar, föreslå ett nytt namn.\n- Föreslå vilken bokhylla kortleken ska tillhöra (befintlig eller ny). Använd null om osäker.\n- Föreslå vilken mapp (section) i kortleken kortet ska placeras i. Använd befintliga mappnamn om de passar, annars föreslå ett nytt namn. Använd null om ingen mapp behövs.\nVIKTIGT: Matematik formateras med LaTeX via dollartecken ($). Använd aldrig backslash-parenteser.\nAnpassa antalet kort efter innehållet, vanligtvis 3–15 kort.`,
             user: `Här är mina lärdomar från idag:\n\n${diaryText}`,
             maxTokens: 4000,
@@ -29,14 +30,16 @@ export const fetchDiaryCards = async (diaryText) => {
             feature: 'diary',
         });
 
-        // Fence-strippningen behålls trots json: true som skydd mot en
-        // leverantör som ändå lägger på ett markdown-block.
-        let rawContent = text.trim();
-        if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
-        else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
+        // Samma ordningsfel som i topic-generator: vakten stod efter det som
+        // redan förutsatte en array.
+        const { kort, bortfall, avhugget } = parseKortlista(text, { truncated });
+        S.proposedDiaryCards = fixLatexInCards(kort);
 
-        S.proposedDiaryCards = fixLatexInCards(JSON.parse(rawContent));
-        if (!Array.isArray(S.proposedDiaryCards)) throw new Error("AI returnerade inte en array.");
+        if (avhugget) {
+            showToast(`Modellen hann inte skriva klart. ${kort.length} kort kunde räddas.`);
+        } else if (bortfall > 0) {
+            showToast(`${bortfall} kort saknade fråga eller svar och hoppades över.`);
+        }
 
         document.getElementById('diary-loading').classList.add('hidden');
         document.getElementById('diary-cards-container').classList.remove('hidden');

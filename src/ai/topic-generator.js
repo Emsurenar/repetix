@@ -1,4 +1,5 @@
-import { aiErrorMessage, callAI } from './call.js';
+import { aiErrorMessage, callAIDetailed } from './call.js';
+import { parseKortlista } from './svarstolk.js';
 import { renderProposedCards } from './proposed-cards.js';
 import { S } from '../core/state.js';
 import { fixLatexInCards } from '../ui/images.js';
@@ -81,7 +82,7 @@ ${contextSnippet}`;
     }
 
     try {
-        const text = await callAI({
+        const { text, truncated } = await callAIDetailed({
             system: `Du är en pedagogisk expert. Din uppgift är att skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block, utan extra text. Formatet MÅSTE vara extremt strikt: [{"front": "fråga 1", "back": "svar 1"}].\nVIKTIGT: Eventuell matematik MÅSTE formateras med LaTeX. Eftersom du utvinner i JSON kan backslash försvinna. Använd därför konsekvent DUBBLA dollartecken $$ för block eller ENKLA dollartecken $ för inline formatering. Använd aldrig backslash-parenteser i din JSON.`,
             user: instructions,
             maxTokens: 3500,
@@ -89,15 +90,18 @@ ${contextSnippet}`;
             feature: 'topic',
         });
 
-        // Fence-strippningen behålls trots json: true som skydd mot en
-        // leverantör som ändå lägger på ett markdown-block.
-        let rawContent = text.trim();
+        /* Vakten låg tidigare EFTER fixLatexInCards, som redan hade anropat
+         * .map på värdet — den kunde alltså aldrig utlösa. Nu prövas formen
+         * innan den används, och ett avhugget svar ger de kort som hann bli
+         * färdiga i stället för ingenting alls. */
+        const { kort, bortfall, avhugget } = parseKortlista(text, { truncated });
+        S.proposedTopicCards = fixLatexInCards(kort);
 
-        if (rawContent.startsWith("```json")) rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
-        else if (rawContent.startsWith("```")) rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
-
-        S.proposedTopicCards = fixLatexInCards(JSON.parse(rawContent));
-        if (!Array.isArray(S.proposedTopicCards)) throw new Error("Format returnerat var ej en städad Array.");
+        if (avhugget) {
+            showToast(`Modellen hann inte skriva klart. ${kort.length} kort kunde räddas.`);
+        } else if (bortfall > 0) {
+            showToast(`${bortfall} kort saknade fråga eller svar och hoppades över.`);
+        }
 
         // Transitions: Hide Loading step, show Preview step
         document.getElementById('topic-loading-step').classList.add('hidden');
