@@ -10,6 +10,10 @@
  * miniatyr ger samma yta, och den senare väger ett par kilobyte i stället för
  * några hundra. Därför ligger de som filer och inte i bygget — panelen har en
  * mörk grundton under sig och ser hel ut även om bilden aldrig kommer fram.
+ *
+ * Just den reservutgången dolde ett fel i ett halvår: sökvägen var relativ
+ * och gav 404 i produktion, men panelen såg ut som en panel — bara svart.
+ * Se kommentaren vid washUrl.
  */
 
 const ANTAL_BILDER = 30;
@@ -51,9 +55,20 @@ const LYFT = [
 /** Bildens nummer, 1–30. Samma frö ger alltid samma bild. */
 const bildnummer = (deckId) => (hash(String(deckId)) % ANTAL_BILDER) + 1;
 
+/* Absolut sökväg, med ledande snedstreck.
+ *
+ * Den var relativ, och det gick inte att se under utveckling. En relativ
+ * url() inuti en CSS-variabel löses mot basadressen för den STILMALL som
+ * använder var() — inte mot dokumentet. Vite bakar in stilarna i sidan när
+ * den servar källkoden, alltså bas '/', men bygget lägger dem i en fil under
+ * /assets/. Exakt samma rad blev därför /wash/w13.jpg lokalt och
+ * /assets/wash/w13.jpg i produktion, där den gav 404 och en helsvart panel.
+ *
+ * Appen serveras från roten (ingen base i vite.config.js), så det ledande
+ * snedstrecket gäller i båda lägena. */
 export const washUrl = (deckId) => {
     if (!deckId) return null;
-    return `wash/w${String(bildnummer(deckId)).padStart(2, '0')}.jpg`;
+    return `/wash/w${String(bildnummer(deckId)).padStart(2, '0')}.jpg`;
 };
 
 /* Bilden sätts som egenskap på elementet, inte som en klass per bild. Trettio
