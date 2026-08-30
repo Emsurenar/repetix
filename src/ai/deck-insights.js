@@ -6,7 +6,7 @@ import { nyttId } from '../core/utils.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
-import { aiGenerateButton, openDeck } from '../ui/deck.js';
+import { openDeck, visaInsikt } from '../ui/deck.js';
 import { cardList } from '../ui/dom.js';
 import { safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
@@ -182,6 +182,7 @@ export const generateDeckSummary = async () => {
     if (!deck) return;
 
     summaryText.innerHTML = '<div class="ai-shimmer"></div>';
+    visaInsikt(summaryBox);
 
     const info = buildDeckCardList(deck);
 
@@ -210,13 +211,10 @@ Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI so
         deckSummaryCache[S.currentDeckId] = { cardCount: info.cards.length, sectionCount: info.sections.length, summaryHtml: html, timestamp: Date.now() };
     } catch (e) {
         /* Rutan är sitt eget resultatfält, så felet stannar där i stället för
-         * att avbryta med en toast. Nytt försök erbjuds som en riktig knapp
-         * och inte som ett klick var som helst i rutan: knappen syns, går att
-         * nå med tangentbordet, och plockas upp av samma delegering som allt
-         * annat — alltså en väg in, inte två. */
-        summaryText.innerHTML =
-            `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>` +
-            aiGenerateButton('summary');
+         * att avbryta med en toast. Nytt försök görs med samma knapp i
+         * verktygsraden som startade det — den står kvar och behöver ingen
+         * kopia inne i felrutan. */
+        summaryText.innerHTML = `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>`;
         summaryBox.classList.remove('deck-ai-loaded');
     }
 };
@@ -228,6 +226,7 @@ export const generateDeckSuggestion = async () => {
     if (!deck) return;
 
     suggestionContent.innerHTML = '<div class="ai-shimmer"></div>';
+    visaInsikt(suggestionBox);
 
     const info = buildDeckCardList(deck);
 
@@ -236,9 +235,7 @@ export const generateDeckSuggestion = async () => {
         renderSuggestionCard(card, suggestionContent);
         suggestionBox.classList.add('deck-ai-loaded');
     } catch (e) {
-        suggestionContent.innerHTML =
-            `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>` +
-            aiGenerateButton('suggestion');
+        suggestionContent.innerHTML = `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>`;
         suggestionBox.classList.remove('deck-ai-loaded');
     }
 };

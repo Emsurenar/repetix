@@ -181,49 +181,21 @@
   color: var(--text-2);
 }
 
-/* VILANDE: PANELEN ÄR KNAPPEN
+/* Panelerna är rena utdata. Handlingen som fyller dem står i verktygsraden
+ * ovanför, tillsammans med kortlekens övriga handlingar — en panel som var
+ * sin egen knapp läste sig som en knapp i en knapp, och lämnade två tomma
+ * ramar mitt i vyn så länge man inte tryckt på dem.
  *
- * En ram inuti en ram läste sig som en knapp i en knapp. Så länge panelen inte
- * bär något annat än sin egen inbjudan tappar den sin luft, och knappen fyller
- * den helt och ärver dess hörn — alltså EN yta.
- *
- * :has med :only-child i stället för en klass från JS: villkoret ÄR att
- * panelen inte innehåller något annat än knappen, och skrivet så kan det inte
- * hamna i otakt med vad som faktiskt står där. Felläget bär en text bredvid
- * knappen och räknas därför inte som vilande — det behöver sin luft.
- *
- * Knappen bär ingen ikon. Bibliotekets åtgärder tog bort sina av samma skäl:
- * de sade inget som orden inte redan sade. */
-.deck-ai-summary:has(> .deck-ai-summary-text > .deck-ai-generate:only-child),
-.deck-ai-suggestion:has(> .deck-ai-suggestion-content > .deck-ai-generate:only-child) {
-  padding: 0;
+ * Därför visas en panel först när den har något att visa, och den som står
+ * ensam tar hela bredden i stället för att lämna en tom halva bredvid sig. */
+.deck-ai-summary:has(+ .deck-ai-suggestion[hidden]),
+.deck-ai-summary[hidden] + .deck-ai-suggestion {
+  grid-column: 1 / -1;
 }
 
-.deck-ai-summary:has(> .deck-ai-summary-text > .deck-ai-generate:only-child)
-  .deck-ai-summary-header,
-.deck-ai-suggestion:has(> .deck-ai-suggestion-content > .deck-ai-generate:only-child)
-  .deck-ai-suggestion-header {
-  display: none;
-}
-
-.deck-ai-generate {
-  width: 100%;
-  min-height: calc(var(--control-h-lg) + var(--s5));
-  padding: var(--s4);
-  /* Panelens ram och hörn är knappens. Egna hade gett den andra ramen. */
-  border: 0;
-  border-radius: inherit;
-  background: transparent;
-}
-
-.deck-ai-generate:hover,
-.deck-ai-generate:active {
-  background: var(--surface-2);
-}
-
-/* Felet, och knappen som gör om försöket. Stod tidigare med färg och grad i
- * markupen — utanför skalan, och med ett variabelnamn som bara finns kvar för
- * spelens gamla stilmall. */
+/* Felet stannar i panelen; nytt försök görs med samma knapp i verktygsraden.
+ * Stod tidigare med färg och grad i markupen — utanför skalan, och med ett
+ * variabelnamn som bara finns kvar för spelens gamla stilmall. */
 .deck-ai-error {
   display: block;
   margin-bottom: var(--s3);
@@ -704,25 +676,11 @@
    * Den lilla versalrubriken faller bort på köpet. Knappen under den heter
    * "Sammanfatta kortleken", och rubriken sade "SAMMANFATTNING" — samma ord
    * en gång till, ovanför det som redan bar det. */
+  /* En sammanfattning i en halv spalt på 375 pixlar går inte att läsa. */
   .deck-ai-insights {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--s3);
     margin-bottom: var(--s5);
-  }
-
-  /* Vilande delar de rad — två små knappar bredvid varandra. Så fort en av
-   * dem fått ett svar tar den hela bredden: en sammanfattning i en halv spalt
-   * på 375 pixlar går inte att läsa. */
-  .deck-ai-summary:not(:has(.deck-ai-generate:only-child)),
-  .deck-ai-suggestion:not(:has(.deck-ai-generate:only-child)) {
-    grid-column: 1 / -1;
-  }
-
-  .deck-ai-generate {
-    min-height: var(--control-h-lg);
-    padding: var(--s3) var(--s2);
-    font-size: var(--t-sm);
-    white-space: normal;
   }
 }
 

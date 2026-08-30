@@ -1,4 +1,3 @@
-import { generateDeckSuggestion, generateDeckSummary } from '../ai/deck-insights.js';
 import { deleteSection, openCardModal, openEditCardModal, openMoveCardModal, openMoveSectionModal, openNoteCardModal, openSectionModal } from '../ai/client.js';
 import { SUMMARY_REGEN_THRESHOLD, deckSummaryCache } from '../ai/deck-insights.js';
 import { S } from '../core/state.js';
@@ -44,13 +43,21 @@ export const studyDagensMapp = (deckId, sectionId) => {
 };
 
 // Update existing renderDecks calls to renderLibrary
-/* Knappen som startar en AI-generering i insiktspanelerna. Texten sager vad
- * som hander, inte att man ska klicka: "Klicka for att generera" beskrev
- * musen, inte resultatet. */
-export const aiGenerateButton = (vilken) =>
-    `<button type="button" class="btn deck-ai-generate" data-ai-generate="${vilken}">${
-        vilken === 'summary' ? 'Sammanfatta kortleken' : 'Föreslå ett kort'
-    }</button>`;
+/* De två AI-handlingarna står i verktygsraden och inte i panelerna. De döljs
+ * på samma villkor som panelerna: under två kort finns det inget att
+ * sammanfatta och ingen lucka att peka på. */
+const aiKnapparSynliga = (synliga) => {
+    for (const id of ['btn-ai-summary', 'btn-ai-suggest']) {
+        const knapp = document.getElementById(id);
+        if (knapp) knapp.hidden = !synliga;
+    }
+};
+
+/** Panelen visas först när den har något att visa. */
+export const visaInsikt = (box) => {
+    box.hidden = false;
+    document.getElementById('deck-ai-insights')?.classList.remove('hidden');
+};
 
 export const renderDecks = renderLibrary;
 
@@ -157,44 +164,40 @@ export const openDeck = (id, sectionId = null) => {
     const insightsContainer = document.getElementById('deck-ai-insights');
     const deckCards = deck.cards.filter(c => c.type !== 'note');
     if (!sectionId && deckCards.length >= 2) {
-        insightsContainer.classList.remove('hidden');
-        // Restore cached summary if available, otherwise show placeholder
+        /* Handlingarna bor i verktygsraden; panelerna är rena utdatafack och
+         * syns bara när de har något att visa. En tom ruta med en knapp i var
+         * en ruta i en ruta, och två av dem tog en egen våning mellan lekens
+         * ingång och dess kort. */
+        aiKnapparSynliga(true);
+
         const cached = deckSummaryCache[id];
         const summaryText = document.getElementById('deck-ai-summary-text');
         const summaryBox = document.getElementById('deck-ai-summary');
-        if (cached && cached.summaryHtml && Math.abs(deckCards.length - cached.cardCount) < SUMMARY_REGEN_THRESHOLD) {
+        const harCache =
+            cached &&
+            cached.summaryHtml &&
+            Math.abs(deckCards.length - cached.cardCount) < SUMMARY_REGEN_THRESHOLD;
+        if (harCache) {
             summaryText.innerHTML = cached.summaryHtml;
             renderLatex(summaryText);
-            summaryBox.classList.add('deck-ai-loaded');
         } else {
-            summaryText.innerHTML = aiGenerateButton('summary');
-            summaryBox.classList.remove('deck-ai-loaded');
+            summaryText.innerHTML = '';
         }
-        // Suggestion always starts as placeholder
+        summaryBox.classList.toggle('deck-ai-loaded', Boolean(harCache));
+        summaryBox.hidden = !harCache;
+
+        // Förslaget är alltid nytt: det gamla gällde en kortlek som kan ha
+        // ändrats sedan dess.
         const suggestionContent = document.getElementById('deck-ai-suggestion-content');
         const suggestionBox = document.getElementById('deck-ai-suggestion');
-        suggestionContent.innerHTML = aiGenerateButton('suggestion');
+        suggestionContent.innerHTML = '';
         suggestionBox.classList.remove('deck-ai-loaded');
+        suggestionBox.hidden = true;
 
-        /* Knapparna ritas om varje gang kortleken oppnas. Delegering pa
-         * behallaren i stallet for en lyssnare per knapp, sa att inget
-         * staplas pa sig.
-         *
-         * Och delegeringen är den ENDA vägen. Rutorna bar tidigare var sitt
-         * eget onclick vid sidan av den här, och eftersom knappen ligger inne
-         * i rutan som ligger inne i behållaren bubblade varje klick genom
-         * båda: mätt till två shimrar och två anrop per klick. Det kostade
-         * dubbelt, åt takt-spärren dubbelt så fort, och lät två svar kapplöpa
-         * om samma ruta — blev det andra anropet stoppat skrev dess felruta
-         * över det förstas färdiga resultat. */
-        insightsContainer.onclick = (e) => {
-            const knapp = e.target.closest('[data-ai-generate]');
-            if (!knapp) return;
-            if (knapp.dataset.aiGenerate === 'summary') generateDeckSummary();
-            else generateDeckSuggestion();
-        };
+        insightsContainer.classList.toggle('hidden', !harCache);
     } else {
         insightsContainer.classList.add('hidden');
+        aiKnapparSynliga(false);
     }
 };
 

@@ -190,12 +190,18 @@
                 <button id="btn-add-section" class="btn">Ny mapp</button>
                 <button id="btn-open-topic-generator" class="btn">AI-generera</button>
                 <button id="btn-ai-sort" class="btn">AI-sortera</button>
+                <!-- De två insikterna hör hemma här, bland kortlekens övriga
+                     handlingar, och inte i var sin stor ruta på en egen rad.
+                     Fyllda för att skilja det som kostar ett AI-anrop från det
+                     som bara öppnar ett formulär. Korta ord: raden bär redan
+                     fem knappar, och i en kortlek behövs inte "kortleken" sägas
+                     en gång till. -->
+                <button id="btn-ai-summary" class="btn primary" data-ai-generate="summary">Sammanfatta</button>
+                <button id="btn-ai-suggest" class="btn primary" data-ai-generate="suggestion">Föreslå kort</button>
                 <button id="btn-study" hidden></button> <!-- Bär repetitionen; panelen ovanför trycker på den -->
             </div>
-            <!-- Panelerna var div:ar med role="button" och en inline-onclick:
-                 hela ytan var klickyta, och den behövde ett eget
-                 tangentbordsstöd för att gå att nå. Handlingen är nu en riktig
-                 knapp inuti panelen, och panelen bara en panel. -->
+            <!-- Rena utdatapaneler: de visas först när de har ett svar att
+                 bära. Knapparna som fyller dem står i raden ovanför. -->
             <div id="deck-ai-insights" class="deck-ai-insights hidden">
                 <section id="deck-ai-summary" class="panel deck-ai-summary" aria-labelledby="deck-ai-summary-title">
                     <div class="deck-ai-summary-header">
