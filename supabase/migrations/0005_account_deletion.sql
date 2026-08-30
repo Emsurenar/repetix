@@ -44,7 +44,7 @@ begin
 
   -- Kaskaden tar profiles, bookshelves, decks, sections, cards, card_images,
   -- notebooks, notes, reviews, user_ai_keys, user_settings, api_usage och
-  -- ai_usage (den sistnämnda tillkom i 0006, efter den här migrationen).
+  -- ai_usage (den sistnämnda tillkom i 0007, efter den här migrationen).
   delete from auth.users where id = v_user;
 end;
 $$;

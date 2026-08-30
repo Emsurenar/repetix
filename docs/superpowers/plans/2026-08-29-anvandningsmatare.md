@@ -24,10 +24,10 @@
 
 ---
 
-### Task 1: Migration 0006 — tabellen och taket
+### Task 1: Migration 0007 — tabellen och taket
 
 **Files:**
-- Create: `supabase/migrations/0006_ai_usage.sql`
+- Create: `supabase/migrations/0007_ai_usage.sql`
 
 **Interfaces:**
 - Consumes: inget.
@@ -102,7 +102,7 @@ Förväntat: exakt två rader, `ai_usage_select` (SELECT) och `ai_usage_insert` 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/0006_ai_usage.sql
+git add supabase/migrations/0007_ai_usage.sql
 git commit -m "feat(db): append-only table for AI usage, and a monthly budget field
 
 Token counts only, never money: prices change and token counts are facts,

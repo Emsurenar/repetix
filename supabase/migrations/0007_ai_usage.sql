@@ -1,6 +1,10 @@
 -- Repetix — användningslogg för AI-anrop
 --
--- Kör detta i Supabase SQL Editor efter 0005. Idempotent.
+-- Kör detta i Supabase SQL Editor efter 0006. Idempotent.
+--
+-- Numret är 0007 och inte 0006: 0006 togs av ai_key_write, som skrevs
+-- parallellt med den här. Migrationerna körs för hand i nummerordning, och två
+-- filer med samma nummer hade gjort ordningen till en gissning.
 --
 -- Tabellen är append-only, byggd som reviews: select och insert, aldrig update
 -- eller delete. En bokföringsrad ändras inte och raderas inte, och därför finns
