@@ -194,7 +194,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--s2);
-  min-height: var(--t-md);
 }
 
 .btn-grid-action {

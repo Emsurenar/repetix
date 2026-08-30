@@ -8,7 +8,16 @@
          det problemet vid källan; där det inte gör det räknar
          src/ui/tangentbord.js ut samma sak ur visualViewport. De två går ihop:
          krymper layouten blir skillnaden noll av sig själv. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <!-- overlays-content: tangentbordet läggs över sidan i stället för att
+         klippa av den. Med resizes-content krympte layoutytan när tangentbordet
+         kom upp, och då räknades varje dvh-mått om på en gång — hela sidan
+         lades om bakom tangentbordet medan man tryckte. Det gjorde också
+         --tangentbord meningslös: skillnaden mellan innerHeight och den synliga
+         ytan blev noll, så bottenarken som ska ligga ovanför tangentbordet
+         trodde att det inte fanns något. iOS har aldrig gjort något annat än
+         att lägga tangentbordet över sidan; nu gör Android likadant, och båda
+         mäts på samma sätt. Se src/ui/tangentbord.js. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content">
     <title>Repetix</title>
     <meta name="description" content="Repetitionsapp med spaced repetition, molnsynk och AI-stod.">
     <meta name="theme-color" content="#0e6a5e">
