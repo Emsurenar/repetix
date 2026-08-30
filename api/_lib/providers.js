@@ -121,6 +121,15 @@ async function probeKey(url, headers) {
  */
 const tal = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
+/* Modeller som avvisar output_config.effort.
+ *
+ * Haiku 4.5 svarar med fel om fältet skickas. Listan är en nekandelista och
+ * inte en tillåtandelista med flit: leverantörerna släpper nya modeller oftare
+ * än appen uppdateras, och en ny modell ska få effort som förval snarare än att
+ * tyst tappa besparingen.
+ */
+const UTAN_EFFORT = new Set(['claude-haiku-4-5']);
+
 /**
  * Adaptrarna. Varje leverantör har:
  *
@@ -150,7 +159,7 @@ export const providers = {
     ],
     defaultModel: 'claude-opus-5',
 
-    buildRequest({ system, user, maxTokens, model, json, key }) {
+    buildRequest({ system, user, maxTokens, model, json, key, effort }) {
       const prompt = withJsonInstruction(system, json);
       return {
         url: 'https://api.anthropic.com/v1/messages',
@@ -164,6 +173,7 @@ export const providers = {
           max_tokens: maxTokens,
           // Systemprompten är en egen parameter här, inte ett meddelande.
           ...(prompt ? { system: prompt } : {}),
+          ...(effort && !UTAN_EFFORT.has(model) ? { output_config: { effort } } : {}),
           messages: [{ role: 'user', content: user }],
         },
       };

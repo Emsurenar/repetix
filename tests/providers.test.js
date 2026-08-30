@@ -467,3 +467,36 @@ describe('extractTruncated', () => {
     expect(providers.google.extractTruncated({ candidates: [{ finishReason: 'SAFETY' }] })).toBe(false);
   });
 });
+
+/* effort skär ned tänkandet, som debiteras som utdata — den enda leveran utöver
+ * modellvalet. Men parametern avvisas av claude-haiku-4-5, så adaptern måste
+ * utelämna den där i stället för att låta anropet gå sönder. */
+describe('effort', () => {
+  it('lägger output_config.effort i kroppen för Opus', () => {
+    const { body } = providers.anthropic.buildRequest(
+      anrop({ model: 'claude-opus-5', effort: 'low' })
+    );
+    expect(body.output_config).toEqual({ effort: 'low' });
+  });
+
+  it('utelämnar fältet för haiku, som avvisar det', () => {
+    const { body } = providers.anthropic.buildRequest(
+      anrop({ model: 'claude-haiku-4-5', effort: 'low' })
+    );
+    expect(body.output_config).toBeUndefined();
+  });
+
+  it('utelämnar fältet när ingen effort begärts', () => {
+    const { body } = providers.anthropic.buildRequest(anrop({ model: 'claude-opus-5' }));
+    expect(body.output_config).toBeUndefined();
+  });
+
+  /* De andra tre leverantörerna ska ignorera fältet tyst — klienten ska inte
+   * behöva veta vilken leverantör användaren valt. */
+  it('rör inte de andra adaptrarnas kroppar', () => {
+    for (const id of ['openai', 'google', 'openrouter']) {
+      const { body } = providers[id].buildRequest(anrop({ effort: 'low' }));
+      expect(body.output_config).toBeUndefined();
+    }
+  });
+});

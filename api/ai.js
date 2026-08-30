@@ -53,6 +53,10 @@ const MAX_PROVIDER_CHARS = 40;
  * mängd data till databasen. */
 const MAX_FEATURE_CHARS = 40;
 
+/* Enda tillåtna värdet. En öppen sträng hade skickat vidare vad som helst till
+ * leverantören, och ett felstavat värde ger ett fel användaren inte kan tolka. */
+const TILLATEN_EFFORT = new Set(['low']);
+
 /**
  * Tecken som får förekomma i ett modell-id. Snedstrecket behövs av OpenRouter
  * (`leverantör/modell`), kolon och at-tecken av leverantörer som versionerar i
@@ -92,6 +96,7 @@ export default async function handler(req, res) {
       max: MAX_FEATURE_CHARS,
       required: true,
     });
+    const effort = TILLATEN_EFFORT.has(body.effort) ? body.effort : undefined;
 
     const { providerName, provider, model } = await resolveTarget(body, db, userId);
     const apiKey = await loadApiKey(db, providerName, provider.label);
@@ -103,6 +108,7 @@ export default async function handler(req, res) {
       model,
       json: body.json === true,
       key: apiKey,
+      effort,
     });
 
     const { text, usage, truncated } = await callProvider(provider, request);

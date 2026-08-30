@@ -102,6 +102,11 @@ ${contextSnippet}`;
             maxTokens: 3500,
             json: true,
             feature: S.aiGeneratorOptions.sourceType === 'kalla' ? 'kalla-kort' : 'topic',
+            /* Att plocka kort ur en text användaren själv gett är närmare
+             * extraktion än resonemang. Tänkandet debiteras som utdata och är
+             * den största posten vid generering — låg ansträngning skär bort
+             * merparten utan att korten blir sämre. */
+            effort: S.aiGeneratorOptions.sourceType === 'kalla' ? 'low' : undefined,
         });
 
         /* Vakten låg tidigare EFTER fixLatexInCards, som redan hade anropat
