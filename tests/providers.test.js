@@ -505,13 +505,16 @@ describe('effort', () => {
  * EFTER brytpunkten. Då byts frågan och historiken ut utan att dokumentet
  * tappar cachen, och en cachad läsning kostar en tiondel av en vanlig. */
 describe('cache', () => {
-  it('gör systemprompten till ett cachat block för Anthropic', () => {
+  /* Ingen ttl: standardfönstret på fem minuter kostar 1,25× att skriva och
+   * betalar sig redan från den andra frågan, medan timmesfönstret kostar
+   * dubbelt och betalar sig först från den tredje — se providers.js. */
+  it('gör systemprompten till ett cachat block för Anthropic, utan förlängd ttl', () => {
     const { body } = providers.anthropic.buildRequest(anrop({ cache: true }));
     expect(body.system).toEqual([
       {
         type: 'text',
         text: expect.any(String),
-        cache_control: { type: 'ephemeral', ttl: '1h' },
+        cache_control: { type: 'ephemeral' },
       },
     ]);
   });

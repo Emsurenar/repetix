@@ -174,11 +174,19 @@ export const providers = {
           // Systemprompten är en egen parameter här, inte ett meddelande.
           /* Med cache blir systemprompten ett block med brytpunkt i stället för
            * en sträng. Allt efter brytpunkten — frågan och historiken i
-           * messages — får bytas ut fritt utan att dokumentet tappar cachen. */
+           * messages — får bytas ut fritt utan att dokumentet tappar cachen.
+           *
+           * Ingen ttl anges, så Anthropic använder standardfönstret på fem
+           * minuter i stället för timmesfönstret. Timmen kostar dubbelt att
+           * skriva (2× bas) och betalar sig först från tredje frågan i en
+           * session — vid en eller två kostar cachning mer än att låta bli.
+           * Fem minuter kostar bara 1,25× att skriva och betalar sig redan
+           * från den andra frågan, och en läsning förnyar fönstret, så ett
+           * normalt samtal fram och tillbaka hålls varmt ändå. */
           ...(prompt
             ? {
                 system: cache
-                  ? [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral', ttl: '1h' } }]
+                  ? [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral' } }]
                   : prompt,
               }
             : {}),

@@ -114,6 +114,17 @@ export async function renderaKallor(deckId) {
         bort.addEventListener('click', async () => {
             const { ok } = await taBortKalla(kalla.id);
             if (!ok) return showToast('Kunde inte ta bort källan.');
+            /* hamtaKalltext filtrerar inte på deleted_at, så frågepanelen
+             * skulle annars fortsätta svara mot en källa som just försvunnit
+             * ur listan. Samma återställning som openDeck gör vid ett byte
+             * av kortlek. */
+            if (fragadKalla?.id === kalla.id) {
+                fragadKalla = null;
+                fragehistorik = [];
+                document.getElementById('deck-kallfraga')?.classList.add('hidden');
+                const svarsrutan = document.getElementById('deck-kallfraga-svar');
+                if (svarsrutan) svarsrutan.innerHTML = '';
+            }
             void renderaKallor(deckId);
         });
 
@@ -143,6 +154,11 @@ export function initUiKallfraga() {
   if (!knapp || !falt) return;
 
   const fraga = async () => {
+    // Enter kan hamras i klump. Utan spärren startar varje extra tryck ett
+    // nytt anrop som kapplöper mot den pågående cacheskrivningen och betalar
+    // för hela dokumentet igen — knappen är redan avaktiverad så länge ett
+    // svar väntas in.
+    if (knapp.disabled) return;
     const text = falt.value.trim();
     if (!text || !fragadKalla) return;
 
@@ -177,8 +193,12 @@ export function initUiKallfraga() {
   });
 }
 
-/* textContent hela vägen: svaret kommer från en modell som läst en fil
- * användaren valt, och det ska aldrig kunna bli markup. */
+/* Frågan är användarens egen ordagranna text — den tolkas aldrig som markup
+ * och förblir textContent. Svaret däremot kommer från en modell som ombetts
+ * skriva LaTeX mellan dollartecken och markdown för struktur (se SYSTEM i
+ * kallfraga.js); textContent hade visat formlerna som råa dollartecken och
+ * kollapsat styckesbrytningar. safeParse saniterar med DOMPurify innan
+ * innerHTML sätts, så det här försvagar inte regeln mot rå markup. */
 function ritaHistorik() {
   const rutan = document.getElementById('deck-kallfraga-svar');
   rutan.innerHTML = '';
@@ -186,9 +206,10 @@ function ritaHistorik() {
     const f = document.createElement('p');
     f.className = 'deck-kallfraga-fraga';
     f.textContent = tur.fraga;
-    const s = document.createElement('p');
+    const s = document.createElement('div');
     s.className = 'deck-kallfraga-text';
-    s.textContent = tur.svar;
+    s.innerHTML = safeParse(tur.svar);
+    renderLatex(s);
     rutan.append(f, s);
   }
 }

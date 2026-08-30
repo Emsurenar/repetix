@@ -37,11 +37,18 @@ export const fetchCardsByTopic = async (topic, modifier = null, deck = null) => 
     }
 
     /* Källans text hämtas först här, inte när källan valdes: den är hundra
-     * kilobyte och behövs bara i det ögonblick den ska skickas. */
+     * kilobyte och behövs bara i det ögonblick den ska skickas — och bara
+     * utan modifier. Sätts "lättare/svårare/praktisk" byggs instructions om
+     * från grunden längre ner och sourceInstruction kastas, så hämtningen
+     * vore bortkastat arbete mot hundra kilobyte i onödan. */
     let kallText = null;
-    if (S.aiGeneratorOptions.sourceType === 'kalla') {
+    if (S.aiGeneratorOptions.sourceType === 'kalla' && !modifier) {
         kallText = await hamtaKalltext(S.aiGeneratorOptions.sourceId);
         if (!kallText) {
+            // Samma återställning som catch-blocket nedan gör vid ett AI-fel —
+            // annars fastnar guiden på laddningssteget utan väg tillbaka.
+            document.getElementById('topic-loading-step').classList.add('hidden');
+            document.getElementById('topic-setup-step').classList.remove('hidden');
             showToast('Kunde inte läsa källans text.');
             return;
         }

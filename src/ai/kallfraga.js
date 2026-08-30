@@ -1,6 +1,7 @@
 /* Frågor om en källa.
  *
- * Dokumentet står i systemprompten och cachas i en timme; frågan och de tre
+ * Dokumentet står i systemprompten, bakom en cachebrytpunkt med standardens
+ * fem minuter (se providers.js för varför inte en timme); frågan och de tre
  * senaste turerna står i user-meddelandet, alltså efter brytpunkten. Följden är
  * att första frågan betalar dokumentet fullt och resten betalar en tiondel.
  */
