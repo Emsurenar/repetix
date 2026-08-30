@@ -15,17 +15,23 @@ import { applyWash } from '../wash.js';
 export function initUiWiringCreate() {
       /* Varje val bär sin egen utblurrade bild, som en kortlek gör. Fröet är
        * ordet och inte ett löpnummer: bilden ska följa saken, så att den som
-       * lärt sig att bokhyllan är den gröna hittar rätt utan att läsa. */
-      applyWash(document.getElementById('option-create-deck'), 'skapa:kortlek');
-      applyWash(document.getElementById('option-create-notebook'), 'skapa:block');
-      applyWash(document.getElementById('option-create-bookshelf'), 'skapa:bokhylla');
+       * lärt sig att bokhyllan är den gröna hittar rätt utan att läsa.
+       *
+       * Bilderna sätts när modalen öppnas, inte här vid kopplingen. Valet är
+       * inte längre en ren funktion av ordet: det ser hela mängden paneler för
+       * att kunna hålla dem isär, och kortlekarna ingår i den mängden. Den här
+       * funktionen körs före initAppInit, alltså innan datan lästs in — då
+       * fanns inga lekar att skilja sig från, och de tre rutorna hade fastnat
+       * i ett val som gjordes för tidigt. */
+      const oppnaSkapaModalen = () => {
+          applyWash(document.getElementById('option-create-deck'), 'skapa:kortlek');
+          applyWash(document.getElementById('option-create-notebook'), 'skapa:block');
+          applyWash(document.getElementById('option-create-bookshelf'), 'skapa:bokhylla');
+          modalCreateOptions.classList.remove('hidden');
+      };
 
-      document.getElementById('btn-create-item')?.addEventListener('click', () => {
-          modalCreateOptions.classList.remove('hidden');
-      });
-      document.getElementById('btn-create-item-top')?.addEventListener('click', () => {
-          modalCreateOptions.classList.remove('hidden');
-      });
+      document.getElementById('btn-create-item')?.addEventListener('click', oppnaSkapaModalen);
+      document.getElementById('btn-create-item-top')?.addEventListener('click', oppnaSkapaModalen);
 
       document.getElementById('btn-cancel-create-options')?.addEventListener('click', () => {
           modalCreateOptions.classList.add('hidden');

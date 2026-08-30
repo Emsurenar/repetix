@@ -16,19 +16,27 @@
  * Se kommentaren vid washUrl.
  */
 
+import { S } from '../core/state.js';
+import { hash, tilldelaBilder } from '../domain/wash-tilldelning.js';
+
 const ANTAL_BILDER = 30;
 
-/* FNV-1a. Kortlekens id kan vara 'd1' eller en tidsstämpel på tretton
- * siffror; en hash som bara tittar på längden eller sista tecknet hade gett
- * samma bild till alla lekar som skapades samma sekund. */
-const hash = (text) => {
-    let h = 2166136261;
-    for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
-};
+/* De fasta panelerna, i den ordning de ska få sina bilder.
+ *
+ * De ingår i samma tilldelning som kortlekarna, eftersom "Dagens mapp" står i
+ * biblioteket ovanför lekarna och de tre skapa-rutorna står bredvid varandra i
+ * samma modal. Sist i listan med flit: kortlekarna är användarens innehåll och
+ * får välja först.
+ *
+ * Spelhallens brickor står INTE här. Deras id:n ägs av playground.js, de visas
+ * på en egen skärm, och de skulle äta åtta av trettio platser från lekarna för
+ * att lösa en krock som ingen ser. De behåller sin rena hash. */
+const FASTA_PANELER = [
+    'dagens-mapp:tom',
+    'skapa:kortlek',
+    'skapa:block',
+    'skapa:bokhylla',
+];
 
 /* Ljuslyft per bild.
  *
@@ -52,8 +60,36 @@ const LYFT = [
     1, 1.84, 1.05, 1, 1, 1, 1, 1.79, 2.6, 1,
 ];
 
-/** Bildens nummer, 1–30. Samma frö ger alltid samma bild. */
-const bildnummer = (deckId) => (hash(String(deckId)) % ANTAL_BILDER) + 1;
+/* Tilldelningen räknas om när uppsättningen kortlekar ändrats, inte vid varje
+ * panel som ritas. Nyckeln är listan själv: ändras den inte finns inget nytt
+ * att räkna ut, och biblioteket ritar om sig ofta. */
+let cachadNyckel = null;
+let cachadTilldelning = new Map();
+
+const tilldelning = () => {
+    const deckIds = (S.appData?.decks ?? []).map((d) => d.id).filter(Boolean);
+    const alla = [...deckIds, ...FASTA_PANELER];
+    const nyckel = alla.join('\u0000');
+
+    if (nyckel !== cachadNyckel) {
+        cachadNyckel = nyckel;
+        cachadTilldelning = tilldelaBilder(alla, ANTAL_BILDER);
+    }
+    return cachadTilldelning;
+};
+
+/**
+ * Bildens nummer, 1–30.
+ *
+ * Kortlekar och de fasta panelerna hämtas ur tilldelningen, som ser hela
+ * mängden och därför kan hålla dem isär. Allt annat — spelhallens brickor, och
+ * en lek som hunnit raderas medan panelen ritas — faller tillbaka på den rena
+ * hashen: en bild blir det, den är bara inte garanterat unik.
+ */
+const bildnummer = (deckId) => {
+    const nyckel = String(deckId);
+    return tilldelning().get(nyckel) ?? (hash(nyckel) % ANTAL_BILDER) + 1;
+};
 
 /* Absolut sökväg, med ledande snedstreck.
  *
