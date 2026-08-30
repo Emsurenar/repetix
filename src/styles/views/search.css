@@ -308,10 +308,14 @@
     padding: 0;
   }
 
+  /* Paletten slutar där tangentbordet börjar. dvh vet inget om tangentbordet
+   * — det läggs över sidan och gör den inte kortare — så utan avdraget hade de
+   * nedersta träffarna hamnat bakom det, i en lista man öppnat just för att
+   * leta i. */
   .search-palette {
     max-width: none;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: calc(100dvh - var(--tangentbord));
+    max-height: calc(100dvh - var(--tangentbord));
     padding-bottom: env(safe-area-inset-bottom);
     border: 0;
     border-radius: 0;

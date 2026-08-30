@@ -28,6 +28,15 @@ body {
   /* Tar bort den blå blinkningen vid tryck på iOS. Vi ritar egna
    * tryckta lägen. */
   -webkit-tap-highlight-color: transparent;
+  /* Sidan slutar inte längre bakom tangentbordet.
+   *
+   * Tangentbordet läggs ÖVER sidan och gör den inte kortare (se meta-taggen i
+   * index.html). Utan de här pixlarna tar dokumentet slut vid skärmens
+   * underkant, och det sista fältet — eller Spara-knappen — går inte att rulla
+   * fram: den ligger bakom tangentbordet och sidan är redan slut. Måttet är
+   * noll när inget tangentbord är uppe, så ingenting flyttar sig av det här på
+   * en skärm med mus. Höjden mäts i src/ui/tangentbord.js. */
+  padding-bottom: var(--tangentbord);
 }
 
 h1,
@@ -87,9 +96,24 @@ input[type='radio'] {
   accent-color: var(--accent);
 }
 
-/* En hoppande sida känns som ett byte, en glidande som en förflyttning. */
-html {
-  scroll-behavior: smooth;
+/* En hoppande sida känns som ett byte, en glidande som en förflyttning.
+ *
+ * Men glidningen gäller VARJE rullning webbläsaren gör åt en — också den som
+ * hämtar fram fältet man tryckt på när tangentbordet fälls upp. Med finger blev
+ * det hela sidan i rörelse i samma sekund som man skulle börja skriva: rubrik,
+ * tal och paneler gled förbi bakom ett tangentbord som kom nedifrån, och man
+ * hann tappa bort vad man tittade på. Uppmätt: med `auto` landar sidan direkt
+ * på rätt rad, med `smooth` tar samma förflyttning en tredjedels sekund av
+ * rörelse man inte bett om.
+ *
+ * Därför bara med mus, där rullningen är något man själv startat. Med finger
+ * ställer sig sidan direkt där den ska stå och det enda som rör sig är
+ * tangentbordet. Rullningar som verkligen VILL glida — sökträffen som ska
+ * pekas ut — ber om det själva med behavior: 'smooth' och påverkas inte. */
+@media (pointer: fine) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -557,13 +557,14 @@ textarea:disabled {
     margin-bottom: var(--tangentbord);
     border-radius: var(--r-lg) var(--r-lg) 0 0;
     padding-bottom: calc(var(--s5) + env(safe-area-inset-bottom));
-    transition: max-height var(--dur-2) var(--ease-out);
-  }
-
-  /* Med tangentbordet uppe är skärmens underkant tangentbordets överkant, och
-   * då finns ingen säker zon att hålla avstånd till. */
-  .modal-content:has(:focus) {
-    padding-bottom: var(--s5);
+    /* Höjden och underkanten flyttar sig av samma skäl och måste därför flytta
+     * sig tillsammans. Bara max-height var med förut: arket sköt upp i ett
+     * ryck medan innehållet i det tog en fjärdedels sekund på sig att följa
+     * efter, och det var två rörelser där det fanns en. Nu är det en enda, i
+     * takt med tangentbordet som kommer nedifrån. */
+    transition:
+      max-height var(--dur-2) var(--ease-out),
+      margin-bottom var(--dur-2) var(--ease-out);
   }
 
   .modal-actions {

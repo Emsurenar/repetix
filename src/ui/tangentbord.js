@@ -24,9 +24,20 @@ export function initTangentbord() {
   const vv = window.visualViewport;
   if (!vv) return;
 
+  /* Skriv bara när måttet faktiskt ändrats.
+   *
+   * scroll-händelsen kommer för varje bildruta man rullar, och att sätta en
+   * variabel på :root räknar om stilen för hela dokumentet varje gång. Med
+   * tangentbordet uppe var det en omräkning per bildruta för ett värde som stod
+   * still — rullningen blev ryckig av arbetet med att beskriva att ingenting
+   * hade hänt. */
+  let senast = null;
+
   const skriv = () => {
     const skymt = window.innerHeight - (vv.height + vv.offsetTop);
     const tangentbord = skymt > MINSTA_TANGENTBORD ? Math.round(skymt) : 0;
+    if (tangentbord === senast) return;
+    senast = tangentbord;
     document.documentElement.style.setProperty(VARIABEL, `${tangentbord}px`);
   };
 

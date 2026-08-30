@@ -143,6 +143,20 @@
   margin-bottom: 0;
 }
 
+/* Hyllan som tar emot. Samma språk som bibliotekets grupp: en accentlinje
+ * utanpå, ritad med outline så att ingenting i gruppen flyttar sig när den
+ * tänds. */
+.sidebar-group.drag-over {
+  outline: 1px solid var(--accent);
+  outline-offset: var(--s1);
+  border-radius: var(--r-sm);
+}
+
+/* Raden som dras tonas ned, precis som kortet i rutnätet gör. */
+.sidebar-item.sidebar-dragging {
+  opacity: 0.5;
+}
+
 /* Etiketten är klickbar — den filtrerar till sin hylla och bär greppet för
  * omordning — men får inte se ut som en knapp. Därför nollställd helt. */
 .sidebar-group-label {
@@ -560,6 +574,17 @@ body.sidebar-collapsed .sidebar-toggle {
   }
 
   body.focus-mode .sidebar-toggle {
+    display: none;
+  }
+
+  /* Och den försvinner medan man skriver.
+   *
+   * Knappen är fast i skärmens hörn. När tangentbordet kommer upp flyttar iOS
+   * den synliga ytan inom den fasta layouten, och ett fast element följer med
+   * layouten i stället för med det man ser — det driver alltså över texten man
+   * håller på att skriva. Den är inte heller något man ska nå mitt i en mening:
+   * vägen till sidopanelen kan vänta tills fältet lämnats. */
+  body:has(input:focus, textarea:focus) .sidebar-toggle {
     display: none;
   }
 }
