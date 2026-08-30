@@ -1,6 +1,8 @@
 import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
 import { parseObjekt } from './svarstolk.js';
 import { createCard } from '../domain/model.js';
+import { hittaMapp } from '../domain/mappval.js';
+import { nyttId } from '../core/utils.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
@@ -46,6 +48,7 @@ const renderSuggestionCard = (card, container) => {
             <div class="deck-ai-suggestion-front">${safeParse(card.front)}</div>
             <div class="deck-ai-suggestion-back">${safeParse(card.back)}</div>
             ${card.reasoning ? `<p class="deck-ai-suggestion-why">${escapeHtml(card.reasoning)}</p>` : ''}
+            ${card.section ? `<p class="deck-ai-suggestion-where">Läggs i <strong>${escapeHtml(card.section)}</strong></p>` : ''}
             <div class="deck-ai-suggestion-actions">
                 <button type="button" class="btn btn-add-suggestion" data-forslag="lagg-till">+ Lägg till</button>
                 <button type="button" class="btn btn-skip-suggestion" data-forslag="nytt">↻ Nytt förslag</button>
@@ -77,7 +80,9 @@ Kortet ska vara så träffsäkert att användaren tänker "Såklart ska jag ha d
 
 VIKTIGT: Föreslå INTE ett kort som liknar något som redan finns. Var originell och hitta en ny vinkel.
 
-Svara med ENBART ett rent JSON-objekt: {"front": "fråga", "back": "svar", "reasoning": "En mening om varför just detta kort saknas"}
+Ange också vilken mapp kortet hör hemma i. Använd EXAKT namnet på en befintlig mapp när någon passar — de står listade ovanför korten. Passar ingen, föreslå ett kort och beskrivande namn på en ny. Saknar kortleken mappar helt, svara med tom sträng.
+
+Svara med ENBART ett rent JSON-objekt: {"front": "fråga", "back": "svar", "reasoning": "En mening om varför just detta kort saknas", "section": "mappnamn eller tom sträng"}
 Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga korten.`,
         user: `Kortlek: "${deck.title}" (${info.cards.length} kort)${info.sectionInfo}\n\n${info.cardList}`,
         maxTokens: INSIKT_MAX_TOKENS,
@@ -123,10 +128,32 @@ export function initAiDeckInsights() {
       const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
       if (!deck) return;
 
-      deck.cards.push(createCard(card.front, card.back, false, [], null));
+      /* Kortet hamnade tidigare alltid löst i roten, oavsett hur välsorterad
+       * leken var — man fick sortera in det för hand direkt efteråt. Mappen
+       * kommer nu ur samma svar som kortet: modellen ser ändå hela listan och
+       * vilka mappar som finns, så den vet redan var kortet hör hemma. Ett
+       * andra anrop hade kostat en begäran till för ett beslut som redan var
+       * fattat. */
+      let sectionId = null;
+      const onskad = typeof card.section === 'string' ? card.section.trim() : '';
+      if (onskad) {
+          if (!deck.sections) deck.sections = [];
+          const befintlig = hittaMapp(deck.sections, onskad);
+          if (befintlig) {
+              sectionId = befintlig.id;
+          } else {
+              // Namnet matchade ingen: modellen föreslog en ny mapp, och den
+              // fick användaren se innan hen tryckte.
+              const ny = { id: nyttId(), title: onskad };
+              deck.sections.push(ny);
+              sectionId = ny.id;
+          }
+      }
+
+      deck.cards.push(createCard(card.front, card.back, false, [], sectionId));
       saveData();
       openDeck(S.currentDeckId, S.currentSectionId);
-      showToast('Kort tillagt!');
+      showToast(onskad ? `Kort tillagt i ${onskad}` : 'Kort tillagt!');
   };
 
   window.refreshSuggestedCard = () => {

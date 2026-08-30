@@ -255,6 +255,14 @@
 
 /* Förslaget bär kortets röst: frågan i serifen som kort har i resten av
  * appen, svaret en nivå tystare, och skälet som en egen dämpad rad. */
+/* Var kortet hamnar, sagt innan man trycker. Ett förslag som tyst skapar en
+ * mapp är en överraskning; ett som säger var det hör hemma är ett förslag. */
+.deck-ai-suggestion-where {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--text-2);
+}
+
 .deck-ai-suggestion-why {
   margin: 0;
   font-size: var(--t-xs);
