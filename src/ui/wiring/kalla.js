@@ -21,6 +21,12 @@ export function initUiWiringKalla() {
     knapp.addEventListener('click', () => falt.click());
 
     falt.addEventListener('change', async () => {
+        // Kortleken fångas INNAN någon await. Läsningen av en stor PDF tar tid, och
+        // hinner användaren byta kortlek under tiden skulle S.currentDeckId peka på
+        // en annan lek när raden skrivs — källan hade hamnat i fel kortlek, i
+        // databasen, utan att något sagt ifrån.
+        const deckId = S.currentDeckId;
+
         const fil = falt.files?.[0];
         // Fältet nollställs direkt: väljs samma fil igen utlöses annars ingen
         // change-händelse, och knappen ser trasig ut.
@@ -45,7 +51,7 @@ export function initUiWiringKalla() {
             }
 
             const res = await sparaKalla({
-                deckId: S.currentDeckId,
+                deckId,
                 title: fil.name.replace(/\.pdf$/i, ''),
                 text,
                 pages,
@@ -53,7 +59,7 @@ export function initUiWiringKalla() {
 
             if (!res.ok) return showToast(res.error);
             showToast(`${pages} sidor inlästa.`);
-            void renderaKallor(S.currentDeckId);
+            void renderaKallor(deckId);
         } catch {
             showToast('Kunde inte läsa PDF:en.');
         } finally {

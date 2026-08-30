@@ -13,6 +13,7 @@ import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
 import { switchView } from './router.js';
 import { renderStudyCard, startSectionStudy, startStudy } from './study.js';
+import { showToast } from './toast.js';
 import { applyWash } from './wash.js';
 import { uppskattadTid } from '../domain/estimate.js';
 
@@ -52,6 +53,12 @@ export async function renderaKallor(deckId) {
     if (!lista) return;
 
     const kallor = await hamtaKallor(deckId);
+
+    /* Svaret kan komma efter att användaren bytt kortlek — listan är en enda
+     * nod som delas av alla lekar, och ett sent svar hade ritat fel leks källor
+     * under rätt leks rubrik. */
+    if (deckId !== S.currentDeckId) return;
+
     lista.hidden = kallor.length === 0;
     lista.innerHTML = '';
 
@@ -86,7 +93,8 @@ export async function renderaKallor(deckId) {
         bort.dataset.kallaHandling = 'bort';
         bort.textContent = 'Ta bort';
         bort.addEventListener('click', async () => {
-            await taBortKalla(kalla.id);
+            const { ok } = await taBortKalla(kalla.id);
+            if (!ok) return showToast('Kunde inte ta bort källan.');
             void renderaKallor(deckId);
         });
 
