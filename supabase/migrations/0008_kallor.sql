@@ -70,9 +70,18 @@ create trigger set_updated_at before update on public.sources
 --
 -- Satserna står separat från create table eftersom tabellerna kan finnas
 -- redan: create table if not exists ändrar inte en befintlig tabell.
-alter table public.sources drop constraint if exists sources_user_id_key;
-alter table public.sources add constraint sources_user_id_key unique (user_id, id);
+do $$
+begin
+  -- Unika nycklar. IF NOT EXISTS finns inte för constraints, därav vaktposten.
+  if not exists (select 1 from pg_constraint where conname = 'sources_owner_id_key') then
+    alter table public.sources add constraint sources_owner_id_key unique (user_id, id);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'source_texts_owner_id_key') then
+    alter table public.source_texts add constraint source_texts_owner_id_key unique (user_id, id);
+  end if;
+end $$;
 
+-- De främmande nycklarna pekas om till (user_id, id).
 alter table public.sources drop constraint if exists sources_deck_id_fkey;
 alter table public.sources drop constraint if exists sources_deck_fk;
 alter table public.sources add constraint sources_deck_fk
