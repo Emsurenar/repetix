@@ -308,8 +308,7 @@
   pointer-events: none;
 }
 
-#view-study .flashcard-inner.flipped .answer-cover-bars i,
-#view-study .flashcard-inner.flipped .answer-cover-label {
+#view-study .flashcard-inner.flipped .answer-cover-bars i {
   animation: study-lift-out var(--dur-2) var(--ease-in) forwards;
 }
 
@@ -319,12 +318,6 @@
 
 #view-study .flashcard-inner.flipped .answer-cover-bars i:nth-child(3) {
   animation-delay: calc(var(--dur-1) / 3 * 2);
-}
-
-/* Etiketten sist: den är det som påstår att svaret är dolt och ska försvinna
- * efter det den påstår något om. */
-#view-study .flashcard-inner.flipped .answer-cover-label {
-  animation-delay: var(--dur-1);
 }
 
 /* Svaret tonar in nedifrån, en rad i taget. Första stycket är det man faktiskt
@@ -375,15 +368,6 @@
 }
 #view-study .answer-cover-bars i:nth-child(3) {
   width: 30%;
-}
-
-#view-study .answer-cover-label {
-  font-family: var(--font-data);
-  font-size: var(--t-micro);
-  font-weight: 500;
-  letter-spacing: var(--track-wide);
-  text-transform: uppercase;
-  color: var(--text-3);
 }
 
 /* ----------------------------------------------------------------------
