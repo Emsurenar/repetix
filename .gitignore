@@ -42,3 +42,8 @@ Thumbs.db
 
 # Claude Codes projektminne — personligt, hör inte hemma i ett publikt repo
 .claude/projects/
+
+# Arbetsgrenar i egna kataloger. De ligger under .claude/ och är alltså inuti
+# repot: utan den här raden hade ett `git add -A` från fel katalog committat en
+# hel dubblett av trädet in i repot. Filerna finns redan på sin gren.
+.claude/worktrees/
