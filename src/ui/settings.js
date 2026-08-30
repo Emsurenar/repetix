@@ -643,6 +643,8 @@ const FUNKTIONSNAMN = {
   fordjupning: 'Fördjupning på kort',
   testquestion: 'Testfråga',
   tutor: 'Handledare',
+  'kalla-kort': 'Kort ur källa',
+  'kalla-fraga': 'Fråga om källa',
 };
 
 /* Två decimaler räcker och en tredje ljuger: ett enskilt anrop kan kosta mindre

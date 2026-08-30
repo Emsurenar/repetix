@@ -97,6 +97,7 @@ export default async function handler(req, res) {
       required: true,
     });
     const effort = TILLATEN_EFFORT.has(body.effort) ? body.effort : undefined;
+    const cache = body.cache === true;
 
     const { providerName, provider, model } = await resolveTarget(body, db, userId);
     const apiKey = await loadApiKey(db, providerName, provider.label);
@@ -109,6 +110,7 @@ export default async function handler(req, res) {
       json: body.json === true,
       key: apiKey,
       effort,
+      cache,
     });
 
     const { text, usage, truncated } = await callProvider(provider, request);

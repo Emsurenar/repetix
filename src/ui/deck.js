@@ -1,6 +1,9 @@
 import { generateDeckSuggestion, generateDeckSummary } from '../ai/deck-insights.js';
 import { deleteSection, openCardModal, openEditCardModal, openMoveCardModal, openMoveSectionModal, openNoteCardModal, openSectionModal } from '../ai/client.js';
 import { SUMMARY_REGEN_THRESHOLD, deckSummaryCache } from '../ai/deck-insights.js';
+import { aiErrorMessage } from '../ai/call.js';
+import { fragaKallan } from '../ai/kallfraga.js';
+import { laggTill } from '../domain/fragehistorik.js';
 import { S } from '../core/state.js';
 import { hamtaKallor, taBortKalla } from '../core/sources.js';
 import { kortIVyn, sektionerIVyn } from '../domain/deck-view.js';
@@ -101,6 +104,7 @@ export async function renderaKallor(deckId) {
         fraga.className = 'btn';
         fraga.dataset.kallaHandling = 'fraga';
         fraga.textContent = 'Ställ en fråga';
+        fraga.addEventListener('click', () => oppnaFragepanel(kalla));
 
         const bort = document.createElement('button');
         bort.type = 'button';
@@ -116,6 +120,71 @@ export async function renderaKallor(deckId) {
         li.append(namn, meta, generera, fraga, bort);
         lista.appendChild(li);
     }
+}
+
+/* Historiken lever här och sparas aldrig: den hör till den öppna vyn, inte till
+ * kortleken, och ska varken följa med i en säkerhetskopia eller synkas. */
+let fragehistorik = [];
+let fragadKalla = null;
+
+function oppnaFragepanel(kalla) {
+  fragadKalla = kalla;
+  fragehistorik = [];
+  const panel = document.getElementById('deck-kallfraga');
+  panel.classList.remove('hidden');
+  document.getElementById('deck-kallfraga-kalla').textContent = kalla.title;
+  document.getElementById('deck-kallfraga-svar').innerHTML = '';
+  document.getElementById('deck-kallfraga-input').focus();
+}
+
+export function initUiKallfraga() {
+  const knapp = document.getElementById('btn-kallfraga');
+  const falt = document.getElementById('deck-kallfraga-input');
+  if (!knapp || !falt) return;
+
+  const fraga = async () => {
+    const text = falt.value.trim();
+    if (!text || !fragadKalla) return;
+
+    knapp.disabled = true;
+    knapp.textContent = 'Frågar...';
+    try {
+      const svar = await fragaKallan({
+        sourceId: fragadKalla.id,
+        fraga: text,
+        historik: fragehistorik,
+      });
+      fragehistorik = laggTill(fragehistorik, text, svar);
+      falt.value = '';
+      ritaHistorik();
+    } catch (e) {
+      showToast(aiErrorMessage(e));
+    } finally {
+      knapp.disabled = false;
+      knapp.textContent = 'Fråga';
+    }
+  };
+
+  knapp.addEventListener('click', () => void fraga());
+  falt.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') void fraga();
+  });
+}
+
+/* textContent hela vägen: svaret kommer från en modell som läst en fil
+ * användaren valt, och det ska aldrig kunna bli markup. */
+function ritaHistorik() {
+  const rutan = document.getElementById('deck-kallfraga-svar');
+  rutan.innerHTML = '';
+  for (const tur of fragehistorik) {
+    const f = document.createElement('p');
+    f.className = 'deck-kallfraga-fraga';
+    f.textContent = tur.fraga;
+    const s = document.createElement('p');
+    s.className = 'deck-kallfraga-text';
+    s.textContent = tur.svar;
+    rutan.append(f, s);
+  }
 }
 
 // Update existing renderDecks calls to renderLibrary

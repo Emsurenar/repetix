@@ -215,6 +215,17 @@
                     <div id="deck-ai-suggestion-content" class="deck-ai-suggestion-content"></div>
                 </section>
             </div>
+            <!-- Egen rad under insiktsrutnätet, i full bredd — inte en tredje
+                 kolumn: ett svar är löpande text och behöver rader. -->
+            <section id="deck-kallfraga" class="panel deck-kallfraga hidden" aria-labelledby="deck-kallfraga-title">
+                <h2 id="deck-kallfraga-title" class="deck-kallfraga-title">Fråga källan</h2>
+                <p id="deck-kallfraga-kalla" class="form-hint"></p>
+                <div id="deck-kallfraga-svar" class="deck-kallfraga-svar"></div>
+                <div class="deck-kallfraga-rad">
+                    <input type="text" id="deck-kallfraga-input" placeholder="Vad vill du veta?">
+                    <button type="button" id="btn-kallfraga" class="btn primary">Fråga</button>
+                </div>
+            </section>
             <div id="card-list" class="list-container">
                 <!-- Cards preview will be rendered here -->
             </div>

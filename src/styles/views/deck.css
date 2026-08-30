@@ -683,3 +683,42 @@
     flex: 1 1 100%;
   }
 }
+
+#view-deck .deck-kallfraga {
+  margin-bottom: var(--s5);
+  padding: var(--s4);
+}
+
+#view-deck .deck-kallfraga-title {
+  margin: 0 0 var(--s1);
+  font-size: var(--t-md);
+  font-weight: 600;
+}
+
+#view-deck .deck-kallfraga-svar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: var(--s3) 0;
+}
+
+/* Frågan står tystare än svaret: det är svaret man kom för. */
+#view-deck .deck-kallfraga-fraga {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-deck .deck-kallfraga-text {
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+#view-deck .deck-kallfraga-rad {
+  display: flex;
+  gap: var(--s2);
+}
+
+#view-deck .deck-kallfraga-rad input {
+  flex: 1 1 auto;
+}

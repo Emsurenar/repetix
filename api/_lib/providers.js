@@ -159,7 +159,7 @@ export const providers = {
     ],
     defaultModel: 'claude-opus-5',
 
-    buildRequest({ system, user, maxTokens, model, json, key, effort }) {
+    buildRequest({ system, user, maxTokens, model, json, key, effort, cache }) {
       const prompt = withJsonInstruction(system, json);
       return {
         url: 'https://api.anthropic.com/v1/messages',
@@ -172,7 +172,16 @@ export const providers = {
           model,
           max_tokens: maxTokens,
           // Systemprompten är en egen parameter här, inte ett meddelande.
-          ...(prompt ? { system: prompt } : {}),
+          /* Med cache blir systemprompten ett block med brytpunkt i stället för
+           * en sträng. Allt efter brytpunkten — frågan och historiken i
+           * messages — får bytas ut fritt utan att dokumentet tappar cachen. */
+          ...(prompt
+            ? {
+                system: cache
+                  ? [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral', ttl: '1h' } }]
+                  : prompt,
+              }
+            : {}),
           ...(effort && !UTAN_EFFORT.has(model) ? { output_config: { effort } } : {}),
           messages: [{ role: 'user', content: user }],
         },

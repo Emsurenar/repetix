@@ -500,3 +500,30 @@ describe('effort', () => {
     }
   });
 });
+
+/* Dokumentet ligger i system med en cachebrytpunkt, frågan i messages — alltså
+ * EFTER brytpunkten. Då byts frågan och historiken ut utan att dokumentet
+ * tappar cachen, och en cachad läsning kostar en tiondel av en vanlig. */
+describe('cache', () => {
+  it('gör systemprompten till ett cachat block för Anthropic', () => {
+    const { body } = providers.anthropic.buildRequest(anrop({ cache: true }));
+    expect(body.system).toEqual([
+      {
+        type: 'text',
+        text: expect.any(String),
+        cache_control: { type: 'ephemeral', ttl: '1h' },
+      },
+    ]);
+  });
+
+  it('lämnar systemprompten som en sträng utan cache', () => {
+    const { body } = providers.anthropic.buildRequest(anrop({}));
+    expect(typeof body.system).toBe('string');
+  });
+
+  it('rör inte de andra adaptrarna', () => {
+    for (const id of ['openai', 'google', 'openrouter']) {
+      expect(() => providers[id].buildRequest(anrop({ cache: true }))).not.toThrow();
+    }
+  });
+});

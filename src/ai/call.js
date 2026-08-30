@@ -50,6 +50,7 @@ async function accessToken() {
  * @param {string} [options.model] annars användarens inställning
  * @param {string} options.feature vilken funktion som frågar, för användningsmätaren
  * @param {string} [options.effort] lägre ansträngning där leverantören stödjer det
+ * @param {boolean} [options.cache] cacha systemprompten bakom en brytpunkt
  * @param {AbortSignal} [options.signal] för att kunna avbryta
  * @returns {Promise<string>} svarstexten
  * @throws {AiError}
@@ -80,6 +81,7 @@ export async function callAIDetailed({
   model,
   feature,
   effort,
+  cache,
   signal,
 } = {}) {
   if (!user?.trim()) throw new AiError('Tomt meddelande skickades till AI.', 'bad_request');
@@ -104,7 +106,17 @@ export async function callAIDetailed({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ system, user, maxTokens, json, provider, model, feature, effort }),
+        body: JSON.stringify({
+          system,
+          user,
+          maxTokens,
+          json,
+          provider,
+          model,
+          feature,
+          effort,
+          cache,
+        }),
         signal: combined,
       });
 
