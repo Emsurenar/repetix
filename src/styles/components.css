@@ -457,6 +457,13 @@ textarea:disabled {
   border-radius: var(--r-md);
 }
 
+/* Uppfälld. Sätts av radmenyns lyssnare i src/ui/library.js när panelen
+ * annars hade hamnat under skärmkanten — se kommentaren där. */
+.row-menu-items-uppat {
+  top: auto;
+  bottom: calc(100% + var(--s1));
+}
+
 .row-menu-items button {
   display: flex;
   align-items: center;

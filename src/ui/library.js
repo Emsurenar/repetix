@@ -475,6 +475,45 @@ export function initUiLibrary() {
       if (e.key === 'Escape') closeRowMenus(null);
   });
 
+  /* Menyn fälls uppåt när det inte finns plats nedåt.
+   *
+   * Panelen är absolut placerad under sin knapp och visste ingenting om
+   * skärmen. På det sista kortet i listan öppnade den sig alltså ut i tomma
+   * intet: uppmätt på 375×812 låg alla tre posterna mellan 924 och 1056, och
+   * sidan gick inte att rulla längre eftersom kortet redan var sist. Byt namn
+   * såg ut att fungera bara för att den ibland hann hamna precis innanför
+   * kanten — de två under gjorde det aldrig.
+   *
+   * Lyssnaren fångar i capture-fasen: toggle bubblar inte från <details>, och
+   * en lyssnare per meny hade behövt kopplas om vid varje omritning. Här
+   * täcks alla radmenyer i appen av en enda, oavsett vilken vy som ritat dem. */
+  document.addEventListener(
+      'toggle',
+      (e) => {
+          const meny = e.target;
+          if (!meny.classList?.contains('row-menu')) return;
+          const panel = meny.querySelector('.row-menu-items');
+          if (!panel) return;
+
+          // Stängd meny lämnar inget läge kvar: nästa gång kan platsen se
+          // annorlunda ut, och ett gammalt beslut vore ett fel beslut.
+          if (!meny.hasAttribute('open')) {
+              panel.classList.remove('row-menu-items-uppat');
+              return;
+          }
+
+          panel.classList.remove('row-menu-items-uppat');
+          const p = panel.getBoundingClientRect();
+          const knapp = meny.querySelector('.row-menu-toggle')?.getBoundingClientRect();
+          const finnsPlatsNedan = p.bottom <= window.innerHeight;
+          const finnsPlatsOvan = knapp ? knapp.top - p.height >= 0 : false;
+          if (!finnsPlatsNedan && finnsPlatsOvan) {
+              panel.classList.add('row-menu-items-uppat');
+          }
+      },
+      true
+  );
+
   // --- RENDERING ---
   S.draggedItemId = null;
   S.draggedItemType = null;
