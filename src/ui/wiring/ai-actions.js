@@ -24,7 +24,7 @@ import { populateAddCardSections } from './add-card.js';
             const { text, truncated } = await callAIDetailed({
                 system: `Du är en expert på att organisera flashcards i mappar/kategorier. Analysera flashcard-frågan och välj den mest passande mappen från listan över befintliga mappar. Om ingen av de befintliga mapparna passar (eller om listan är tom), föreslå en helt ny passande mapp med ett kort, koncist och beskrivande namn (skrivet på samma språk som frågan, oftast svenska eller engelska).\n\nBefintliga mappar:\n${JSON.stringify(existingSections)}\n\nRegler för svar:\n- Om en befintlig mapp passar bra (tematiskt relaterad till frågan), välj den och svara med denna exakta JSON:\n{\n  "action": "existing",\n  "folderId": "id_på_mappen",\n  "folderTitle": "namn_på_mappen"\n}\n- Om ingen av de befintliga mapparna passar bra, eller om inga mappar finns, föreslå en ny och svara med denna exakta JSON:\n{\n  "action": "new",\n  "folderTitle": "Föreslaget Mappnamn"\n}\n\nSvara ENBART med den råa JSON-koden. Ingen introduktion, inga förklaringar, ingen markdown-kodblock.`,
                 user: `Fråga: "${questionText}"`,
-                maxTokens: 200,
+                maxTokens: 400,
                 json: true,
                 feature: 'autofolder',
             });

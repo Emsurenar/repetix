@@ -195,15 +195,21 @@
                      <input type="file"> går inte att forma efter appens
                      kontroller, och accept begränsar väljaren till PDF. -->
                 <input type="file" id="input-kalla-fil" accept="application/pdf,.pdf" hidden>
+                <!-- De två insikterna hör hemma här, bland kortlekens övriga
+                     handlingar, och inte i var sin stor ruta på en egen rad.
+                     Fyllda för att skilja det som kostar ett AI-anrop från det
+                     som bara öppnar ett formulär. Korta ord: raden bär redan
+                     fem knappar, och i en kortlek behövs inte "kortleken" sägas
+                     en gång till. -->
+                <button id="btn-ai-summary" class="btn primary" data-ai-generate="summary">Sammanfatta</button>
+                <button id="btn-ai-suggest" class="btn primary" data-ai-generate="suggestion">Föreslå kort</button>
                 <button id="btn-study" hidden></button> <!-- Bär repetitionen; panelen ovanför trycker på den -->
             </div>
             <!-- Kortlekens källor. Tom lista döljer hela raden — en rubrik över
                  ingenting är brus. -->
             <ul id="deck-kallor" class="deck-kallor" hidden></ul>
-            <!-- Panelerna var div:ar med role="button" och en inline-onclick:
-                 hela ytan var klickyta, och den behövde ett eget
-                 tangentbordsstöd för att gå att nå. Handlingen är nu en riktig
-                 knapp inuti panelen, och panelen bara en panel. -->
+            <!-- Rena utdatapaneler: de visas först när de har ett svar att
+                 bära. Knapparna som fyller dem står i raden ovanför. -->
             <div id="deck-ai-insights" class="deck-ai-insights hidden">
                 <section id="deck-ai-summary" class="panel deck-ai-summary" aria-labelledby="deck-ai-summary-title">
                     <div class="deck-ai-summary-header">
@@ -272,16 +278,20 @@
                     </label>
                     <textarea id="card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
+                    <!-- Kontrollen bär sitt eget namn. "Bild" som etikett över
+                         en knapp som sade "Lägg till" var samma ord delat på två
+                         rader: två våningar höjd för en handling. -->
                     <div class="grid-item">
-                        <label for="card-back-image-input">Bild</label>
                         <input type="file" id="card-back-image-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style="display:none;">
                         <button type="button" id="btn-add-card-image" class="btn-grid-action">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            Lägg till
+                            Lägg till bild
                         </button>
                     </div>
+                    <!-- Samma sak här: "Stil" sade inte mer än "Långformat"
+                         redan gör, och rutan är ett av eller på — inte ett val
+                         mellan flera stilar. -->
                     <div class="grid-item">
-                        <label for="card-longform">Stil</label>
                         <label class="checkbox-grid-option">
                             <input type="checkbox" id="card-longform">
                             <span class="grid-option-box">
@@ -290,13 +300,15 @@
                             </span>
                         </label>
                     </div>
+                    <!-- Väljaren säger själv vad den är: "Ingen mapp", annars
+                         "Mapp: namnet". Etiketten är därför borta och bara
+                         AI-genvägen står kvar ovanför. -->
                     <div class="grid-item" id="card-section-group">
-                        <label for="card-section-select">
-                            <span>Mapp</span>
+                        <div class="grid-item-aside">
                             <button type="button" id="btn-auto-folder" class="label-action">Auto</button>
-                        </label>
+                        </div>
                         <div class="select-wrapper">
-                            <select id="card-section-select">
+                            <select id="card-section-select" aria-label="Mapp">
                                 <option value="">Ingen</option>
                             </select>
                             <div class="select-arrow">
@@ -376,10 +388,12 @@
                                  längd och etiketten säger i klartext att det
                                  är dolt, inte att något är på väg. -->
                             <div class="answer-cover" aria-hidden="true">
+                                <!-- Bara strecken. Etiketten "Svaret är dolt" stod under
+                                     dem och sade i ord vad tre skymda rader redan
+                                     visar. -->
                                 <span class="answer-cover-bars">
                                     <i></i><i></i><i></i>
                                 </span>
-                                <span class="answer-cover-label">Svaret är dolt</span>
                             </div>
                             <div id="study-back-text" class="content-text">Laddar...</div>
                             <!-- Fördjupningen. Står under svaret, i
@@ -617,17 +631,18 @@
                     <h2 id="settings-account-title" class="settings-section-title">Konto</h2>
                 </div>
 
+                <!-- Påståendet och handlingen är två saker och står som två.
+                     Utgången låg tidigare inne i samma rad som mejlen, och på
+                     en 375 pixlar bred skärm fick de två inte plats bredvid
+                     varandra: knappen trillade ner på en egen rad indragen
+                     under mejlen, som om den hamnat där av misstag. Nu är den
+                     en egen rad över hela bredden, högerställd. -->
                 <div class="set-row set-row-tat">
                     <div class="set-label">Inloggad som</div>
                     <div class="set-field">
-                        <!-- Mejlen och utgången på samma rad. Under varandra
-                             läste sig "Logga ut" som en ny inställning i stället
-                             för som något man gör med kontot ovanför. -->
-                        <div class="set-inline">
-                            <p id="settings-account-email" class="settings-account-email"></p>
-                            <button type="button" id="btn-settings-signout" class="btn text settings-danger" hidden>Logga ut</button>
-                        </div>
+                        <p id="settings-account-email" class="settings-account-email"></p>
                     </div>
+                    <button type="button" id="btn-settings-signout" class="btn text settings-danger set-row-action" hidden>Logga ut</button>
                 </div>
 
                 <!-- Sista raden i sista sektionen. En radering som inte går att
@@ -857,15 +872,13 @@
                     <textarea id="edit-card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
                     <div class="grid-item">
-                        <label for="edit-card-back-image-input">Bild</label>
                         <input type="file" id="edit-card-back-image-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style="display:none;">
                         <button type="button" id="btn-edit-card-image" class="btn-grid-action">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            Lägg till
+                            Lägg till bild
                         </button>
                     </div>
                     <div class="grid-item">
-                        <label for="edit-card-longform">Stil</label>
                         <label class="checkbox-grid-option">
                             <input type="checkbox" id="edit-card-longform">
                             <span class="grid-option-box">
@@ -1084,7 +1097,9 @@
 
                 <!-- Modifiers & Save Actions Footer -->
                 <div class="modal-foot modal-foot-split">
-                    <div class="modal-foot-group">
+                    <!-- Egen klass: de tre är en handling i tre riktningar och
+                         delar rad även på telefon, till skillnad från Spara. -->
+                    <div class="modal-foot-group modal-foot-modifiers">
                         <button type="button" id="btn-topic-modifier-easier" class="btn" title="Skapa nya lättare kort">Lättare</button>
                         <button type="button" id="btn-topic-modifier-harder" class="btn" title="Skapa nya svårare kort">Svårare</button>
                         <button type="button" id="btn-topic-modifier-practical" class="btn" title="Inrikta mer på praktiska exempel/kod">Mer praktiskt</button>

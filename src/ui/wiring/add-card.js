@@ -9,6 +9,14 @@ import { switchView } from '../router.js';
 import { showToast } from '../toast.js';
 
 
+/* Tangentbordet ska inte fara upp av sig sjalvt.
+ *
+ * Med mus ar automatiskt fokus en tjanst: pennan ligger redan i handen. Med
+ * finger ar det motsatsen — halva skarmen tacks av tangentbordet i samma
+ * ogonblick som vyn oppnas, innan man hunnit se vad som star dar. */
+const pekskarm = () => window.matchMedia?.('(pointer: coarse)').matches === true;
+
+
     // --- Image upload button wiring ---
 
 
@@ -21,14 +29,17 @@ import { showToast } from '../toast.js';
             sections.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.id;
-                opt.textContent = s.title;
+                // Valjaren har ingen etikett langre, sa valet maste sjalvt saga
+                // vad det ar ett val av. Utan ordet star ett mappnamn ensamt i
+                // en rad med tva knappar och kan lika garna vara vad som helst.
+                opt.textContent = `Mapp: ${s.title}`;
                 sectionSelect.appendChild(opt);
             });
             if (selectedVal && selectedVal.startsWith('__new__:')) {
                 const newTitle = selectedVal.substring(8);
                 const opt = document.createElement('option');
                 opt.value = selectedVal;
-                opt.textContent = ` Skapa ny: "${newTitle}"`;
+                opt.textContent = `Ny mapp: ${newTitle}`;
                 sectionSelect.appendChild(opt);
             }
             document.getElementById('card-section-group').style.display = '';
@@ -90,7 +101,7 @@ export function initUiWiringAddCard() {
               S.addCardImages = [];
               renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, () => {});
               showToast('Kort sparat!');
-              document.getElementById('card-front').focus();
+              if (!pekskarm()) document.getElementById('card-front').focus();
           }
       });
 
@@ -153,9 +164,9 @@ export function initUiWiringAddCard() {
               initialSelectVal = S.currentSectionId;
           }
           populateAddCardSections(deck, initialSelectVal);
-          // Dörren öppnas och pennan är redan i handen: första fältet har
-          // fokus så att man kan börja skriva utan ett klick till.
-          document.getElementById('card-front').focus();
+          // Med mus öppnas dörren och pennan ligger redan i handen: första
+          // fältet får fokus så att man kan börja skriva utan ett klick till.
+          if (!pekskarm()) document.getElementById('card-front').focus();
       }, true);
 
       // --- Section (mapp) create/rename modal ---

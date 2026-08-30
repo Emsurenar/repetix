@@ -1,4 +1,5 @@
 import { fetchExplanation, fetchTestQuestion } from '../../ai/card-ai.js';
+import { generateDeckSuggestion, generateDeckSummary } from '../../ai/deck-insights.js';
 import { applyAiSort, fetchAiSort } from '../../ai/sort.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
@@ -43,6 +44,16 @@ export function initUiWiringDeckActions() {
       document.getElementById('btn-test-harder').addEventListener('click', () => handleModifierClick('harder'));
 
       // Topic Generator Handlers
+      /* De två insikterna. Delegering på raden i stället för en lyssnare per
+       * knapp: raden ritas inte om, men det håller de två vid sidan av varandra
+       * och gör det uppenbart att det bara finns EN väg in till varje. */
+      document.querySelector('.deck-toolbar')?.addEventListener('click', (e) => {
+          const knapp = e.target.closest('[data-ai-generate]');
+          if (!knapp) return;
+          if (knapp.dataset.aiGenerate === 'summary') generateDeckSummary();
+          else generateDeckSuggestion();
+      });
+
       document.getElementById('btn-ai-sort')?.addEventListener('click', () => {
           if (!S.currentDeckId) return;
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
