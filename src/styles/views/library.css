@@ -54,14 +54,15 @@
 /* ======================================================================
  * NYCKELTAL
  *
- * Tre tal i rad under en hårfin linje. Talen sätts i monospace med
- * tabellsiffror så att de står i kolumn i stället för att dansa när de ändras,
- * och etiketten går under talet: man läser siffran först och får förklaringen
- * efteråt.
+ * Tre tal i rad. Talen sätts i monospace med tabellsiffror så att de står i
+ * kolumn i stället för att dansa när de ändras, och etiketten går under talet:
+ * man läser siffran först och får förklaringen efteråt.
  *
- * Inga lodräta linjer mellan talen. De delade upp raden i tre rutor och gjorde
- * nyckeltalen till en tabell, vilket är mer apparat än tre siffror tål.
- * Avståndet räcker för att skilja dem åt.
+ * Inga linjer alls — varken lodräta mellan talen eller vågräta över och under.
+ * Mockupen har de vågräta, men ägaren har underkänt båda sorterna, och
+ * instruktionen gäller före mockupen. Tillsammans gjorde de tre siffror till
+ * ett inramat block mitt på sidan, och blocket vägde mer än det talen säger.
+ * Luften omkring räcker för att visa att de hör ihop och slutar här.
  * ====================================================================== */
 
 .library-summary {
@@ -69,9 +70,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: var(--s5);
   margin-bottom: var(--s7);
-  padding: 22px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  padding: var(--s2) 0 0;
 }
 
 .library-figure-n {
@@ -420,43 +419,48 @@
  * ====================================================================== */
 
 @media (max-width: 600px) {
-  /* Alla tre åtgärderna på EN rad.
+  /* Åtgärderna står på RUBRIKENS rad, inte på en egen under den.
    *
-   * Repetitionen tog tidigare hela bredden på en egen rad ovanför de andra
-   * två, alltså två våningar knappar innan man såg ett enda tal. På en 375
-   * pixlar bred skärm är det en fjärdedel av sidan. De delar raden nu, och
-   * repetitionen står först och får mer av den — den är fortfarande det man
-   * kommit hit för, den bär det bara med sin plats och sin fyllning i stället
-   * för med en egen våning.
+   * De hade en våning för sig själva: rubrik, knappar, och först därefter det
+   * första talet. Två våningar sidhuvud är på en telefon en fjärdedel av allt
+   * man ser utan att röra sidan, och den fjärdedelen ska bära dagens siffra
+   * och dagens mapp — inte tre knappar som står kvar oavsett vad man kom hit
+   * för. Raden är också vad mobilmockupen visar: titel till vänster,
+   * åtgärderna till höger, allt i samma huvud.
    *
-   * Texten går ned ett steg och luften inuti krymper. Utan det ryms inte
-   * "Repetera allt" i en tredjedel av raden, och en knapp vars ord bryts på
-   * mitten är sämre än en som är liten. */
+   * Knapptexten går ned ännu ett steg för att raden ska rymmas hel. En knapp
+   * med liten text är bättre än en knapp vars ord bryts på mitten, och
+   * träffytan sitter i höjden — den bestäms av --control-h och rörs inte.
+   *
+   * Raden får däremot brytas. Skulle bredden ändå inte räcka — en telefon på
+   * 320 pixlar finns fortfarande — faller gruppen ned på en egen våning igen i
+   * stället för att hyvla ned rubriken till "Bib…". Att förbjuda brytningen
+   * hade gjort det omvända: raden hade hållit ihop till varje pris, och priset
+   * hade betalats av det enda ord som säger var man är. */
   #view-library .view-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--s4);
+    align-items: center;
+    gap: var(--s2);
   }
 
+  /* Gruppen bryter inte inuti sig själv: de tre knapparna hör ihop och flyttar
+   * i så fall våning tillsammans. */
   #view-library .view-actions {
-    width: 100%;
+    flex: 0 0 auto;
     flex-wrap: nowrap;
   }
 
   #view-library .view-actions .btn {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 0 0 auto;
     justify-content: center;
     padding: 0 var(--s2);
-    font-size: var(--t-sm);
+    font-size: var(--t-xs);
     white-space: nowrap;
   }
 
+  /* Repetitionen först i gruppen, som förut. Den är fortfarande det man kommit
+   * hit för, och står nu närmast rubriken i stället för längst ut i kanten. */
   #view-library .view-actions .btn.primary {
     order: -1;
-    /* Ett halvt steg bredare än de andra två: den bär flest tecken, och det
-     * är den som ska gå att träffa utan att sikta. */
-    flex: 1.5 1 0;
   }
 
   /* Talen på EN rad. De låg tidigare i två våningar med det första över hela
@@ -505,6 +509,16 @@
     padding: var(--s3) var(--s4);
   }
 
+}
+
+/* Under 380 pixlar räcker inte bredden till rubriken i full grad OCH de tre
+ * åtgärderna bredvid den. Rubriken är den som får ge vika: den talar om var
+ * man är, och det gör den lika väl en grad mindre — en avhuggen knapptext
+ * eller ett "Bibliote…" hade kostat mer. */
+@media (max-width: 380px) {
+  #view-library .library-title {
+    font-size: var(--t-lg);
+  }
 }
 
 /* ----------------------------------------------------------------------

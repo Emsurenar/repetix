@@ -259,16 +259,20 @@
                     </label>
                     <textarea id="card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
+                    <!-- Kontrollen bär sitt eget namn. "Bild" som etikett över
+                         en knapp som sade "Lägg till" var samma ord delat på två
+                         rader: två våningar höjd för en handling. -->
                     <div class="grid-item">
-                        <label for="card-back-image-input">Bild</label>
                         <input type="file" id="card-back-image-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style="display:none;">
                         <button type="button" id="btn-add-card-image" class="btn-grid-action">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            Lägg till
+                            Lägg till bild
                         </button>
                     </div>
+                    <!-- Samma sak här: "Stil" sade inte mer än "Långformat"
+                         redan gör, och rutan är ett av eller på — inte ett val
+                         mellan flera stilar. -->
                     <div class="grid-item">
-                        <label for="card-longform">Stil</label>
                         <label class="checkbox-grid-option">
                             <input type="checkbox" id="card-longform">
                             <span class="grid-option-box">
@@ -277,13 +281,15 @@
                             </span>
                         </label>
                     </div>
+                    <!-- Väljaren säger själv vad den är: "Ingen mapp", annars
+                         "Mapp: namnet". Etiketten är därför borta och bara
+                         AI-genvägen står kvar ovanför. -->
                     <div class="grid-item" id="card-section-group">
-                        <label for="card-section-select">
-                            <span>Mapp</span>
+                        <div class="grid-item-aside">
                             <button type="button" id="btn-auto-folder" class="label-action">Auto</button>
-                        </label>
+                        </div>
                         <div class="select-wrapper">
-                            <select id="card-section-select">
+                            <select id="card-section-select" aria-label="Mapp">
                                 <option value="">Ingen</option>
                             </select>
                             <div class="select-arrow">
@@ -847,15 +853,13 @@
                     <textarea id="edit-card-description" class="textarea-short"></textarea>                </div>
                 <div class="form-options-grid">
                     <div class="grid-item">
-                        <label for="edit-card-back-image-input">Bild</label>
                         <input type="file" id="edit-card-back-image-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style="display:none;">
                         <button type="button" id="btn-edit-card-image" class="btn-grid-action">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            Lägg till
+                            Lägg till bild
                         </button>
                     </div>
                     <div class="grid-item">
-                        <label for="edit-card-longform">Stil</label>
                         <label class="checkbox-grid-option">
                             <input type="checkbox" id="edit-card-longform">
                             <span class="grid-option-box">
@@ -1068,7 +1072,9 @@
 
                 <!-- Modifiers & Save Actions Footer -->
                 <div class="modal-foot modal-foot-split">
-                    <div class="modal-foot-group">
+                    <!-- Egen klass: de tre är en handling i tre riktningar och
+                         delar rad även på telefon, till skillnad från Spara. -->
+                    <div class="modal-foot-group modal-foot-modifiers">
                         <button type="button" id="btn-topic-modifier-easier" class="btn" title="Skapa nya lättare kort">Lättare</button>
                         <button type="button" id="btn-topic-modifier-harder" class="btn" title="Skapa nya svårare kort">Svårare</button>
                         <button type="button" id="btn-topic-modifier-practical" class="btn" title="Inrikta mer på praktiska exempel/kod">Mer praktiskt</button>

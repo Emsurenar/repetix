@@ -158,9 +158,15 @@
  * stället för att låsas till ett antal.
  * -------------------------------------------------------------------- */
 
-/* Bild, stil och mapp. Var en ifylld ruta med tre kontroller inuti — en låda
- * i en spalt som redan bestod av lådor. En hårfin linje ovanför säger samma
- * sak: här slutar kortets innehåll och här börjar dess inställningar. */
+/* Bild, långformat och mapp. Var en ifylld ruta med tre kontroller inuti — en
+ * låda i en spalt som redan bestod av lådor. En hårfin linje ovanför säger
+ * samma sak: här slutar kortets innehåll och här börjar dess inställningar.
+ *
+ * Kontrollerna bär sina egna namn och har inga etiketter över sig. "Bild" över
+ * en knapp som sade "Lägg till", och "Stil" över en ruta som sade
+ * "Långformat", var samma ord två gånger i två våningar — sex rader för tre
+ * val. Nu står det "Lägg till bild", "Långformat" och "Ingen mapp" respektive
+ * "Mapp: namnet", och raden är hälften så hög. */
 .form-options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
@@ -169,24 +175,26 @@
   border-top: 1px solid var(--line);
 }
 
+/* Kontrollerna står vid rutnätets NEDRE kant. Mappväljaren har en genväg över
+ * sig och de andra två har ingenting; toppställda hade de tre kontrollerna
+ * hamnat på tre olika höjder i samma rad. */
 .grid-item {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: var(--s2);
   min-width: 0;
 }
 
-/* Samma etikett som fälten ovanför. Rutnätet hade versaler i elva pixlar
- * medan Fråga och Svar stod i tolv med gemener — två etikettspråk i samma
- * formulär, och det var det som fick raden att se påklistrad ut. */
-.grid-item > label:not(.checkbox-grid-option) {
+/* Raden ovanför en kontroll, för det som inte är kontrollen själv. I dag bara
+ * AI-genvägen "Auto" över mappväljaren: den hörde hemma i etiketten som är
+ * borttagen, och den ska väga mindre än det den står över. */
+.grid-item-aside {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--s2);
-  font-size: var(--t-xs);
-  font-weight: 500;
-  color: var(--text-2);
+  min-height: var(--t-md);
 }
 
 .btn-grid-action {
@@ -1149,6 +1157,23 @@
     gap: var(--s4);
   }
 
+  /* Sparandet är formulärets enda utgång och tar hela bredden längst ned.
+   *
+   * Med mus står knappen i sin egen bredd till vänster — där finns en pekare
+   * som träffar var som helst. Med finger blev samma knapp en liten fyrkant i
+   * ena hörnet av en lång sida, och det är den handling hela vyn finns för.
+   * Full bredd gör den både till radens tyngdpunkt och till en träffyta man
+   * inte kan missa. */
+  .form-actions {
+    padding-top: var(--s4);
+  }
+
+  .form-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: var(--control-h-lg);
+  }
+
   #view-add-card .form-options-grid,
   #modal-edit-card .form-options-grid {
     grid-template-columns: 1fr;
@@ -1179,6 +1204,19 @@
 
   .modal-foot-group .btn {
     flex: 1 1 auto;
+  }
+
+  /* Förfiningarna delar rad. Full bredd var på var sin rad 168 pixlar — mer
+   * än en tredjedel av telefonens höjd — mellan korten man ska läsa igenom
+   * och knappen som sparar dem, och gjorde en lista på tio kort omöjlig att
+   * gå igenom utan att scrolla fram och tillbaka.
+   *
+   * Bara `width` behöver bort: gruppens `flex: 1 1 auto` ovanför gjorde redan
+   * det här, men slogs ut av den fulla bredden. Basen är alltså innehållet,
+   * och överskottet delas lika — därför får "Mer praktiskt" den plats det
+   * längre ordet behöver i stället för en jämn tredjedel som kapar det. */
+  .modal-foot-modifiers .btn {
+    width: auto;
   }
 
   #modal-topic-generator .toggle-button-group {
