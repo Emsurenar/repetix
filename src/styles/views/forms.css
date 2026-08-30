@@ -1089,8 +1089,43 @@
   border-radius: 0 var(--r-md) var(--r-md) 0;
 }
 
+/* AI-svaret ska rymmas i sin ruta.
+ *
+ * Rutan kunde scrolla, men bara som ETT block: ett kodblock på 736 pixlar i en
+ * ruta på 323 drog med sig hela svaret i sidled, så även den löpande texten
+ * fick panoreras fram och tillbaka rad för rad. Uppmätt på 375 pixlars bredd.
+ *
+ * Samma behandling som kortets baksida redan har i study.css: det som är brett
+ * av naturen — formler, kod, tabeller — scrollar i sin EGEN behållare, medan
+ * texten stannar i spaltens bredd. anywhere och inte break-word, eftersom en
+ * lång sträng utan mellanslag annars inte bryts alls. */
 #ai-text {
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+#ai-text pre {
+  overflow-x: auto;
+  padding: var(--s3);
+  background: var(--surface-1);
+  border-radius: var(--r-sm);
+}
+
+#ai-text pre code {
+  /* Koden inuti får inte brytas — då är den inte längre kod. Blocket runt om
+   * är det som scrollar. */
+  overflow-wrap: normal;
+  white-space: pre;
+}
+
+#ai-text .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--s1);
+}
+
+#ai-text table {
+  display: block;
+  overflow-x: auto;
 }
 
 #test-question-actions {
