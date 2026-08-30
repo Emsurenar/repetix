@@ -112,6 +112,16 @@
   border: 0;
 }
 
+/* Sökrutan är med flit mindre än ett vanligt fält — den är panelens
+ * filter, inte ett formulär. Med finger går det ändå inte: Safari zoomar in
+ * sidan när ett fält under 16px får fokus, och zoomen går inte tillbaka av
+ * sig själv. Graden höjs alltså bara där den måste. */
+@media (pointer: coarse) {
+  .sidebar-search input {
+    font-size: var(--t-field);
+  }
+}
+
 .sidebar-search input:focus-visible {
   outline: none;
 }

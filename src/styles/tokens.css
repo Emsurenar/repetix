@@ -129,6 +129,17 @@
   --t-2xl: 2rem; /* 32px */
   --t-3xl: 2.625rem; /* 42px */
 
+  /* Textstorleken i ETT inmatningsfält, som inte är samma sak som en grad i
+   * skalan ovan. Safari på iOS zoomar in sidan när ett fält med mindre än
+   * 16px får fokus, och zoomen går inte tillbaka av sig själv — man blir
+   * kvar i en förstorad vy och får panorera. Fältet måste alltså nå den
+   * tröskeln, och tröskeln är webbläsarens och inte typografins.
+   *
+   * Med mus är den --t-md som allt annat. Talet står här och inte i regeln,
+   * av samma skäl som kontrollhöjderna: ett ställe att ändra, inget fält som
+   * kan glömmas bort. */
+  --t-field: var(--t-md);
+
   --lh-tight: 1.2;
   --lh-normal: 1.55;
   --lh-loose: 1.7; /* långformat, där radlängden är stor */
@@ -231,6 +242,9 @@
     --control-h: 44px;
     --control-h-lg: 48px;
     --row-h: 44px;
+    /* Se kommentaren vid --t-field. 1rem är webbläsarens gräns för att låta
+     * bli att zooma, inte ett steg i skalan. */
+    --t-field: 1rem;
   }
 }
 

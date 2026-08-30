@@ -212,7 +212,9 @@ textarea {
   min-height: var(--control-h);
   padding: var(--s2) var(--s3);
   font-family: inherit;
-  font-size: var(--t-md);
+  /* Egen grad, inte --t-md: med finger måste ett fält nå 16px, annars zoomar
+   * Safari in sidan när det får fokus. Se --t-field i tokens.css. */
+  font-size: var(--t-field);
   color: var(--text-1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
@@ -845,7 +847,9 @@ textarea:disabled {
   min-height: var(--control-h);
   padding: var(--s2) var(--s3);
   font-family: inherit;
-  font-size: var(--t-md);
+  /* Följer fälten. Den här öppnar inget tangentbord och zoomar alltså inte,
+   * men den står bredvid dem — två grader på samma rad hade synts. */
+  font-size: var(--t-field);
   color: var(--text-1);
   text-align: left;
   background: var(--surface-1);
