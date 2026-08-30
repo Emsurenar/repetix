@@ -163,39 +163,63 @@
   flex: 0 0 auto;
 }
 
-.auth-links {
+/* TRE NIVÅER, INTE TRE LÄNKAR
+ *
+ * "Skapa konto", "Glömt lösenordet" och "Fortsätt utan konto" låg i samma hög
+ * och såg likadana ut, fast de är tre olika beslut: byta läge, återhämta sig,
+ * och hoppa över kontot helt. Den enda med en verklig konsekvens såg minst ut.
+ */
+
+/* 1. Åtgärden som hör till ETT fält står på fältets egen etikettrad. Samma
+ *    mönster som "Generera svar" på kortformulärets Svar-etikett, och samma
+ *    klass — .label-action — så det är ett befintligt uttryck och inte ett
+ *    nytt. Att den hör till lösenordet gör dessutom att den försvinner av sig
+ *    själv i återställningsläget, där fältet ändå är dolt. */
+.auth-field-head {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--s2);
-  margin-top: var(--s4);
+  gap: var(--s3);
 }
 
-/* Textknappar bär sin egen sidopadding för att bli träffbara. Den skjuter ut
- * texten ur panelens vänsterkant, så den dras tillbaka med en lika stor
- * negativ marginal: tryckytan behålls, men texten linjerar med fälten. */
-.auth-links .btn.text:first-child,
-.auth-offline .btn.text {
-  margin-left: calc(var(--s2) * -1);
-}
-
-.auth-links .btn.text:last-child {
-  margin-right: calc(var(--s2) * -1);
-}
-
-/* Vägen förbi inloggningen. Under en linje och i tyst text: den ska gå att
- * hitta, men inte konkurrera med att skapa ett konto. */
-.auth-offline {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s1);
+/* 2. Lägesbytet är en mening. Accenten bär svaret, frågan står tyst. */
+.auth-switch {
   margin: var(--s5) 0 0;
-  padding-top: var(--s4);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  text-align: center;
+}
+
+.auth-switch .btn.text {
+  padding: 0 var(--s1);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.auth-switch .btn.text:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 3. Vägen förbi kontot. Ensam under sin linje, i full bredd, med följden
+ *    under sig — appens form för den sista utvägen. Den ska gå att hitta och
+ *    gå att träffa, men den fyllda knappen ovanför är fortfarande den man
+ *    kommit hit för. */
+.auth-offline {
+  margin: var(--s5) 0 0;
+  padding-top: var(--s5);
   border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.auth-offline .btn {
+  width: 100%;
 }
 
 .auth-offline-hint {
+  display: block;
+  margin-top: var(--s2);
   font-size: var(--t-xs);
   color: var(--text-3);
 }
@@ -209,18 +233,6 @@
     padding: var(--s5) var(--s4);
   }
 
-  /* På 360 pixlar får de två länkarna inte plats bredvid varandra utan att
-   * tryckytorna växer ihop. Staplade linjerar båda mot vänsterkanten. */
-  .auth-links {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-  }
-
-  .auth-links .btn.text {
-    margin-left: calc(var(--s2) * -1);
-    margin-right: 0;
-  }
 }
 
 /* ======================================================================
