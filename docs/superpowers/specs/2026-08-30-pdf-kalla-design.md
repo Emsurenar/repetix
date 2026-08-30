@@ -19,7 +19,8 @@ som är grundade i just den texten. Textutvinningen sker i webbläsaren utan AI.
 | RAG eller hela texten i kontexten? | Hela texten | En föreläsning är 20–30k tokens och kontextfönstret 1M. Vektorisering löser ett problem som inte finns, och kostar en databas, sämre svar och en ny felkälla. |
 | Var utvinns texten? | I webbläsaren, med pdf.js | Noll AI, noll serverkostnad, ingen ny serverfunktion. PDF:en lämnar aldrig datorn. |
 | Var hör en källa hemma? | På kortleken | En lek per ämne, en källa per föreläsning. Mappar skapas och raderas löst; en källa som försvinner vid mappstädning vore en överraskning. |
-| Synkas texten? | Nej, bara metadata | Texten behövs bara när AI:n ska läsa den, och då krävs nätet ändå. Lokalt köper den ingenting och gör varje synk tyngre. |
+| Går källorna genom synken? | Nej, direkta anrop | Synken är en diff mot `S.appData`, inte en tabellista. Att ta in källor där hade rört appdatan, `flatten()`, diffen och utkorgen — för något som ändå kräver nät. `user_settings` och `ai_usage` gör redan likadant. |
+| Ligger texten i samma tabell som metadatan? | Nej, egen tabell | Hundra kilobyte per föreläsning. Egen tabell gör att den bara hämtas när den ska läsas. |
 | Sparas PDF-filen? | Nej | Bara den utvunna texten. Filen har användaren redan; en fil till i molnet är en sak till att radera och härda. |
 | Ett steg eller två? | Två | Extraktionen är gratis och tar en sekund. Att se att texten blev läsbar innan man betalar spelar roll här, eftersom LaTeX-matematik kommer ut trasig. |
 | Frågeform? | En fråga, tre turers minne | Appen har ingen chattyta, och en sådan är en ny vy att bygga. Tre turer gör "utveckla det där" möjligt utan att kostnaden växer med samtalet. |
@@ -112,10 +113,18 @@ create table if not exists public.source_texts (
 );
 ```
 
-`sources` läggs till i synkens `TABLES`. **`source_texts` gör det inte**, och
-det är hela poängen med uppdelningen: `pull()` gör `select('*')` per tabell, så
-en textkolumn i en synkad tabell hade dragit med varenda inläst föreläsning vid
-varje synk. Med två tabeller behöver synkkoden inte röras alls.
+**Ingen av dem går genom synken.** Båda läses och skrivs med direkta anrop mot
+supabase-klienten, som `user_settings` och `ai_usage` redan gör.
+
+Skälet är att synken inte är en tabellista utan en **diff mot `S.appData`**:
+att lägga `sources` i `TABLES` hade krävt ändringar i appdatan, i `flatten()`,
+i diffen och i utkorgen — för en funktion som ändå inte fungerar utan nät,
+eftersom både generering och frågor går till AI:n. Uppdelningen i två tabeller
+står kvar av samma skäl som förut: texten är hundra kilobyte per föreläsning
+och ska bara hämtas när den faktiskt ska läsas.
+
+Priset är att en källa inte kan läsas in offline. Det är acceptabelt: en källa
+man inte kan fråga något om är ingen källa än.
 
 Radnivåsäkerhet: `own_rows` på båda, samma mönster som `cards`. Mjuk radering
 via `deleted_at` på `sources`; `source_texts` följer med genom sin främmande
