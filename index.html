@@ -3,7 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- interactive-widget: be webbläsaren krympa layouten när tangentbordet
+         kommer upp, i stället för att lägga det ovanpå. Där det stöds löser
+         det problemet vid källan; där det inte gör det räknar
+         src/ui/tangentbord.js ut samma sak ur visualViewport. De två går ihop:
+         krymper layouten blir skillnaden noll av sig själv. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Repetix</title>
     <meta name="description" content="Repetitionsapp med spaced repetition, molnsynk och AI-stod.">
     <meta name="theme-color" content="#0e6a5e">
@@ -1070,10 +1075,16 @@
     <div id="modal-diary" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="diary-modal-title">
         <div class="modal-content modal-tall">
             <div class="modal-header-row">
-                <h2 id="diary-modal-title">Dagens lärdomar</h2>
+                <!-- Samma namn som knappen som öppnar den. Rutan hette
+                     "Dagens lärdomar" medan vägen in hette "Dagbok", och två
+                     namn på samma sak gör att man undrar om man hamnat rätt.
+                     Betydelsen ligger kvar — men på etiketten, där den hör
+                     hemma, i stället för i rubriken. -->
+                <h2 id="diary-modal-title">Dagbok</h2>
                 <button type="button" id="btn-close-diary-top" class="modal-close-x" aria-label="Stäng"></button>
             </div>
             <form id="form-diary">
+                <label for="input-diary-text">Dagens lärdomar</label>
                 <textarea id="input-diary-text" rows="6" required></textarea>
                 <button type="submit" class="btn primary block">Föreslå kort</button>
             </form>

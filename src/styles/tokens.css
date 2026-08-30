@@ -140,6 +140,11 @@
    * kan glömmas bort. */
   --t-field: var(--t-md);
 
+  /* Tangentbordets höjd, skriven av src/ui/tangentbord.js. Noll när inget är
+   * uppe, och noll för den som aldrig får ett — variabeln måste ha ett värde
+   * även då, annars blir varje calc() som rör den ogiltig. */
+  --tangentbord: 0px;
+
   --lh-tight: 1.2;
   --lh-normal: 1.55;
   --lh-loose: 1.7; /* långformat, där radlängden är stor */

@@ -537,11 +537,26 @@ textarea:disabled {
     padding: 0;
   }
 
+  /* Arket lägger sig OVANFÖR tangentbordet och krymper med det.
+   *
+   * 88dvh ensamt räckte inte: den dynamiska enheten följer webbläsarens egna
+   * fält, inte ett tangentbord som lagts över sidan. Arket blev kvar under
+   * tangentbordet med fältet man tryckt på bakom det, och webbläsaren rullade
+   * fram fältet på egen hand — det var hoppet. Måttet kommer ur
+   * visualViewport; se src/ui/tangentbord.js. */
   .modal-content {
     max-width: none;
-    max-height: 88dvh;
+    max-height: calc(88dvh - var(--tangentbord));
+    margin-bottom: var(--tangentbord);
     border-radius: var(--r-lg) var(--r-lg) 0 0;
     padding-bottom: calc(var(--s5) + env(safe-area-inset-bottom));
+    transition: max-height var(--dur-2) var(--ease-out);
+  }
+
+  /* Med tangentbordet uppe är skärmens underkant tangentbordets överkant, och
+   * då finns ingen säker zon att hålla avstånd till. */
+  .modal-content:has(:focus) {
+    padding-bottom: var(--s5);
   }
 
   .modal-actions {
