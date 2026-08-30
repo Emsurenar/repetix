@@ -635,3 +635,51 @@
     padding: var(--s2) var(--s1);
   }
 }
+
+/* Källorna står som rader, inte kort: de är en lista över vad kortleken vilar
+   på, och ett kort per föreläsning hade tävlat med korten nedanför. */
+#view-deck .deck-kallor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin-bottom: var(--s5);
+  padding: 0;
+  list-style: none;
+}
+
+#view-deck .deck-kalla {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  /* Listrad, inte knapp — därför den mindre radien, enligt tokens.css. */
+  border-radius: var(--r-sm);
+}
+
+#view-deck .deck-kalla-namn {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+#view-deck .deck-kalla-meta {
+  flex: 0 0 auto;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+@media (max-width: 600px) {
+  /* På telefon får raden två våningar hellre än fem hopklämda kolumner. */
+  #view-deck .deck-kalla {
+    flex-wrap: wrap;
+  }
+
+  #view-deck .deck-kalla-namn {
+    flex: 1 1 100%;
+  }
+}

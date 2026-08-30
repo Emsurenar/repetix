@@ -57,6 +57,7 @@ import { initUiWiringCreate } from './ui/wiring/create.js';
 import { initUiWiringMove } from './ui/wiring/move.js';
 import { initUiWiringCardForms } from './ui/wiring/card-forms.js';
 import { initUiWiringAddCard } from './ui/wiring/add-card.js';
+import { initUiWiringKalla } from './ui/wiring/kalla.js';
 import { initUiWiringAiActions } from './ui/wiring/ai-actions.js';
 import { initUiWiringStudy } from './ui/wiring/study.js';
 import { initAppInit } from './app/init.js';
@@ -86,6 +87,7 @@ export function start() {
   initUiWiringMove();
   initUiWiringCardForms();
   initUiWiringAddCard();
+  initUiWiringKalla();
   initUiWiringAiActions();
   initUiWiringStudy();
   initAppInit();

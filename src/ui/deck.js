@@ -2,6 +2,7 @@ import { generateDeckSuggestion, generateDeckSummary } from '../ai/deck-insights
 import { deleteSection, openCardModal, openEditCardModal, openMoveCardModal, openMoveSectionModal, openNoteCardModal, openSectionModal } from '../ai/client.js';
 import { SUMMARY_REGEN_THRESHOLD, deckSummaryCache } from '../ai/deck-insights.js';
 import { S } from '../core/state.js';
+import { hamtaKallor, taBortKalla } from '../core/sources.js';
 import { kortIVyn, sektionerIVyn } from '../domain/deck-view.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
@@ -42,6 +43,57 @@ export const studyDagensMapp = (deckId, sectionId) => {
     S.currentDeckId = deckId;
     startSectionStudy(sectionId, false);
 };
+
+/* Källorna hämtas vid varje öppning i stället för att cachas i S: de ändras
+ * sällan, listan är kort, och en cache som blir gammal visar en källa som
+ * raderats på en annan enhet. */
+export async function renderaKallor(deckId) {
+    const lista = document.getElementById('deck-kallor');
+    if (!lista) return;
+
+    const kallor = await hamtaKallor(deckId);
+    lista.hidden = kallor.length === 0;
+    lista.innerHTML = '';
+
+    for (const kalla of kallor) {
+        const li = document.createElement('li');
+        li.className = 'deck-kalla';
+        li.dataset.kalla = kalla.id;
+
+        const namn = document.createElement('span');
+        namn.className = 'deck-kalla-namn';
+        namn.textContent = kalla.title;
+
+        const meta = document.createElement('span');
+        meta.className = 'deck-kalla-meta num';
+        meta.textContent = `${kalla.pages} sidor · ${kalla.chars.toLocaleString('sv-SE')} tecken`;
+
+        const generera = document.createElement('button');
+        generera.type = 'button';
+        generera.className = 'btn';
+        generera.dataset.kallaHandling = 'generera';
+        generera.textContent = 'Generera kort';
+
+        const fraga = document.createElement('button');
+        fraga.type = 'button';
+        fraga.className = 'btn';
+        fraga.dataset.kallaHandling = 'fraga';
+        fraga.textContent = 'Ställ en fråga';
+
+        const bort = document.createElement('button');
+        bort.type = 'button';
+        bort.className = 'btn text';
+        bort.dataset.kallaHandling = 'bort';
+        bort.textContent = 'Ta bort';
+        bort.addEventListener('click', async () => {
+            await taBortKalla(kalla.id);
+            void renderaKallor(deckId);
+        });
+
+        li.append(namn, meta, generera, fraga, bort);
+        lista.appendChild(li);
+    }
+}
 
 // Update existing renderDecks calls to renderLibrary
 /* Knappen som startar en AI-generering i insiktspanelerna. Texten sager vad
@@ -116,6 +168,7 @@ export const openDeck = (id, sectionId = null) => {
     }
 
     applyWash(heroStatus, S.currentDeckId);
+    void renderaKallor(id);
 
     heroStatus.querySelector('[data-hero-action]')?.addEventListener('click', (e) => {
         const handling = e.currentTarget.dataset.heroAction;

@@ -185,8 +185,16 @@
                 <button id="btn-add-section" class="btn">Ny mapp</button>
                 <button id="btn-open-topic-generator" class="btn">AI-generera</button>
                 <button id="btn-ai-sort" class="btn">AI-sortera</button>
+                <button id="btn-lagg-till-kalla" class="btn">Lägg till PDF</button>
+                <!-- Filinmatningen är dold och triggas av knappen: en naken
+                     <input type="file"> går inte att forma efter appens
+                     kontroller, och accept begränsar väljaren till PDF. -->
+                <input type="file" id="input-kalla-fil" accept="application/pdf,.pdf" hidden>
                 <button id="btn-study" hidden></button> <!-- Bär repetitionen; panelen ovanför trycker på den -->
             </div>
+            <!-- Kortlekens källor. Tom lista döljer hela raden — en rubrik över
+                 ingenting är brus. -->
+            <ul id="deck-kallor" class="deck-kallor" hidden></ul>
             <!-- Panelerna var div:ar med role="button" och en inline-onclick:
                  hela ytan var klickyta, och den behövde ett eget
                  tangentbordsstöd för att gå att nå. Handlingen är nu en riktig
