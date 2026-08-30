@@ -105,13 +105,13 @@ export default async function handler(req, res) {
       key: apiKey,
     });
 
-    const { text, usage } = await callProvider(provider, request);
+    const { text, usage, truncated } = await callProvider(provider, request);
 
     // Efter att svaret säkrats, före att det skickas. Skrivningen kan inte
     // kasta, så ordningen kostar ingenting.
     await recordUsage(db, { userId, provider: providerName, model, feature, usage });
 
-    sendJson(res, 200, { text, provider: providerName, model, usage });
+    sendJson(res, 200, { text, truncated, provider: providerName, model, usage });
   } catch (err) {
     sendError(res, err);
   }
@@ -260,7 +260,15 @@ async function callProvider(provider, request) {
   if (!text) {
     throw new ApiError(502, 'provider_error', 'Leverantören svarade utan någon text.');
   }
-  return { text, usage: provider.extractUsage(data) };
+  return {
+    text,
+    /* Slog modellen i taket är texten halv, och utan det här fältet finns
+     * ingenting som säger det. Sammanfattningen slutar mitt i en mening, och
+     * ett svar som skulle vara JSON går inte att tolka — båda ser ut som
+     * appens fel i stället för som ett tak som är för lågt. */
+    truncated: provider.extractTruncated(data) === true,
+    usage: provider.extractUsage(data),
+  };
 }
 
 function translateFailure(res, bodyText) {

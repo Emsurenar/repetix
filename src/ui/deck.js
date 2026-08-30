@@ -47,7 +47,7 @@ export const studyDagensMapp = (deckId, sectionId) => {
 /* Knappen som startar en AI-generering i insiktspanelerna. Texten sager vad
  * som hander, inte att man ska klicka: "Klicka for att generera" beskrev
  * musen, inte resultatet. */
-const aiGenerateButton = (vilken) =>
+export const aiGenerateButton = (vilken) =>
     `<button type="button" class="btn deck-ai-generate" data-ai-generate="${vilken}">${
         vilken === 'summary' ? 'Sammanfatta kortleken' : 'Föreslå ett kort'
     }</button>`;
@@ -157,11 +157,9 @@ export const openDeck = (id, sectionId = null) => {
             summaryText.innerHTML = cached.summaryHtml;
             renderLatex(summaryText);
             summaryBox.classList.add('deck-ai-loaded');
-            summaryBox.onclick = null;
         } else {
             summaryText.innerHTML = aiGenerateButton('summary');
             summaryBox.classList.remove('deck-ai-loaded');
-            summaryBox.onclick = () => generateDeckSummary();
         }
         // Suggestion always starts as placeholder
         const suggestionContent = document.getElementById('deck-ai-suggestion-content');
@@ -171,14 +169,21 @@ export const openDeck = (id, sectionId = null) => {
 
         /* Knapparna ritas om varje gang kortleken oppnas. Delegering pa
          * behallaren i stallet for en lyssnare per knapp, sa att inget
-         * staplas pa sig. */
+         * staplas pa sig.
+         *
+         * Och delegeringen är den ENDA vägen. Rutorna bar tidigare var sitt
+         * eget onclick vid sidan av den här, och eftersom knappen ligger inne
+         * i rutan som ligger inne i behållaren bubblade varje klick genom
+         * båda: mätt till två shimrar och två anrop per klick. Det kostade
+         * dubbelt, åt takt-spärren dubbelt så fort, och lät två svar kapplöpa
+         * om samma ruta — blev det andra anropet stoppat skrev dess felruta
+         * över det förstas färdiga resultat. */
         insightsContainer.onclick = (e) => {
             const knapp = e.target.closest('[data-ai-generate]');
             if (!knapp) return;
-            if (knapp.dataset.aiGenerate === 'summary') window.generateDeckSummary();
-            else window.generateDeckSuggestion();
+            if (knapp.dataset.aiGenerate === 'summary') generateDeckSummary();
+            else generateDeckSuggestion();
         };
-        suggestionBox.onclick = () => generateDeckSuggestion();
     } else {
         insightsContainer.classList.add('hidden');
     }

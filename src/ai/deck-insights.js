@@ -1,9 +1,9 @@
-import { aiErrorMessage, callAI } from './call.js';
+import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
 import { createCard } from '../domain/model.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
-import { openDeck } from '../ui/deck.js';
+import { aiGenerateButton, openDeck } from '../ui/deck.js';
 import { cardList } from '../ui/dom.js';
 import { safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
@@ -50,7 +50,7 @@ const renderSuggestionCard = (card, container) => {
 };
 
 const fetchSuggestion = async (deck, info, signal) => {
-    const text = await callAI({
+    const { text, truncated } = await callAIDetailed({
         feature: 'suggest',
         system: `Du är en expert på spaced repetition och pedagogik. Du får en komplett lista med flashcards. Din uppgift: identifiera det kort som saknas mest i kortleken — den fråga som borde finnas men inte gör det. Tänk på:
 - Vilka koncept testas men kopplingen mellan dem saknas?
@@ -70,13 +70,35 @@ Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga kort
         signal,
     });
 
+    /* Ett avhugget svar kan aldrig bli giltig JSON, och felet ska säga det.
+     *
+     * JSON.parse kastar ett SyntaxError, som inte är ett AiError — och då
+     * faller aiErrorMessage tillbaka på "Något gick fel med AI-anropet.", en
+     * mening som beskriver varje tänkbart fel lika illa. Den som läste den
+     * fick veta att något gick sönder, inte att modellen inte hann skriva
+     * klart och att taket är det som ska höjas. */
+    if (truncated) {
+        throw new AiError(
+            'Modellen hann inte skriva klart förslaget innan tokentaket tog slut.',
+            'provider_error'
+        );
+    }
+
     // Fence-strippningen står kvar trots json: true — den är billig och skyddar
     // mot en leverantör som ändå lägger på ett markdown-block.
     let raw = text.trim();
     if (raw.startsWith('```json')) raw = raw.replace(/^```json/, '').replace(/```$/, '').trim();
     else if (raw.startsWith('```')) raw = raw.replace(/^```/, '').replace(/```$/, '').trim();
-    const card = JSON.parse(raw);
-    if (!card || !card.front || !card.back) throw new Error('Invalid card format');
+
+    let card;
+    try {
+        card = JSON.parse(raw);
+    } catch {
+        throw new AiError('Modellen svarade med något annat än JSON.', 'provider_error');
+    }
+    if (!card || !card.front || !card.back) {
+        throw new AiError('Modellens förslag saknade fråga eller svar.', 'provider_error');
+    }
     return card;
 };
 
@@ -85,9 +107,9 @@ export function initAiDeckInsights() {
   // --- DECK AI INSIGHTS ---
   S.deckInsightsAbort = null;
 
-  window.generateDeckSummary = generateDeckSummary;
-
-  window.generateDeckSuggestion = generateDeckSuggestion;
+  /* De två genereringarna låg tidigare på window. Deras enda konsument var
+   * deck.js, som redan importerar dem — omvägen gav ingenting utom ett par
+   * globaler till att hålla reda på. */
 
   window.addSuggestedCard = (btnEl) => {
       const suggestionContent = document.getElementById('deck-ai-suggestion-content');
@@ -129,12 +151,11 @@ export const generateDeckSummary = async () => {
     if (!deck) return;
 
     summaryText.innerHTML = '<div class="ai-shimmer"></div>';
-    summaryBox.onclick = null;
 
     const info = buildDeckCardList(deck);
 
     try {
-        const text = await callAI({
+        const { text, truncated } = await callAIDetailed({
             feature: 'summary',
             system: `Du sammanfattar flashcard-kortlekar med precision och skärpa. Du får hela kortlistan. Skriv en kort, sofistikerad sammanfattning (2-4 meningar) som gör två saker:
 
@@ -146,16 +167,26 @@ Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI so
             maxTokens: 400,
         });
 
-        const html = safeParse(text.trim());
+        /* Den halva meningen får stå kvar — den säger något — men den ska inte
+         * utge sig för att vara hela svaret. Utan raden nedan slutar
+         * sammanfattningen bara mitt i, och det ser ut som appens fel. */
+        const html = safeParse(
+            truncated ? `${text.trim()}\n\n*Svaret avbröts innan det var färdigt.*` : text.trim()
+        );
         summaryText.innerHTML = html;
         renderLatex(summaryText);
         summaryBox.classList.add('deck-ai-loaded');
         deckSummaryCache[S.currentDeckId] = { cardCount: info.cards.length, sectionCount: info.sections.length, summaryHtml: html, timestamp: Date.now() };
     } catch (e) {
-        // Rutan är sitt eget resultatfält, så felet stannar där i stället för att
-        // avbryta med en toast. Klicket som gör om försöket sätts tillbaka.
-        summaryText.innerHTML = `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>`;
-        summaryBox.onclick = () => generateDeckSummary();
+        /* Rutan är sitt eget resultatfält, så felet stannar där i stället för
+         * att avbryta med en toast. Nytt försök erbjuds som en riktig knapp
+         * och inte som ett klick var som helst i rutan: knappen syns, går att
+         * nå med tangentbordet, och plockas upp av samma delegering som allt
+         * annat — alltså en väg in, inte två. */
+        summaryText.innerHTML =
+            `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>` +
+            aiGenerateButton('summary');
+        summaryBox.classList.remove('deck-ai-loaded');
     }
 };
 
@@ -166,7 +197,6 @@ export const generateDeckSuggestion = async () => {
     if (!deck) return;
 
     suggestionContent.innerHTML = '<div class="ai-shimmer"></div>';
-    suggestionBox.onclick = null;
 
     const info = buildDeckCardList(deck);
 
@@ -175,7 +205,9 @@ export const generateDeckSuggestion = async () => {
         renderSuggestionCard(card, suggestionContent);
         suggestionBox.classList.add('deck-ai-loaded');
     } catch (e) {
-        suggestionContent.innerHTML = `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>`;
-        suggestionBox.onclick = () => generateDeckSuggestion();
+        suggestionContent.innerHTML =
+            `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>` +
+            aiGenerateButton('suggestion');
+        suggestionBox.classList.remove('deck-ai-loaded');
     }
 };

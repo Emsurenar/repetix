@@ -414,3 +414,56 @@ describe('extractUsage', () => {
     }
   });
 });
+
+/* Ett avhugget svar såg likadant ut som ett helt.
+ *
+ * Ingen adapter läste stop_reason eller finish_reason, så texten kom tillbaka
+ * som om den vore färdig. Sammanfattningen slutade mitt i en mening och ett
+ * svar som skulle vara JSON gick inte att tolka — utan att något pekade på
+ * tokentaket, som var det som faktiskt tagit slut.
+ */
+describe('extractTruncated', () => {
+  const avhugget = {
+    anthropic: { stop_reason: 'max_tokens' },
+    openai: { choices: [{ finish_reason: 'length' }] },
+    google: { candidates: [{ finishReason: 'MAX_TOKENS' }] },
+    openrouter: { choices: [{ finish_reason: 'length' }] },
+  };
+
+  const helt = {
+    anthropic: { stop_reason: 'end_turn' },
+    openai: { choices: [{ finish_reason: 'stop' }] },
+    google: { candidates: [{ finishReason: 'STOP' }] },
+    openrouter: { choices: [{ finish_reason: 'stop' }] },
+  };
+
+  it('kanner igen taket hos alla fyra', () => {
+    for (const id of providerIds) {
+      expect(providers[id].extractTruncated(avhugget[id]), id).toBe(true);
+    }
+  });
+
+  it('sager nej nar svaret ar helt', () => {
+    for (const id of providerIds) {
+      expect(providers[id].extractTruncated(helt[id]), id).toBe(false);
+    }
+  });
+
+  /* Ett svar utan falten alls far aldrig rapporteras som avhugget: da hade
+   * varje sammanfattning fatt en varning om att den inte var fardig. */
+  it('sager nej pa tomt eller okant svar', () => {
+    for (const id of providerIds) {
+      expect(providers[id].extractTruncated({}), id).toBe(false);
+      expect(providers[id].extractTruncated(null), id).toBe(false);
+      expect(providers[id].extractTruncated(undefined), id).toBe(false);
+    }
+  });
+
+  /* Andra stoppskal ar inte avhuggna: ett verktygsstopp eller ett
+   * innehallsfilter ar nagot annat an att pappret tog slut. */
+  it('skiljer taket fran andra stoppskal', () => {
+    expect(providers.anthropic.extractTruncated({ stop_reason: 'stop_sequence' })).toBe(false);
+    expect(providers.openai.extractTruncated({ choices: [{ finish_reason: 'content_filter' }] })).toBe(false);
+    expect(providers.google.extractTruncated({ candidates: [{ finishReason: 'SAFETY' }] })).toBe(false);
+  });
+});

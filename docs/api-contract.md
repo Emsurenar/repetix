@@ -50,6 +50,11 @@ Utför ett AI-anrop med den inloggade användarens nyckel.
   "text": "...",
   "provider": "anthropic",
   "model": "claude-opus-5",
+  // Sant när modellen slog i maxTokens och alltså inte hann skriva klart.
+  // Utan fältet går ett avhugget svar inte att skilja från ett helt: texten
+  // ser komplett ut, den slutar bara mitt i. Klienten kan då säga att svaret
+  // avbröts i stället för att visa en halv mening som om den vore hela.
+  "truncated": false,
   // Leverantörens egna tokental. Fält som leverantören inte rapporterar är 0.
   "usage": {
     "inputTokens": 12040,
@@ -186,12 +191,12 @@ rader längre fram för att hämta nyckeln.
 Adaptrarna översätter fyra skillnader: hur nyckeln skickas, var systemprompten
 hör hemma, vad tokengränsen heter, och var texten ligger i svaret.
 
-| Leverantör | Auth | Systemprompt | Tokengräns | Svarets text |
-|---|---|---|---|---|
-| `anthropic` | `x-api-key` | egen `system`-parameter | `max_tokens` | `content[0].text` |
-| `openai` | `Authorization: Bearer` | meddelande med `role: "system"` | `max_completion_tokens` | `choices[0].message.content` |
-| `google` | `x-goog-api-key` | `systemInstruction` | `maxOutputTokens` | `candidates[0].content.parts[0].text` |
-| `openrouter` | `Authorization: Bearer` | meddelande med `role: "system"` | `max_tokens` | `choices[0].message.content` |
+| Leverantör | Auth | Systemprompt | Tokengräns | Svarets text | Avhugget svar |
+|---|---|---|---|---|---|
+| `anthropic` | `x-api-key` | egen `system`-parameter | `max_tokens` | `content[0].text` | `stop_reason === "max_tokens"` |
+| `openai` | `Authorization: Bearer` | meddelande med `role: "system"` | `max_completion_tokens` | `choices[0].message.content` | `choices[0].finish_reason === "length"` |
+| `google` | `x-goog-api-key` | `systemInstruction` | `maxOutputTokens` | `candidates[0].content.parts[0].text` | `candidates[0].finishReason === "MAX_TOKENS"` |
+| `openrouter` | `Authorization: Bearer` | meddelande med `role: "system"` | `max_tokens` | `choices[0].message.content` | `choices[0].finish_reason === "length"` |
 
 ### Modellkatalog
 

@@ -131,6 +131,7 @@ const tal = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
  * - `buildRequest({ system, user, maxTokens, model, json, key })` som ger
  *   `{ url, headers, body }`. Kroppen är ett objekt; anroparen serialiserar.
  * - `extractText(responseJson)` som ger svarets text.
+ * - `extractTruncated(responseJson)` som säger om modellen slog i taket.
  * - `extractUsage(responseJson)` som ger `{ inputTokens, outputTokens,
  *   cacheWriteTokens, cacheReadTokens }` — alla tal, aldrig undefined. Varje
  *   leverantör rapporterar tokentalen under olika namn; adaptern läser rätt fält.
@@ -176,6 +177,13 @@ export const providers = {
         .filter((block) => block?.type === 'text')
         .map((block) => block.text ?? '')
         .join('');
+    },
+
+    /* Avhugget svar. Utan det här fältet returneras halva svaret som om det
+     * vore hela: sammanfattningen slutar mitt i en mening och JSON i ett
+     * strukturerat svar går inte att tolka, båda utan att något säger varför. */
+    extractTruncated(data) {
+      return data?.stop_reason === 'max_tokens';
     },
 
     // enda leverantören som rapporterar cache separat
@@ -232,6 +240,10 @@ export const providers = {
       return data?.choices?.[0]?.message?.content ?? '';
     },
 
+    extractTruncated(data) {
+      return data?.choices?.[0]?.finish_reason === 'length';
+    },
+
     extractUsage(data) {
       const u = data?.usage;
       return {
@@ -277,6 +289,10 @@ export const providers = {
 
     extractText(data) {
       return (data?.candidates?.[0]?.content?.parts ?? []).map((part) => part?.text ?? '').join('');
+    },
+
+    extractTruncated(data) {
+      return data?.candidates?.[0]?.finishReason === 'MAX_TOKENS';
     },
 
     extractUsage(data) {
@@ -332,7 +348,11 @@ export const providers = {
       return data?.choices?.[0]?.message?.content ?? '';
     },
 
-    // OpenAI-kompatibelt svar
+    // OpenAI-kompatibelt svar, alltså samma fält som ovan.
+    extractTruncated(data) {
+      return data?.choices?.[0]?.finish_reason === 'length';
+    },
+
     extractUsage(data) {
       const u = data?.usage;
       return {

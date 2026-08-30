@@ -53,7 +53,24 @@ async function accessToken() {
  * @returns {Promise<string>} svarstexten
  * @throws {AiError}
  */
-export async function callAI({
+export async function callAI(options) {
+  return (await callAIDetailed(options)).text;
+}
+
+/**
+ * Samma anrop, men med svarets omständigheter kvar.
+ *
+ * De elva anropsställena vill ha en sträng och ska fortsätta få det — därför
+ * är callAI kvar som den är. Två av dem behöver dessutom veta OM texten är
+ * hel: sammanfattningen, som annars visar en halv mening som om den vore
+ * hela, och kortförslaget, vars JSON inte går att tolka när den huggits av.
+ * Att byta returtyp på alla elva för de tvås skull hade varit ett sämre pris.
+ *
+ * @param {Parameters<typeof callAI>[0]} options
+ * @returns {Promise<{text: string, truncated: boolean}>}
+ * @throws {AiError}
+ */
+export async function callAIDetailed({
   system,
   user,
   maxTokens,
@@ -95,7 +112,7 @@ export async function callAI({
         if (typeof data.text !== 'string') {
           throw new AiError('AI-tjänsten svarade i ett oväntat format.', 'provider_error');
         }
-        return data.text;
+        return { text: data.text, truncated: data.truncated === true };
       }
 
       lastError = new AiError(
