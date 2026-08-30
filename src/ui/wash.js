@@ -38,6 +38,25 @@ const FASTA_PANELER = [
     'skapa:bokhylla',
 ];
 
+/* Spelhallens brickor står åtta i bredd på samma skärm, så två likadana syns
+ * direkt. De låg först utanför tilldelningen för att spara platser åt
+ * kortlekarna — men åtta av trettio är ett pris värt att betala för att inga
+ * två rutor i appen ska bära samma bild.
+ *
+ * Id:na står här och inte importeras, eftersom listan de kommer ur byggs inuti
+ * renderPlayground() och alltså inte går att nå utifrån. Ett test läser
+ * playground.js och ser till att de två inte glider isär. */
+const SPELLAGEN = [
+    'action',
+    'lucktext',
+    'fritext',
+    'jeopardy',
+    'dammiga',
+    'suddendeath',
+    'transportbandet',
+    'dragkampen',
+].map((id) => `spel:${id}`);
+
 /* Ljuslyft per bild.
  *
  * De trettio fotografierna är inte lika ljusa. Medelljuset spänner från 37
@@ -68,7 +87,7 @@ let cachadTilldelning = new Map();
 
 const tilldelning = () => {
     const deckIds = (S.appData?.decks ?? []).map((d) => d.id).filter(Boolean);
-    const alla = [...deckIds, ...FASTA_PANELER];
+    const alla = [...deckIds, ...FASTA_PANELER, ...SPELLAGEN];
     const nyckel = alla.join('\u0000');
 
     if (nyckel !== cachadNyckel) {
@@ -81,10 +100,10 @@ const tilldelning = () => {
 /**
  * Bildens nummer, 1–30.
  *
- * Kortlekar och de fasta panelerna hämtas ur tilldelningen, som ser hela
- * mängden och därför kan hålla dem isär. Allt annat — spelhallens brickor, och
- * en lek som hunnit raderas medan panelen ritas — faller tillbaka på den rena
- * hashen: en bild blir det, den är bara inte garanterat unik.
+ * Allt appen känner till hämtas ur tilldelningen, som ser hela mängden och
+ * därför kan hålla panelerna isär. Faller något utanför — en lek som hunnit
+ * raderas medan panelen ritas — används den rena hashen: en bild blir det,
+ * den är bara inte garanterat unik.
  */
 const bildnummer = (deckId) => {
     const nyckel = String(deckId);

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repetix — inloggningen, före och efter</title>
+
+<!-- Länkar appens riktiga stilmallar i stället för en egen kopia, av samma
+     skäl som docs/mockup-installningar-ai.html: frågan är om förslaget hör
+     hemma i appens formspråk, och en kopierad palett kan glida ifrån den.
+     Öppnas via rot-servern: http://localhost:8234/docs/mockup-inloggning.html -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../src/styles/tokens.css">
+<link rel="stylesheet" href="../src/styles/base.css">
+<link rel="stylesheet" href="../src/styles/components.css">
+<link rel="stylesheet" href="../src/styles/motion.css">
+<link rel="stylesheet" href="../src/styles/layout.css">
+<link rel="stylesheet" href="../src/styles/views/forms.css">
+<link rel="stylesheet" href="../src/styles/views/auth.css">
+
+<style>
+/* Ställningen. Överlägget är fixed i appen — här ska två paneler kunna stå
+   bredvid varandra, så bara den positioneringen neutraliseras. */
+body { background: var(--surface-0); padding: var(--s6) var(--s4) var(--s8); }
+.jf { display: grid; gap: var(--s7); max-width: 900px; margin: 0 auto; }
+@media (min-width: 860px) { .jf { grid-template-columns: 1fr 1fr; gap: var(--s6); align-items: start; } }
+.kol-rubrik { font-size: var(--t-sm); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--text-3); margin: 0 0 var(--s3); }
+.kol-rubrik em { font-style: normal; color: var(--accent); }
+.auth-overlay { position: static; display: block; padding: 0; background: none; }
+.anm { max-width: 900px; margin: var(--s7) auto 0; }
+.anm h2 { font-size: var(--t-md); margin: 0 0 var(--s3); }
+.anm li { margin-bottom: var(--s2); color: var(--text-2); font-size: var(--t-sm); line-height: var(--lh-normal); }
+
+/* ---- FÖRSLAGETS TILLSKOTT ------------------------------------------------
+   Tre nivåer i stället för tre likadana länkar. */
+
+/* 1. Åtgärden som hör till ETT fält står på fältets egen etikettrad — samma
+      mönster som "Generera svar" på kortformulärets Svar-etikett. */
+.auth-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+/* 2. Lägesbytet är en mening, inte en knapp bland andra. */
+.auth-switch {
+  margin: var(--s5) 0 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  text-align: center;
+}
+.auth-switch .btn.text {
+  padding: 0 var(--s1);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* 3. Vägen förbi kontot står ensam under en linje, i full bredd, med sin
+      följd under sig — appens form för den sista utvägen. */
+.auth-offline-ny {
+  margin: var(--s5) 0 0;
+  padding-top: var(--s5);
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.auth-offline-ny .btn { width: 100%; }
+.auth-offline-ny .auth-offline-hint { display: block; margin-top: var(--s2); }
+</style>
+</head>
+<body>
+
+<div class="jf">
+
+  <!-- ================= NU ================= -->
+  <div>
+    <p class="kol-rubrik">Nu</p>
+    <div class="auth-overlay">
+      <div class="auth-panel">
+        <h1 class="auth-title">Repetix</h1>
+        <p class="auth-lead">Logga in för att nå dina kort från alla enheter.</p>
+        <form class="auth-form" novalidate onsubmit="return false">
+          <label class="auth-field"><span>E-post</span><input type="email"></label>
+          <label class="auth-field"><span>Lösenord</span><input type="password"></label>
+          <button type="submit" class="btn primary auth-submit">Logga in</button>
+        </form>
+        <p class="auth-sep"><span>eller</span></p>
+        <button type="button" class="btn auth-google">
+          <svg class="auth-google-mark" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9087c1.7018-1.5668 2.6836-3.874 2.6836-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.4673-.806 5.9564-2.1805l-2.9087-2.2581c-.8059.54-1.8368.859-3.0477.859-2.344 0-4.3282-1.5831-5.036-3.7104H.9574v2.3318C2.4382 15.9832 5.4818 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.2822-1.1168-.2822-1.71s.1023-1.17.2823-1.71V4.9582H.9573A8.9965 8.9965 0 0 0 0 9c0 1.4523.3477 2.8268.9573 4.0418L3.964 10.71z"/><path fill="#EA4335" d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.8918 11.426 0 9 0 5.4818 0 2.4382 2.0168.9573 4.9582L3.964 7.29C4.6718 5.1627 6.656 3.5795 9 3.5795z"/></svg>
+          <span>Fortsätt med Google</span>
+        </button>
+        <div class="auth-links">
+          <button type="button" class="btn text">Skapa konto</button>
+          <button type="button" class="btn text">Glömt lösenordet</button>
+        </div>
+        <p class="auth-offline">
+          <button type="button" class="btn text">Fortsätt utan konto</button>
+          <span class="auth-offline-hint">Data sparas bara på den här enheten.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FÖRSLAG ================= -->
+  <div>
+    <p class="kol-rubrik">Förslag — <em>tre nivåer i stället för tre länkar</em></p>
+    <div class="auth-overlay">
+      <div class="auth-panel">
+        <h1 class="auth-title">Repetix</h1>
+        <p class="auth-lead">Logga in för att nå dina kort från alla enheter.</p>
+        <form class="auth-form" novalidate onsubmit="return false">
+          <label class="auth-field"><span>E-post</span><input type="email"></label>
+          <label class="auth-field">
+            <span class="auth-field-head">
+              Lösenord
+              <button type="button" class="label-action">Glömt lösenordet</button>
+            </span>
+            <input type="password">
+          </label>
+          <button type="submit" class="btn primary auth-submit">Logga in</button>
+        </form>
+        <p class="auth-sep"><span>eller</span></p>
+        <button type="button" class="btn auth-google">
+          <svg class="auth-google-mark" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9087c1.7018-1.5668 2.6836-3.874 2.6836-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.4673-.806 5.9564-2.1805l-2.9087-2.2581c-.8059.54-1.8368.859-3.0477.859-2.344 0-4.3282-1.5831-5.036-3.7104H.9574v2.3318C2.4382 15.9832 5.4818 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.2822-1.1168-.2822-1.71s.1023-1.17.2823-1.71V4.9582H.9573A8.9965 8.9965 0 0 0 0 9c0 1.4523.3477 2.8268.9573 4.0418L3.964 10.71z"/><path fill="#EA4335" d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.8918 11.426 0 9 0 5.4818 0 2.4382 2.0168.9573 4.9582L3.964 7.29C4.6718 5.1627 6.656 3.5795 9 3.5795z"/></svg>
+          <span>Fortsätt med Google</span>
+        </button>
+        <p class="auth-switch">Har du inget konto? <button type="button" class="btn text">Skapa konto</button></p>
+        <div class="auth-offline-ny">
+          <button type="button" class="btn">Fortsätt utan konto</button>
+          <span class="auth-offline-hint">Data sparas bara på den här enheten.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="anm">
+  <h2>Vad som ändras</h2>
+  <ul>
+    <li><strong>Tre länkar blir tre nivåer.</strong> "Skapa konto", "Glömt lösenordet" och "Fortsätt utan konto" såg likadana ut och stod i samma hög, trots att de är tre helt olika beslut: byta läge, återhämta sig, och hoppa över hela kontot.</li>
+    <li><strong>"Glömt lösenordet" flyttar till lösenordsfältets etikettrad.</strong> Den handlar om just det fältet, och appen har redan mönstret — "Generera svar" står på Svar-etiketten i kortformuläret. Samma klass, <code>.label-action</code>, alltså inget nytt uttryck.</li>
+    <li><strong>"Skapa konto" blir en mening.</strong> "Har du inget konto? Skapa konto" — ett lägesbyte är inte en handling i nivå med att logga in, och som naken länk konkurrerade den med knappen ovanför.</li>
+    <li><strong>"Fortsätt utan konto" blir en riktig knapp i full bredd</strong>, ensam under sin linje med följden under sig. Det är ett verkligt val med en konsekvens, inte en fotnot — och appen har formen: den sista utvägen står ensam längst ned, bakom en linje, med luft omkring sig.</li>
+    <li><strong>Ingen ny färg, ingen ny radie, inget nytt typsnittssteg.</strong> Allt kommer ur tokens, och den enda accentbäraren är länken i meningen — samma roll accenten har i resten av appen.</li>
+  </ul>
+</div>
+
+</body>
+</html>

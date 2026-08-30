@@ -61,6 +61,15 @@ export const switchView = (viewName, sectionId = null) => {
     }
     // Repetitionen tar hela ytan. Sidopanelen ar bibliotekets navigering och
     // har inget arende mitt i ett pass.
+    /* Överlägget fälls in vid varje vybyte.
+     *
+     * På telefon ligger sidopanelen ÖVER innehållet, så en meny som står kvar
+     * efter ett tryck döljer just det man tryckte fram. Kortlekarna stängde
+     * den redan via klicket utanför panelen, men Spelhallen gjorde det inte —
+     * och att lägga en rad i varje ingång är att be nästa ingång att komma
+     * ihåg. Vybytet är det de har gemensamt. */
+    document.body.classList.remove('sidebar-open');
+
     document.body.classList.toggle('focus-mode', viewName === 'study');
     for (const fn of viewListeners) fn(viewName);
 

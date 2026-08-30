@@ -55,12 +55,18 @@ function setMode(next) {
   show(el('auth-password').closest('.auth-field'), !isRecovery);
   show(el('auth-new-field'), isRecovery);
   show(el('auth-new-again-field'), isRecovery);
-  show(el('auth-links'), !isRecovery);
+  show(el('auth-switch'), !isRecovery);
   show(el('auth-google'), !isRecovery && el('auth-google')?.dataset.pa === '1');
   show(el('auth-sep'), !isRecovery && el('auth-google')?.dataset.pa === '1');
 
   if (!isRecovery) {
-    el('auth-toggle').textContent = isSignUp ? 'Jag har redan ett konto' : 'Skapa konto';
+    /* Frågan och svaret byter tillsammans. Knappen bar tidigare hela meningen
+     * ("Jag har redan ett konto") eftersom den stod ensam; nu står den sist i
+     * en fråga, och då ska den bara vara handlingen. */
+    el('auth-switch-fraga').textContent = isSignUp
+      ? 'Har du redan ett konto?'
+      : 'Har du inget konto?';
+    el('auth-toggle').textContent = isSignUp ? 'Logga in' : 'Skapa konto';
     el('auth-password').setAttribute(
       'autocomplete',
       isSignUp ? 'new-password' : 'current-password'

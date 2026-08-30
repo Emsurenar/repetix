@@ -82,10 +82,32 @@
   letter-spacing: -0.01em;
 }
 
+/* Talet i titeln är monospace, och den familjen sitter olika i sin radhöjd än
+ * gränssnittsfonten. Radboxen blev därför en halv pixel högre när ett tal stod
+ * i titeln än när det inte gjorde det — panelen 123,59 mot 123,09 — vilket är
+ * samma sorts skillnad som resten av den här ändringen tar bort.
+ *
+ * Talet får en EGEN, mindre radhöjd. Att låta det ärva radens hade varit
+ * verkningslöst: line-height ärvs redan, så talet hade den siffran ändå. Det
+ * är just att dess box är lika hög som radens, men sitter förskjuten kring en
+ * annan baslinje, som sträcker unionen av de två. En box som är lägre än
+ * radhöjden kan inte sträcka någonting, och 1 är lägre med marginal. */
+.deck-hero-title .num {
+  line-height: 1;
+}
+
 /* Tiden står under talet, en nivå tystare. Den är ett besked man tar med sig,
- * inte en siffra man ska läsa. */
+ * inte en siffra man ska läsa.
+ *
+ * Raden finns i ALLA lägen, också de där den är tom, och håller sin rad ändå.
+ * Utan den blev panelen 99 pixlar när den var tyst och 124 när något väntade —
+ * rutan bytte alltså höjd beroende på vad den hade att säga.
+ *
+ * 1lh och inte ett pixeltal: höjden ska komma ur radhöjden den faktiskt har,
+ * så att den följer med om typsnittssteget ändras. */
 .deck-hero-meta {
   margin: var(--s1) 0 0;
+  min-height: 1lh;
   font-size: var(--t-sm);
   color: var(--on-wash-2);
 }
@@ -159,10 +181,94 @@
   color: var(--text-2);
 }
 
-/* Panelen är tom tills man ber om något. Knappen är hela innehållet, och
- * säger vad som händer i stället för hur man klickar. */
+/* VILANDE: PANELEN ÄR KNAPPEN
+ *
+ * En ram inuti en ram läste sig som en knapp i en knapp. Så länge panelen inte
+ * bär något annat än sin egen inbjudan tappar den sin luft, och knappen fyller
+ * den helt och ärver dess hörn — alltså EN yta.
+ *
+ * :has med :only-child i stället för en klass från JS: villkoret ÄR att
+ * panelen inte innehåller något annat än knappen, och skrivet så kan det inte
+ * hamna i otakt med vad som faktiskt står där. Felläget bär en text bredvid
+ * knappen och räknas därför inte som vilande — det behöver sin luft.
+ *
+ * Knappen bär ingen ikon. Bibliotekets åtgärder tog bort sina av samma skäl:
+ * de sade inget som orden inte redan sade. */
+.deck-ai-summary:has(> .deck-ai-summary-text > .deck-ai-generate:only-child),
+.deck-ai-suggestion:has(> .deck-ai-suggestion-content > .deck-ai-generate:only-child) {
+  padding: 0;
+}
+
+.deck-ai-summary:has(> .deck-ai-summary-text > .deck-ai-generate:only-child)
+  .deck-ai-summary-header,
+.deck-ai-suggestion:has(> .deck-ai-suggestion-content > .deck-ai-generate:only-child)
+  .deck-ai-suggestion-header {
+  display: none;
+}
+
 .deck-ai-generate {
-  margin-top: var(--s1);
+  width: 100%;
+  min-height: calc(var(--control-h-lg) + var(--s5));
+  padding: var(--s4);
+  /* Panelens ram och hörn är knappens. Egna hade gett den andra ramen. */
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.deck-ai-generate:hover,
+.deck-ai-generate:active {
+  background: var(--surface-2);
+}
+
+/* Felet, och knappen som gör om försöket. Stod tidigare med färg och grad i
+ * markupen — utanför skalan, och med ett variabelnamn som bara finns kvar för
+ * spelens gamla stilmall. */
+.deck-ai-error {
+  display: block;
+  margin-bottom: var(--s3);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+/* LADDAT: UTDATAN
+ *
+ * Sammanfattningen är markdown och kan bära formler, kod och tabeller. Utan
+ * det här spränger de spalten i sidled precis som de gjorde i kortets
+ * AI-ruta, och då är texten oläslig på telefon. Det breda scrollar i sig
+ * självt; texten stannar i spalten. */
+.deck-ai-summary-text {
+  overflow-wrap: anywhere;
+}
+
+.deck-ai-summary-text pre,
+.deck-ai-summary-text table {
+  display: block;
+  overflow-x: auto;
+}
+
+.deck-ai-summary-text .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--s1);
+}
+
+/* Förslaget bär kortets röst: frågan i serifen som kort har i resten av
+ * appen, svaret en nivå tystare, och skälet som en egen dämpad rad. */
+/* Var kortet hamnar, sagt innan man trycker. Ett förslag som tyst skapar en
+ * mapp är en överraskning; ett som säger var det hör hemma är ett förslag. */
+.deck-ai-suggestion-where {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--text-2);
+}
+
+.deck-ai-suggestion-why {
+  margin: 0;
+  font-size: var(--t-xs);
+  font-style: italic;
+  line-height: var(--lh-normal);
+  color: var(--text-3);
 }
 
 .deck-ai-suggestion-card {
@@ -589,10 +695,34 @@
  * ====================================================================== */
 
 @media (max-width: 768px) {
+  /* De två rutorna delar rad i stället för att stå på varandra.
+   *
+   * Under varandra tog de fyra våningar — två rubriker och två knappar — mitt
+   * emellan kortlekens ingång och dess kort, alltså den plats man kom hit för
+   * att se. Bredvid varandra är de två.
+   *
+   * Den lilla versalrubriken faller bort på köpet. Knappen under den heter
+   * "Sammanfatta kortleken", och rubriken sade "SAMMANFATTNING" — samma ord
+   * en gång till, ovanför det som redan bar det. */
   .deck-ai-insights {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--s3);
     margin-bottom: var(--s5);
+  }
+
+  /* Vilande delar de rad — två små knappar bredvid varandra. Så fort en av
+   * dem fått ett svar tar den hela bredden: en sammanfattning i en halv spalt
+   * på 375 pixlar går inte att läsa. */
+  .deck-ai-summary:not(:has(.deck-ai-generate:only-child)),
+  .deck-ai-suggestion:not(:has(.deck-ai-generate:only-child)) {
+    grid-column: 1 / -1;
+  }
+
+  .deck-ai-generate {
+    min-height: var(--control-h-lg);
+    padding: var(--s3) var(--s2);
+    font-size: var(--t-sm);
+    white-space: normal;
   }
 }
 

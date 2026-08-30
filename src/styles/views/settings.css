@@ -115,6 +115,12 @@
   margin: 0;
 }
 
+/* Rad utan etikett. Fältet tar båda spalterna i stället för att stå kvar i
+ * den högra med en tom yta bredvid sig. */
+#view-settings .set-row-bred > .set-field {
+  grid-column: 1 / -1;
+}
+
 /* Raden som bär ett val i full bredd i stället för i högerspalten.
  * Leverantörsbrickorna behöver hela panelen för att fyra namn ska få stå
  * bredvid varandra utan att brytas. */
@@ -436,6 +442,36 @@
     padding: var(--s4) 0;
   }
 
+  /* Etiketten stannar bredvid sitt värde. Regeln ovan flyttar etiketten
+   * ovanför fältet, vilket är rätt för allt som är ett fält — men "Inloggad
+   * som" och mejlen är ett påstående i två delar, och två rader gjorde det
+   * till två saker. Måttet är namnets, inte fältens. */
+  #view-settings .set-row-tat {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  /* Kvittot flyttar under fältet i stället för att reservera plats bredvid.
+   *
+   * På skrivbordet håller det sparaknappens bredd så att raden inte hoppar
+   * när "Sparat" dyker upp. Här kostar samma 84 pixlar en fjärdedel av raden,
+   * och modellväljaren fick bara 217 av 309 — hela tiden, för ett ord som
+   * syns i två sekunder. Avvägningen är den omvända när bredden är knapp. */
+  #view-settings .field-row {
+    flex-wrap: wrap;
+  }
+
+  #view-settings .set-receipt {
+    flex: 1 0 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  /* Tomt kvitto tar ingen rad alls. */
+  #view-settings .set-receipt:empty {
+    display: none;
+  }
+
   #view-settings .set-label {
     min-height: 0;
   }
@@ -478,6 +514,24 @@
   flex: 1 1 12rem;
   min-width: 0;
   margin: 0;
+}
+
+/* Ett fält i en sådan rad delar den med sin knapp i stället för att lägga
+ * beslag på hela. Fälten är width: 100%, alltså en full rad var, och
+ * månadstaket hamnade därför över sin egen sparaknapp. */
+#view-settings .set-inline > .field {
+  flex: 1 1 8rem;
+  width: auto;
+  min-width: 0;
+}
+
+/* Väljaren fyller sin rad.
+ *
+ * Skalet som klär en select sitter runt en knapp och är därför lika brett som
+ * sin text — modellnamnet tog en tredjedel av raden medan nyckelfältet under
+ * tog hela, och de två läste sig som två olika sorters kontroll. */
+#view-settings .select-shell {
+  width: 100%;
 }
 
 #view-settings .set-inline > .btn {

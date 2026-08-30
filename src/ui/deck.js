@@ -256,45 +256,63 @@ export const openDeck = (id, sectionId = null) => {
             : `${studyable} kort`;
     }
 
-    /* Kortlekens ingång. Tre lägen, samma form: en etikett, en mening, och en
-     * knapp som bär handlingen. Panelen följer "Dagens mapp" i biblioteket —
-     * det är samma sorts påstående, och det ska se likadant ut. */
+    /* Kortlekens ingång. Tre lägen, samma form: en etikett, en mening, en
+     * underrad och en knapp som bär handlingen. Panelen följer "Dagens mapp" i
+     * biblioteket — det är samma sorts påstående, och det ska se likadant ut.
+     *
+     * EN mall och tre uppsättningar värden, inte tre mallar. De tre var
+     * tidigare utskrivna var för sig och gled isär: de tysta lägena hade två
+     * rader och en liten knapp medan det brådskande hade tre rader och en stor,
+     * så rutan bytte höjd beroende på vad den hade att säga. Mätt till 99 mot
+     * 124 pixlar, och knappen till 34 mot 40. En mall kan inte glida isär.
+     *
+     * Knappen är stor i alla tre. Kommentaren vid .btn.lg reserverade den för
+     * dagens repetition, men panelen har alltid exakt en handling och ska
+     * alltid se ut som det — det tysta bärs av is-quiet, som dämpar
+     * kantstrecket. */
     const heroStatus = document.getElementById('deck-hero-status');
     const studyable = displayCards.filter(c => c.type !== 'note').length;
 
-    if (studyable === 0) {
-        heroStatus.className = 'deck-hero hero-wash is-quiet';
-        heroStatus.dataset.action = '';
-        heroStatus.innerHTML = `
-            <div class="deck-hero-body">
-                <p class="label deck-hero-kicker">Tom kortlek</p>
-                <p class="deck-hero-title">Inga kort i leken ännu</p>
-            </div>
-            <button type="button" class="btn" data-hero-action="new">Nytt kort</button>
-        `;
-    } else if (dueCount === 0) {
-        heroStatus.className = 'deck-hero hero-wash is-quiet';
-        heroStatus.dataset.action = 'study-early';
-        heroStatus.innerHTML = `
-            <div class="deck-hero-body">
-                <p class="label deck-hero-kicker">Klart för idag</p>
-                <p class="deck-hero-title">Inget väntar just nu</p>
-            </div>
-            <button type="button" class="btn" data-hero-action="study-early">Träna ändå</button>
-        `;
-    } else {
-        heroStatus.className = 'deck-hero hero-wash';
-        heroStatus.dataset.action = 'study';
-        const tid = uppskattadTid(dueCount);
-        heroStatus.innerHTML = `
-            <div class="deck-hero-body">
-                <p class="label deck-hero-kicker">Att repetera</p>
-                <p class="deck-hero-title"><span class="num">${dueCount}</span> kort väntar</p>
-                ${tid ? `<p class="deck-hero-meta">${tid}</p>` : ''}
-            </div>
-            <button type="button" class="btn primary lg" data-hero-action="study">Repetera</button>
-        `;
-    }
+    const lage =
+        studyable === 0
+            ? {
+                  tyst: true,
+                  handling: 'new',
+                  kicker: 'Tom kortlek',
+                  titel: 'Inga kort i leken ännu',
+                  meta: '',
+                  knapp: 'Nytt kort',
+              }
+            : dueCount === 0
+              ? {
+                    tyst: true,
+                    handling: 'study-early',
+                    kicker: 'Klart för idag',
+                    titel: 'Inget väntar just nu',
+                    meta: '',
+                    knapp: 'Träna ändå',
+                }
+              : {
+                    tyst: false,
+                    handling: 'study',
+                    kicker: 'Att repetera',
+                    titel: `<span class="num">${dueCount}</span> kort väntar`,
+                    meta: uppskattadTid(dueCount) || '',
+                    knapp: 'Repetera',
+                };
+
+    heroStatus.className = `deck-hero hero-wash${lage.tyst ? ' is-quiet' : ''}`;
+    /* Tom lek har ingen repetition att starta, så knappen i sidhuvudet ska
+     * fortsätta göra ingenting. Panelens egen knapp leder dit den ska. */
+    heroStatus.dataset.action = studyable === 0 ? '' : lage.handling;
+    heroStatus.innerHTML = `
+        <div class="deck-hero-body">
+            <p class="label deck-hero-kicker">${lage.kicker}</p>
+            <p class="deck-hero-title">${lage.titel}</p>
+            <p class="deck-hero-meta">${lage.meta}</p>
+        </div>
+        <button type="button" class="btn primary lg" data-hero-action="${lage.handling}">${lage.knapp}</button>
+    `;
 
     applyWash(heroStatus, S.currentDeckId);
     void renderaKallor(id);

@@ -65,6 +65,7 @@ import { initAppInit } from './app/init.js';
 import { initUiSearch } from './ui/search.js';
 import { initSettings } from './ui/settings.js';
 import { initSenastePlats } from './ui/senaste-plats.js';
+import { initTangentbord } from './ui/tangentbord.js';
 
 export function start() {
   initCoreState();
@@ -99,6 +100,9 @@ export function start() {
    * ingen vy själv, och dess återställning är skjuten till en mikrotask — som
    * alltså kör efter den här raden och därmed med lyssnaren på plats. */
   initSenastePlats();
+  // Skriver tangentbordets höjd som en variabel. Måste kopplas före första
+  // dialogen kan öppnas; den läser variabeln i sin max-height.
+  initTangentbord();
 }
 
 start();

@@ -594,15 +594,22 @@
 }
 
 /* ----------------------------------------------------------------------
- * TILLBAKABLICKARNA I TVÅ SPALTER
+ * TILLBAKABLICKARNA
  *
- * Kartan är bred och låg, prestationslistan smal och hög. Under varandra
- * lämnade kartan ett fält tomt under sig och sidan tog slut tre gånger.
- * Bredvid varandra tar de slut ungefär samtidigt.
+ * Två korta bredvid varandra, den långa under dem över hela bredden.
  *
- * Prestationerna spänner båda raderna, så att rekorden kan lägga sig under
- * kartan utan att lämna ett hål när de saknas — en ny användare har inga
- * rekord, och då ska spalten bara vara kortare, inte trasig.
+ * Prestationerna låg tidigare i en egen spalt som spände båda raderna. Ett
+ * rutnät delar en spännande rutas höjd över de rader den täcker, så listans
+ * 775 pixlar blåste upp översta raden från 267 till 823: rekorden hamnade
+ * längst ner med ett 557 pixlar högt hål ovanför sig. Mätt, inte gissat.
+ *
+ * Över hela bredden får prestationernas eget rutnät — auto-fit på 15rem —
+ * fyra kolumner i stället för två, alltså ungefär halva höjden. Ytan fylls i
+ * bredd i stället för att bli en hög smal pelare bredvid ett tomrum.
+ *
+ * Kartan står kvar i en halv spalt. renderPlayground räknar ut hur många
+ * veckor den ritar ur just den bredden, och skulle den ändras här utan att
+ * ändras där skulle de sista veckorna hamna utanför.
  * -------------------------------------------------------------------- */
 
 @media (min-width: 1100px) {
@@ -615,12 +622,18 @@
     align-items: start;
   }
 
-  #view-playground .arcade-col-left {
+  #view-playground .arcade-col-aktivitet {
     grid-column: 1;
   }
 
-  #view-playground .arcade-col-right {
+  #view-playground .arcade-col-rekord {
     grid-column: 2;
-    grid-row: 1 / -1;
+  }
+
+  /* Hela bredden, alltså sin egen rad. Ingen row-gap behövs: sektionerna bär
+   * redan sin egen marginal nedåt, och två avstånd ovanpå varandra hade blivit
+   * ett glapp av samma sort som det här är till för att ta bort. */
+  #view-playground .arcade-col-prestationer {
+    grid-column: 1 / -1;
   }
 }

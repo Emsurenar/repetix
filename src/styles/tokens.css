@@ -70,6 +70,19 @@
   --mark-0: #dededa;
   --mark-1: #bfc4c2;
 
+  /* --- Framsteg -----------------------------------------------------
+   * Kortlekskortets markör, och enda stället rött bär en mängd i stället
+   * för en fara. Gradienten ligger över SPÅRET: färgen på ett ställe säger
+   * hur långt in i leken man är, längden hur mycket. En knappt påbörjad lek
+   * visar en kort röd stump, en färdig hela svepet ut i grönt.
+   *
+   * Det går emot betygsskalans skäl att inte använda rött — "att ha glömt
+   * ett kort är normalt, inte ett fel" — och är därför ett eget beslut, taget
+   * med öppna ögon och inte som en bieffekt. Färgerna används INTE någon
+   * annanstans. */
+  --progress-start: #c52b27;
+  --progress-end: #148f2e;
+
   /* --- Färgtvätten ------------------------------------------------------
    * Inbjudningspanelerna bär en fullt utblurrad bild, en per kortlek. Här
    * bor bara det som inte kommer ur bilden: grundtonen under den, och den
@@ -115,6 +128,22 @@
   --t-xl: 1.5rem; /* 24px */
   --t-2xl: 2rem; /* 32px */
   --t-3xl: 2.625rem; /* 42px */
+
+  /* Textstorleken i ETT inmatningsfält, som inte är samma sak som en grad i
+   * skalan ovan. Safari på iOS zoomar in sidan när ett fält med mindre än
+   * 16px får fokus, och zoomen går inte tillbaka av sig själv — man blir
+   * kvar i en förstorad vy och får panorera. Fältet måste alltså nå den
+   * tröskeln, och tröskeln är webbläsarens och inte typografins.
+   *
+   * Med mus är den --t-md som allt annat. Talet står här och inte i regeln,
+   * av samma skäl som kontrollhöjderna: ett ställe att ändra, inget fält som
+   * kan glömmas bort. */
+  --t-field: var(--t-md);
+
+  /* Tangentbordets höjd, skriven av src/ui/tangentbord.js. Noll när inget är
+   * uppe, och noll för den som aldrig får ett — variabeln måste ha ett värde
+   * även då, annars blir varje calc() som rör den ogiltig. */
+  --tangentbord: 0px;
 
   --lh-tight: 1.2;
   --lh-normal: 1.55;
@@ -218,6 +247,9 @@
     --control-h: 44px;
     --control-h-lg: 48px;
     --row-h: 44px;
+    /* Se kommentaren vid --t-field. 1rem är webbläsarens gräns för att låta
+     * bli att zooma, inte ett steg i skalan. */
+    --t-field: 1rem;
   }
 }
 

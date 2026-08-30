@@ -7,8 +7,7 @@ import {
     inlineBackupImages,
     writeWithinQuota,
 } from './backup-images.js';
-import { imageCloudReady, resolveMany } from './image-store.js';
-import { cloudConfigured, onAuthChange } from './supabase.js';
+import { resolveMany } from './image-store.js';
 import { renderDecks } from '../ui/deck.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
 import { showConfirmModal } from '../ui/modals.js';
@@ -134,33 +133,6 @@ const setDataButtonsDisabled = (avstangda) => {
     });
 };
 
-// Väntar in inloggningen innan bilderna hämtas.
-//
-// initCloud() startar EFTER initApp(), så vid en automatisk backup vid uppstart
-// finns ingen session ännu. Utan väntan hade varje molnbild räknats som omöjlig
-// att hämta, och den automatiska kopian blivit exakt den pekarfil som hela det
-// här arbetet handlar om att bli av med.
-const LOGIN_TIMEOUT_MS = 12000;
-
-const waitForLogin = (timeoutMs = LOGIN_TIMEOUT_MS) => new Promise((resolve) => {
-    if (!cloudConfigured || imageCloudReady()) { resolve(); return; }
-    let klar = false;
-    let sluta = null;
-    let timer = null;
-    const avsluta = () => {
-        if (klar) return;
-        klar = true;
-        if (timer) clearTimeout(timer);
-        if (sluta) sluta();
-        resolve();
-    };
-    timer = setTimeout(avsluta, timeoutMs);
-    // onAuthChange anropar lyssnaren direkt med nuvarande värde, alltså innan
-    // `sluta` fått sitt värde. Därför avslutas prenumerationen även här nedanför.
-    sluta = onAuthChange((user) => { if (user) avsluta(); });
-    if (klar) sluta();
-});
-
 // Hämtar hem bilderna som ska bäddas in, eller null om användaren avbryter.
 const gatherImagesForExport = async (opts) => {
     const sokvagar = collectCloudImagePaths(S.appData);
@@ -235,29 +207,23 @@ export const exportBackup = async (opts = {}) => {
     }
 };
 
-// Download a fresh backup automatically if the data changed AND it's been at
-// least a day since the last one. Skipped when there's nothing to protect or a
-// load failed. A file on disk is the only backup that survives clearing site data.
-export const maybeAutoBackup = async () => {
-    try {
-        if (S.dataLoadBlocked || isEffectivelyEmpty(S.appData)) return;
-        const lastAt = parseInt(localStorage.getItem('noji_backup_last_at') || '0', 10);
-        const lastSig = localStorage.getItem('noji_backup_last_sig') || '';
-        const changed = backupSignature() !== lastSig;
-        const stale = (Date.now() - lastAt) >= DAY_MS;
-        if (!(changed && stale)) return;
-
-        if (collectCloudImagePaths(S.appData).length > 0) await waitForLogin();
-
-        const resultat = await exportBackup({ silent: true });
-        if (!resultat) return;
-        if (resultat.missing > 0) {
-            showToast(`Automatisk backup nedladdad — ${resultat.missing} bilder kunde inte hämtas.`);
-        } else {
-            showToast('Automatisk backup nedladdad ✔');
-        }
-    } catch (e) { console.error('auto-backup failed', e); }
-};
+/* Den automatiska kopian är borta, och kommer inte tillbaka.
+ *
+ * Den laddade ner hela biblioteket som en fil vid uppstart, en gång per dygn
+ * när innehållet ändrats. Vid uppstart betyder FÖRE inloggningen: initApp
+ * körde den direkt efter loadData, och den enda inloggningsspärr som fanns
+ * gällde bara om datan råkade innehålla molnbilder — utan sådana hämtades
+ * filen omedelbart, och med dem gav väntan ändå upp efter tolv sekunder och
+ * hämtade den ändå. Följden var en fil med hela innehållet i telefonens
+ * nedladdningsmapp, oombedd, innan någon identifierat sig.
+ *
+ * Molnet är kopian. Supabase håller datan, och en fil som skriver sig själv
+ * till disk är inte ett skydd utan en spridning: den ligger kvar på varje
+ * enhet appen råkat öppnas på, och den åldras utan att någon märker det.
+ *
+ * Export och import finns kvar under Inställningar. De görs av användaren, med
+ * avsikt, och importen är dessutom enda vägen tillbaka när den lokala datan
+ * blivit oläslig — se kommentaren överst i initApp. */
 
 export const renderBackupStatus = () => {
     const el = document.getElementById('backup-status');

@@ -3,7 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- interactive-widget: be webbläsaren krympa layouten när tangentbordet
+         kommer upp, i stället för att lägga det ovanpå. Där det stöds löser
+         det problemet vid källan; där det inte gör det räknar
+         src/ui/tangentbord.js ut samma sak ur visualViewport. De två går ihop:
+         krymper layouten blir skillnaden noll av sig själv. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Repetix</title>
     <meta name="description" content="Repetitionsapp med spaced repetition, molnsynk och AI-stod.">
     <meta name="theme-color" content="#0e6a5e">
@@ -612,7 +617,7 @@
                     <h2 id="settings-account-title" class="settings-section-title">Konto</h2>
                 </div>
 
-                <div class="set-row">
+                <div class="set-row set-row-tat">
                     <div class="set-label">Inloggad som</div>
                     <div class="set-field">
                         <!-- Mejlen och utgången på samma rad. Under varandra
@@ -627,8 +632,10 @@
 
                 <!-- Sista raden i sista sektionen. En radering som inte går att
                      ångra ska inte gå att träffa på väg någon annanstans. -->
-                <div class="set-row" id="settings-delete-row" hidden>
-                    <div class="set-label">Radera konto</div>
+                <!-- Ingen etikett. Knappen heter "Radera kontot" och raden hette
+                     "Radera konto" — samma ord två gånger, varav det ena inte
+                     gick att trycka på. -->
+                <div class="set-row set-row-bred" id="settings-delete-row" hidden>
                     <div class="set-field">
                         <!-- Knappen först, följden bredvid. Stod följden över
                              knappen läste man varningen innan man visste att
@@ -1095,10 +1102,16 @@
     <div id="modal-diary" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="diary-modal-title">
         <div class="modal-content modal-tall">
             <div class="modal-header-row">
-                <h2 id="diary-modal-title">Dagens lärdomar</h2>
+                <!-- Samma namn som knappen som öppnar den. Rutan hette
+                     "Dagens lärdomar" medan vägen in hette "Dagbok", och två
+                     namn på samma sak gör att man undrar om man hamnat rätt.
+                     Betydelsen ligger kvar — men på etiketten, där den hör
+                     hemma, i stället för i rubriken. -->
+                <h2 id="diary-modal-title">Dagbok</h2>
                 <button type="button" id="btn-close-diary-top" class="modal-close-x" aria-label="Stäng"></button>
             </div>
             <form id="form-diary">
+                <label for="input-diary-text">Dagens lärdomar</label>
                 <textarea id="input-diary-text" rows="6" required></textarea>
                 <button type="submit" class="btn primary block">Föreslå kort</button>
             </form>
@@ -1172,10 +1185,16 @@
                     <span>E-post</span>
                     <input type="email" id="auth-email" autocomplete="email" required>
                 </label>
-                <label class="auth-field">
-                    <span>Lösenord</span>
+                <!-- Inte en omslutande label: den skickar sitt klick vidare till
+                     fältet, och här står en knapp inuti. Etiketten pekar med for
+                     i stället, precis som kortformulärets rader gör. -->
+                <div class="auth-field" id="auth-password-field">
+                    <span class="auth-field-head">
+                        <label for="auth-password">Lösenord</label>
+                        <button type="button" class="label-action" id="auth-forgot">Glömt lösenordet</button>
+                    </span>
                     <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
-                </label>
+                </div>
 
                 <!-- Återställningsläget. Fälten bor i samma formulär som
                      inloggningen i stället för i en egen vy: man kommer hit
@@ -1212,15 +1231,20 @@
                 <span>Fortsätt med Google</span>
             </button>
 
-            <div class="auth-links" id="auth-links">
+            <!-- Lägesbytet är en mening, inte en knapp i nivå med att logga in.
+                 Som naken länk konkurrerade den med knappen ovanför. -->
+            <p class="auth-switch" id="auth-switch">
+                <span id="auth-switch-fraga">Har du inget konto?</span>
                 <button type="button" class="btn text" id="auth-toggle">Skapa konto</button>
-                <button type="button" class="btn text" id="auth-forgot">Glömt lösenordet</button>
-            </div>
-
-            <p class="auth-offline">
-                <button type="button" class="btn text" id="auth-skip">Fortsätt utan konto</button>
-                <span class="auth-offline-hint">Data sparas bara på den här enheten.</span>
             </p>
+
+            <!-- Vägen förbi kontot står ensam under sin linje, i full bredd,
+                 med följden under sig. Det är ett verkligt val och inte en
+                 fotnot: datan hamnar bara på den här enheten. -->
+            <div class="auth-offline">
+                <button type="button" class="btn" id="auth-skip">Fortsätt utan konto</button>
+                <span class="auth-offline-hint">Data sparas bara på den här enheten.</span>
+            </div>
         </div>
     </div>
 
