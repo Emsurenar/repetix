@@ -2,6 +2,7 @@ import { generateDeckSuggestion, generateDeckSummary } from '../ai/deck-insights
 import { deleteSection, openCardModal, openEditCardModal, openMoveCardModal, openMoveSectionModal, openNoteCardModal, openSectionModal } from '../ai/client.js';
 import { SUMMARY_REGEN_THRESHOLD, deckSummaryCache } from '../ai/deck-insights.js';
 import { S } from '../core/state.js';
+import { kortIVyn, sektionerIVyn } from '../domain/deck-view.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
 import { cardList } from './dom.js';
@@ -18,6 +19,11 @@ import { uppskattadTid } from '../domain/estimate.js';
 /* Samma menyikon och samma radmeny som i biblioteket. En <details> är alltid
  * synlig och öppnas av ett tryck; det gamla :hover-beroendet gjorde Redigera,
  * Flytta och Radera oåtkomliga på telefon. */
+/* Mappar användaren fällt ut. Lever i minnet, inte i appdatan: det är ett
+ * läge i den öppna vyn, inte något som hör till kortleken, och det ska inte
+ * följa med i en säkerhetskopia eller synkas mellan enheter. */
+const utfallda = new Set();
+
 const MENU_ICON = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="3" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="8" cy="13" r="1.4"/></svg>`;
 
 /* Attributvärde. escapeHtml() går via innerHTML och lämnar citattecken orörda,
@@ -55,10 +61,7 @@ export const openDeck = (id, sectionId = null) => {
     const section = sectionId ? deck.sections?.find(s => s.id === sectionId) : null;
     document.getElementById('current-deck-title').innerText = section ? `${deck.title} › ${section.title}` : deck.title;
 
-    let displayCards = deck.cards;
-    if (sectionId) {
-        displayCards = deck.cards.filter(c => c.sectionId === sectionId);
-    }
+    const displayCards = kortIVyn(deck, sectionId);
 
     const dueCount = displayCards.filter(c => c.nextReviewDate <= Date.now()).length;
 
@@ -240,7 +243,7 @@ const renderCardItem = (card, deck) => {
         if (await showConfirmModal('Radera kort', 'Är du säker på att du vill radera detta kort?', 'Radera', true)) {
             deck.cards = deck.cards.filter(c => c.id !== card.id);
             saveData();
-            renderCards(deck.cards);
+            renderCards(kortIVyn(deck, S.currentSectionId));
         }
     });
 
@@ -293,7 +296,7 @@ const renderNoteCardItem = (card, deck) => {
         if (await showConfirmModal('Radera anteckning', 'Är du säker på att du vill radera denna anteckning?', 'Radera', true)) {
             deck.cards = deck.cards.filter(c => c.id !== card.id);
             saveData();
-            renderCards(deck.cards);
+            renderCards(kortIVyn(deck, S.currentSectionId));
         }
     });
 
@@ -311,7 +314,14 @@ export const renderCards = (cards) => {
     const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
     if (!deck) return;
 
-    if (cards.length === 0 && deck.sections.length === 0) {
+    /* Vyn är den delmängd anroparen skickade in, inte hela leken.
+     *
+     * Listan lästes tidigare ur deck.cards oavsett vad som kom in, medan
+     * rubriken och talen räknade delmängden. En öppnad mapp visade alltså
+     * hela lekens innehåll under en rubrik som sa "2 kort". */
+    const sections = sektionerIVyn(deck, S.currentSectionId);
+
+    if (cards.length === 0 && sections.length === 0) {
         cardList.innerHTML = `<div class="empty-state">
             <div class="empty-state-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 9v6"/><path d="M9 12h6"/></svg>
@@ -331,12 +341,12 @@ export const renderCards = (cards) => {
     }
 
     // Render Root Section (cards without sectionId)
-    const rootCards = deck.cards.filter(c => !c.sectionId);
-    if (rootCards.length > 0 || deck.sections.length > 0) {
+    const rootCards = cards.filter(c => !c.sectionId);
+    if (rootCards.length > 0 || sections.length > 0) {
         const rootContainer = document.createElement('div');
         rootContainer.className = 'section-container root-section';
-        rootContainer.innerHTML = `<div class="section-items list-container"></div>`;
-        const itemsList = rootContainer.querySelector('.section-items');
+        rootContainer.innerHTML = `<div class="section-items"><div class="section-items-inner list-container"></div></div>`;
+        const itemsList = rootContainer.querySelector('.section-items-inner');
         
         // Root Drop Zone logic
         rootContainer.addEventListener('dragover', (e) => e.preventDefault());
@@ -360,7 +370,7 @@ export const renderCards = (cards) => {
                 if (card) {
                     card.sectionId = null;
                     saveData();
-                    renderCards(deck.cards);
+                    renderCards(kortIVyn(deck, S.currentSectionId));
                 }
             }
         });
@@ -372,19 +382,25 @@ export const renderCards = (cards) => {
     }
 
     // Render Sections
-    deck.sections.forEach(section => {
-        const cardsInSection = deck.cards.filter(c => c.sectionId === section.id);
+    sections.forEach(section => {
+        const cardsInSection = cards.filter(c => c.sectionId === section.id);
         const dueInSection = cardsInSection.filter(c => c.nextReviewDate <= Date.now() && c.type !== 'note').length;
 
         const sectionEl = document.createElement('div');
         sectionEl.id = 'section-' + section.id;
-        sectionEl.className = 'section-container collapsed';
+        // Ihopfälld är förvalet, men det användaren själv fällt ut ska stå kvar.
+        // Klassen sattes tidigare hårt vid varje rendering, och eftersom varje
+        // radering, namnbyte och drag-släpp ritar om listan slog mappen igen
+        // mitt framför den som arbetade i den.
+        sectionEl.className = utfallda.has(section.id)
+            ? 'section-container'
+            : 'section-container collapsed';
         // Utfällningsknappen är ett <button> och inte en <div>: mappar måste gå
         // att fälla ut med tangentbordet, inte bara med musen. Räknetalen ligger
         // utanför knappen eftersom en knapp inte får innehålla en annan knapp.
         sectionEl.innerHTML = `
             <div class="section-header">
-                <button type="button" class="section-header-left" aria-expanded="false" title="Fäll ut eller in mappen">
+                <button type="button" class="section-header-left" aria-expanded="${utfallda.has(section.id)}" title="Fäll ut eller in mappen">
                     <svg class="section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                     <span class="section-title">${escapeHtml(section.title)}</span>
                 </button>
@@ -400,11 +416,18 @@ export const renderCards = (cards) => {
                             <button type="button" class="btn-section-delete danger">Ta bort</button>`)}
                 </div>
             </div>
-            <div class="section-items list-container"></div>
+            <div class="section-items"><div class="section-items-inner list-container"></div></div>
         `;
 
         const sectionHeader = sectionEl.querySelector('.section-header');
-        const sectionItems = sectionEl.querySelector('.section-items');
+        /* Korten hänger i ETT barn under .section-items, inte som N syskon.
+         *
+         * Ihopfällningen krymper en rutnätsrad från 1fr till 0fr, och
+         * grid-template-rows styr bara de EXPLICITA raderna. Låg korten som
+         * syskon hamnade kort nummer två och framåt i implicita rader som
+         * regeln inte når: mappen såg ihopfälld ut, första kortet klämdes till
+         * en remsa, och resten stod kvar i full höjd. */
+        const sectionItems = sectionEl.querySelector('.section-items-inner');
 
         sectionEl.querySelector('.btn-section-study')?.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -454,7 +477,7 @@ export const renderCards = (cards) => {
                 if (card) {
                     card.sectionId = section.id;
                     saveData();
-                    renderCards(deck.cards);
+                    renderCards(kortIVyn(deck, S.currentSectionId));
                 }
             }
         });
@@ -463,6 +486,8 @@ export const renderCards = (cards) => {
         sectionEl.querySelector('.section-header-left').addEventListener('click', (e) => {
             const collapsed = sectionEl.classList.toggle('collapsed');
             e.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+            if (collapsed) utfallda.delete(section.id);
+            else utfallda.add(section.id);
         });
 
         // Double-click header to study section

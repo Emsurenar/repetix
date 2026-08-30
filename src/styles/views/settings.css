@@ -262,8 +262,12 @@
  * FÄLT
  *
  * Fältet och dess knapp står på en rad: nyckeln klistras in och sparas i samma
- * rörelse. Modellen sparas likadant, så de två raderna har samma form — det
- * var den ensamma knappen under väljaren som gjorde rytmen ojämn.
+ * rörelse.
+ *
+ * Modellraden har samma form men ingen knapp. Den sparar sig själv, och där
+ * knappen stod står kvittot i stället — med knappens bredd, så att raderna
+ * fortfarande har samma rytm och så att fältet inte byter bredd i det
+ * ögonblick kvittot dyker upp.
  * ====================================================================== */
 
 #view-settings .field-row {
@@ -282,6 +286,31 @@
 #view-settings .field-row > .select-wrap {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Kvittot på modellraden.
+ *
+ * Minsta bredden är sparaknappens. Utan den vore fältet bredare i vila och
+ * smalare i samma stund som "Sparat" dyker upp — ett hopp i raden vid varje
+ * modellbyte, vilket är precis vad kvittot ska slippa kosta. Ett fel får
+ * spränga måttet: det är sällsynt, det kräver något av användaren, och då är
+ * rörelsen rätt. */
+#view-settings .set-receipt {
+  flex: 0 0 auto;
+  min-width: 84px;
+  text-align: right;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+#view-settings .set-receipt[data-tone='ok'] {
+  color: var(--accent);
+}
+
+#view-settings .set-receipt[data-tone='fel'] {
+  color: var(--danger);
+  white-space: normal;
 }
 
 /* Väljaren med egen pil: webbläsarens standardpil är olika stor i varje

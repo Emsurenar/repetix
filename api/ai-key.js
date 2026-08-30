@@ -6,7 +6,14 @@
 
 import { requireUser } from './_lib/auth.js';
 import { encrypt } from './_lib/crypto.js';
-import { ApiError, readJsonBody, readTextField, sendError, sendJson } from './_lib/http.js';
+import {
+  ApiError,
+  dbError,
+  readJsonBody,
+  readTextField,
+  sendError,
+  sendJson,
+} from './_lib/http.js';
 import { enforceRateLimit } from './_lib/limit.js';
 import { getProvider } from './_lib/providers.js';
 
@@ -33,7 +40,7 @@ export default async function handler(req, res) {
     // Supabase, men kostar en serverfunktion var.
     await enforceRateLimit(db, 'ai-key');
 
-    if (req.method === 'POST') return await saveKey(req, res, userId, db);
+    if (req.method === 'POST') return await saveKey(req, res, db);
     if (req.method === 'GET') return await listKeys(res, userId, db);
     if (req.method === 'DELETE') return await deleteKey(req, res, userId, db);
 
@@ -49,7 +56,7 @@ export default async function handler(req, res) {
  * inställningarna och har nyckeln i urklipp — inte nästa gång någon försöker
  * generera kort och får ett fel som ser ut att komma från appen.
  */
-async function saveKey(req, res, userId, db) {
+async function saveKey(req, res, db) {
   const body = await readJsonBody(req);
   const provider = getProvider(requireProvider(body.provider));
 
@@ -83,17 +90,26 @@ async function saveKey(req, res, userId, db) {
   }
 
   const hint = keyHint(key);
-  const { error } = await db.from('user_ai_keys').upsert(
-    {
-      user_id: userId,
-      provider: provider.id,
-      encrypted_key: encrypt(key),
-      key_hint: hint,
-      last_verified: new Date().toISOString(),
-    },
-    { onConflict: 'user_id,provider' }
-  );
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte spara nyckeln. Försök igen.');
+
+  /* Skrivningen går genom en funktion, inte rakt mot tabellen.
+   *
+   * Här stod tidigare en upsert, alltså `insert ... on conflict do update`.
+   * Den satsen kräver att raden får LÄSAS under radnivåsäkerheten, och
+   * Postgres avgör det utifrån satsens form — inte utifrån om någon krock
+   * faktiskt inträffar. user_ai_keys saknar select-policy med flit, så varje
+   * försök att spara en nyckel avvisades med 42501, även mot tom tabell. Ingen
+   * nyckel gick någonsin att spara.
+   *
+   * save_my_ai_key kör med ägarens rättigheter och härleder användaren ur
+   * auth.uid(), precis som get_my_ai_key på läsvägen. userId används därför
+   * inte här: ett id som kom med begäran hade varit ett sämre svar på frågan
+   * vem raden tillhör än det databasen redan vet. */
+  const { error } = await db.rpc('save_my_ai_key', {
+    p_provider: provider.id,
+    p_encrypted_key: encrypt(key),
+    p_key_hint: hint,
+  });
+  if (error) throw dbError(error, 'Kunde inte spara nyckeln. Försök igen.');
 
   sendJson(res, 200, { ok: true, hint, verified: true });
 }
@@ -112,7 +128,7 @@ async function listKeys(res, userId, db) {
     .select('provider, key_hint, last_verified')
     .eq('user_id', userId)
     .order('provider');
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte läsa dina sparade nycklar.');
+  if (error) throw dbError(error, 'Kunde inte läsa dina sparade nycklar.');
 
   sendJson(res, 200, {
     providers: (data ?? []).map((rad) => ({
@@ -135,7 +151,7 @@ async function deleteKey(req, res, userId, db) {
     .delete()
     .eq('user_id', userId)
     .eq('provider', provider.id);
-  if (error) throw new ApiError(500, 'server_error', 'Kunde inte radera nyckeln. Försök igen.');
+  if (error) throw dbError(error, 'Kunde inte radera nyckeln. Försök igen.');
 
   sendJson(res, 200, { ok: true });
 }

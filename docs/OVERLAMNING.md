@@ -427,6 +427,26 @@ Migration 0005 lägger också **ägarskap på främmande nycklar** — ett kort 
 tidigare peka på någon annans kortlek. Läs kommentaren i filen: kör
 kontrollfrågan först, den måste ge tomt.
 
+#### Migration 0006 — skrivvägen för AI-nycklar
+
+**Utan den går det inte att spara en API-nyckel alls.** Servern gjorde tidigare
+en upsert rakt mot `user_ai_keys`, och `insert ... on conflict do update` kräver
+att raden får läsas under radnivåsäkerheten. Postgres avgör det utifrån satsens
+form, inte utifrån om någon krock inträffar, så kravet gällde även mot tom
+tabell. Tabellen saknar select-policy med flit — därför misslyckades varje
+sparning med `42501`, och ingen nyckel hade någonsin sparats.
+
+Skrivningen går nu genom `save_my_ai_key`, som kör med ägarens rättigheter och
+härleder användaren ur `auth.uid()` — samma mönster som `get_my_ai_key` på
+läsvägen. Select-policyn ligger kvar borta.
+
+Kontrollfråga efter körningen, ska ge en rad:
+
+```sql
+select proname, prosecdef from pg_proc
+ where pronamespace = 'public'::regnamespace and proname = 'save_my_ai_key';
+```
+
 #### Användningsmätaren — klar
 
 `supabase/migrations/0007_ai_usage.sql`, Inställningar → Användning och
