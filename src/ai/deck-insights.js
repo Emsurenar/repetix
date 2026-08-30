@@ -11,6 +11,20 @@ import { renderLatex } from '../ui/latex.js';
 import { showToast } from '../ui/toast.js';
 
 
+/* Taket för de två insikterna.
+ *
+ * Båda stod på 400, satt efter hur mycket text som skulle SYNAS: en
+ * sammanfattning på 2-4 meningar är ungefär 150 tokens och ett kortförslag
+ * med motivering ungefär 200. Båda slog ändå i taket i praktiken — modellen
+ * betalar ur samma budget för allt den skriver, inte bara för det som blir
+ * kvar i svaret, och 400 räckte inte till det.
+ *
+ * 2000 är inte ett behov utan en marginal. Fakturan är användarens egen och
+ * bara förbrukade tokens debiteras, så ett tak som aldrig nås kostar
+ * ingenting — medan ett för lågt tak kostar hela anropet och ger noll
+ * tillbaka. */
+const INSIKT_MAX_TOKENS = 2000;
+
 // Cache: { deckId: { cardCount, sectionCount, summaryHtml, timestamp } }
 export const deckSummaryCache = {};
 export const SUMMARY_REGEN_THRESHOLD = 3; // regenerate after this many card changes
@@ -66,7 +80,7 @@ VIKTIGT: Föreslå INTE ett kort som liknar något som redan finns. Var originel
 Svara med ENBART ett rent JSON-objekt: {"front": "fråga", "back": "svar", "reasoning": "En mening om varför just detta kort saknas"}
 Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga korten.`,
         user: `Kortlek: "${deck.title}" (${info.cards.length} kort)${info.sectionInfo}\n\n${info.cardList}`,
-        maxTokens: 400,
+        maxTokens: INSIKT_MAX_TOKENS,
         json: true,
         signal,
     });
@@ -79,7 +93,14 @@ Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga kort
      * Tolken avvisar bara när texten faktiskt inte går att läsa — och säger
      * då att den avbröts, i stället för det generiska "något gick fel". */
     const card = parseObjekt(text, { truncated });
-    if (!card.front || !card.back) {
+
+    /* Sträng, inte bara sanningsvärde. renderSuggestionCard körs inne i
+     * anroparens try och skickar fälten till safeParse, som anropar .replace
+     * på dem — ett tal eller ett objekt där hade kastat ett TypeError från
+     * renderingen, alltså tillbaka till just den generiska meningen som allt
+     * det här handlar om att bli av med. */
+    const arText = (v) => typeof v === 'string' && v.trim() !== '';
+    if (!arText(card.front) || !arText(card.back)) {
         throw new AiError('Modellens förslag saknade fråga eller svar.', 'provider_error');
     }
     return card;
@@ -147,7 +168,7 @@ export const generateDeckSummary = async () => {
 
 Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI som analyserar. Skriv på svenska. Ingen inledning, gå rakt på sak.`,
             user: `Kortlek: "${deck.title}" (${info.cards.length} kort)${info.sectionInfo}\n\n${info.cardList}`,
-            maxTokens: 400,
+            maxTokens: INSIKT_MAX_TOKENS,
         });
 
         /* Den halva meningen får stå kvar — den säger något — men den ska inte
