@@ -451,6 +451,16 @@ textarea:disabled {
   top: calc(100% + var(--s1));
   z-index: 60;
   min-width: 11rem;
+  /* Taket sätts av lyssnaren i src/ui/library.js och bara när menyn annars
+   * inte hade fått plats. En meny man rullar i är bättre än en knapp som
+   * kapas på mitten — den avklippta går inte att se att den finns.
+   *
+   * overscroll-behavior stoppar rullningen i menyn: utan den fortsätter
+   * sidan bakom att rulla när listan tar slut, och kortet under fingret
+   * flyttar sig. */
+  max-height: var(--meny-maxhojd, none);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--s1);
   background: var(--surface-1);
   border: 1px solid var(--line-strong);

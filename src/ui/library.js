@@ -5,6 +5,7 @@ import { getReviewLog } from '../core/sync.js';
 import { escapeHtml } from '../core/utils.js';
 import { currentStreak, dailyCounts, mergeLegacyCounts } from '../domain/history.js';
 import { grupperaPaHylla } from '../domain/hyllgruppering.js';
+import { valjMenyplacering } from '../domain/menyplacering.js';
 import { loadRecords } from '../domain/stats.js';
 import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook } from './deck.js';
@@ -582,14 +583,34 @@ export function initUiLibrary() {
               return;
           }
 
+          // Nollställt innan mätningen: annars mäts förra gångens tak.
           panel.classList.remove('row-menu-items-uppat');
-          const p = panel.getBoundingClientRect();
+          panel.style.removeProperty('--meny-maxhojd');
+
           const knapp = meny.querySelector('.row-menu-toggle')?.getBoundingClientRect();
-          const finnsPlatsNedan = p.bottom <= window.innerHeight;
-          const finnsPlatsOvan = knapp ? knapp.top - p.height >= 0 : false;
-          if (!finnsPlatsNedan && finnsPlatsOvan) {
-              panel.classList.add('row-menu-items-uppat');
-          }
+          if (!knapp) return;
+
+          /* Den synliga ytan, inte fönstret. På en telefon ligger webbläsarens
+           * egen list över fönstrets nederkant, och innerHeight räknar med den
+           * ytan — en meny som slutade strax innanför den kanten hamnade
+           * alltså halvt bakom listen. visualViewport vet var man faktiskt
+           * ser. */
+          const vv = window.visualViewport;
+          const synligTop = vv?.offsetTop ?? 0;
+          const synligBottom = synligTop + (vv?.height ?? window.innerHeight);
+
+          const { uppat, maxHojd } = valjMenyplacering({
+              knappTop: knapp.top,
+              knappBottom: knapp.bottom,
+              panelHojd: panel.getBoundingClientRect().height,
+              synligTop,
+              synligBottom,
+          });
+
+          panel.classList.toggle('row-menu-items-uppat', uppat);
+          // Taket är ett mått som bara går att räkna fram här; CSS äger vad
+          // som händer med det.
+          if (maxHojd !== null) panel.style.setProperty('--meny-maxhojd', `${maxHojd}px`);
       },
       true
   );
