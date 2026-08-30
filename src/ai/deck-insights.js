@@ -45,7 +45,7 @@ const renderSuggestionCard = (card, container) => {
         <div class="deck-ai-suggestion-card">
             <div class="deck-ai-suggestion-front">${safeParse(card.front)}</div>
             <div class="deck-ai-suggestion-back">${safeParse(card.back)}</div>
-            ${card.reasoning ? `<div style="font-size:0.75rem;color:var(--text-secondary);opacity:0.7;font-style:italic;margin-top:0.15rem;">${escapeHtml(card.reasoning)}</div>` : ''}
+            ${card.reasoning ? `<p class="deck-ai-suggestion-why">${escapeHtml(card.reasoning)}</p>` : ''}
             <div class="deck-ai-suggestion-actions">
                 <button type="button" class="btn btn-add-suggestion" data-forslag="lagg-till">+ Lägg till</button>
                 <button type="button" class="btn btn-skip-suggestion" data-forslag="nytt">↻ Nytt förslag</button>
@@ -141,7 +141,7 @@ export function initAiDeckInsights() {
               const card = await fetchSuggestion(deck, info);
               renderSuggestionCard(card, suggestionContent);
           } catch (e) {
-              suggestionContent.innerHTML = `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>`;
+              suggestionContent.innerHTML = `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>`;
           }
       })();
   };
@@ -188,7 +188,7 @@ Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI so
          * nå med tangentbordet, och plockas upp av samma delegering som allt
          * annat — alltså en väg in, inte två. */
         summaryText.innerHTML =
-            `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>` +
+            `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>` +
             aiGenerateButton('summary');
         summaryBox.classList.remove('deck-ai-loaded');
     }
@@ -210,7 +210,7 @@ export const generateDeckSuggestion = async () => {
         suggestionBox.classList.add('deck-ai-loaded');
     } catch (e) {
         suggestionContent.innerHTML =
-            `<span style="color:var(--text-secondary);font-size:0.82rem;opacity:0.6;">${escapeHtml(aiErrorMessage(e))}</span>` +
+            `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>` +
             aiGenerateButton('suggestion');
         suggestionBox.classList.remove('deck-ai-loaded');
     }

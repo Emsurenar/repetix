@@ -181,10 +181,86 @@
   color: var(--text-2);
 }
 
-/* Panelen är tom tills man ber om något. Knappen är hela innehållet, och
- * säger vad som händer i stället för hur man klickar. */
+/* VILANDE: PANELEN ÄR KNAPPEN
+ *
+ * En ram inuti en ram läste sig som en knapp i en knapp. Så länge panelen inte
+ * bär något annat än sin egen inbjudan tappar den sin luft, och knappen fyller
+ * den helt och ärver dess hörn — alltså EN yta.
+ *
+ * :has med :only-child i stället för en klass från JS: villkoret ÄR att
+ * panelen inte innehåller något annat än knappen, och skrivet så kan det inte
+ * hamna i otakt med vad som faktiskt står där. Felläget bär en text bredvid
+ * knappen och räknas därför inte som vilande — det behöver sin luft.
+ *
+ * Knappen bär ingen ikon. Bibliotekets åtgärder tog bort sina av samma skäl:
+ * de sade inget som orden inte redan sade. */
+.deck-ai-summary:has(> .deck-ai-summary-text > .deck-ai-generate:only-child),
+.deck-ai-suggestion:has(> .deck-ai-suggestion-content > .deck-ai-generate:only-child) {
+  padding: 0;
+}
+
+.deck-ai-summary:has(> .deck-ai-summary-text > .deck-ai-generate:only-child)
+  .deck-ai-summary-header,
+.deck-ai-suggestion:has(> .deck-ai-suggestion-content > .deck-ai-generate:only-child)
+  .deck-ai-suggestion-header {
+  display: none;
+}
+
 .deck-ai-generate {
-  margin-top: var(--s1);
+  width: 100%;
+  min-height: calc(var(--control-h-lg) + var(--s5));
+  padding: var(--s4);
+  /* Panelens ram och hörn är knappens. Egna hade gett den andra ramen. */
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.deck-ai-generate:hover,
+.deck-ai-generate:active {
+  background: var(--surface-2);
+}
+
+/* Felet, och knappen som gör om försöket. Stod tidigare med färg och grad i
+ * markupen — utanför skalan, och med ett variabelnamn som bara finns kvar för
+ * spelens gamla stilmall. */
+.deck-ai-error {
+  display: block;
+  margin-bottom: var(--s3);
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+/* LADDAT: UTDATAN
+ *
+ * Sammanfattningen är markdown och kan bära formler, kod och tabeller. Utan
+ * det här spränger de spalten i sidled precis som de gjorde i kortets
+ * AI-ruta, och då är texten oläslig på telefon. Det breda scrollar i sig
+ * självt; texten stannar i spalten. */
+.deck-ai-summary-text {
+  overflow-wrap: anywhere;
+}
+
+.deck-ai-summary-text pre,
+.deck-ai-summary-text table {
+  display: block;
+  overflow-x: auto;
+}
+
+.deck-ai-summary-text .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--s1);
+}
+
+/* Förslaget bär kortets röst: frågan i serifen som kort har i resten av
+ * appen, svaret en nivå tystare, och skälet som en egen dämpad rad. */
+.deck-ai-suggestion-why {
+  margin: 0;
+  font-size: var(--t-xs);
+  font-style: italic;
+  line-height: var(--lh-normal);
+  color: var(--text-3);
 }
 
 .deck-ai-suggestion-card {
@@ -626,20 +702,17 @@
     margin-bottom: var(--s5);
   }
 
-  .deck-ai-summary-header,
-  .deck-ai-suggestion-header {
-    display: none;
+  /* Vilande delar de rad — två små knappar bredvid varandra. Så fort en av
+   * dem fått ett svar tar den hela bredden: en sammanfattning i en halv spalt
+   * på 375 pixlar går inte att läsa. */
+  .deck-ai-summary:not(:has(.deck-ai-generate:only-child)),
+  .deck-ai-suggestion:not(:has(.deck-ai-generate:only-child)) {
+    grid-column: 1 / -1;
   }
 
-  .deck-ai-summary,
-  .deck-ai-suggestion {
-    padding: var(--s3);
-  }
-
-  /* Knappen bryter hellre rad än spränger sin halva. */
   .deck-ai-generate {
-    width: 100%;
-    padding: var(--s2);
+    min-height: var(--control-h-lg);
+    padding: var(--s3) var(--s2);
     font-size: var(--t-sm);
     white-space: normal;
   }
