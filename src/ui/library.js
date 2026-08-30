@@ -4,6 +4,7 @@ import { saveData } from '../core/storage.js';
 import { getReviewLog } from '../core/sync.js';
 import { escapeHtml } from '../core/utils.js';
 import { currentStreak, dailyCounts, mergeLegacyCounts } from '../domain/history.js';
+import { grupperaPaHylla } from '../domain/hyllgruppering.js';
 import { loadRecords } from '../domain/stats.js';
 import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook } from './deck.js';
@@ -112,6 +113,34 @@ const renderLibrarySummary = () => {
     satt(reviewsEl, fmt(total));
 };
 
+/**
+ * Flyttar det som dras till en hylla, eller ut ur alla när `hyllId` är null.
+ *
+ * En enda väg in. Flytten skedde tidigare på tre ställen med var sin kopia av
+ * "leta upp i rätt lista, sätt fältet, spara, rita om", och sidopanelen hade
+ * ingen alls.
+ */
+export const flyttaTillHylla = (hyllId) => {
+    if (S.draggedItemId === null || S.draggedItemType === null) return false;
+
+    const lista = S.draggedItemType === 'deck' ? S.appData.decks : S.appData.notebooks;
+    const objekt = lista.find((i) => i.id === S.draggedItemId);
+    if (!objekt || objekt.bookshelfId === hyllId) return false;
+
+    objekt.bookshelfId = hyllId;
+
+    /* Draget släpps här och inte i `dragend`. Omritningen nedan byter ut raden
+     * som drogs, och ett element som inte finns kvar får aldrig sitt
+     * dragend — tillståndet hade blivit stående och tystat hyllornas egen
+     * omordning, som håller sig undan just när något annat dras. */
+    S.draggedItemId = null;
+    S.draggedItemType = null;
+
+    saveData();
+    renderLibrary();
+    return true;
+};
+
 export const renderLibrary = () => {
     document.getElementById('library-summary')?.removeAttribute('hidden');
     document.getElementById('dagens-mapp-container')?.removeAttribute('hidden');
@@ -120,23 +149,13 @@ export const renderLibrary = () => {
     deckList.innerHTML = '';
     const filter = S.librarySearchFilter.toLowerCase();
     
-    // Add dragover/drop on deckList for dropping items outside bookshelves
+    /* Ytan utanför grupperna tar bort hyllan. Är vyn indelad hör varje punkt
+     * till en grupp, och då är det gruppen som svarar — inte den här. */
     deckList.ondragover = (e) => e.preventDefault();
     deckList.ondrop = (e) => {
         e.preventDefault();
-        // Check if we dropped on a deck card or bookshelf container
-        const closestContainer = e.target.closest('.bookshelf-items');
-        if (!closestContainer && S.draggedItemId !== null && S.draggedItemType !== null) {
-            if (S.draggedItemType === 'deck') {
-                const item = S.appData.decks.find(d => d.id === S.draggedItemId);
-                if (item) item.bookshelfId = null;
-            } else if (S.draggedItemType === 'notebook') {
-                const item = S.appData.notebooks.find(n => n.id === S.draggedItemId);
-                if (item) item.bookshelfId = null;
-            }
-            saveData();
-            renderLibrary();
-        }
+        if (e.target.closest('.library-group')) return;
+        flyttaTillHylla(null);
     };
 
     if (S.appData.decks.length === 0 && S.appData.notebooks.length === 0 && S.appData.bookshelves.length === 0) {
@@ -376,15 +395,76 @@ export const renderLibrary = () => {
         return b.updated - a.updated;
     });
 
-    if (items.length === 0) {
-        const empty = document.createElement('p');
-        empty.className = 'bookshelf-empty';
-        empty.textContent = filter
-            ? 'Inget matchar sökningen.'
-            : 'Bokhyllan är tom. Flytta hit en kortlek från dess meny.';
-        deckList.appendChild(empty);
+    const tomText = (text) => {
+        const p = document.createElement('p');
+        p.className = 'bookshelf-empty';
+        p.textContent = text;
+        return p;
+    };
+
+    /* En grupp är också hyllans släppyta. Etiketten ensam hade varit ett par
+     * rader hög — hela gruppen ger ett mål man träffar utan att sikta. */
+    const renderGrupp = (grupp) => {
+        const sektion = document.createElement('section');
+        sektion.className = 'library-group';
+        sektion.dataset.shelfId = grupp.id ?? '';
+
+        const etikett = document.createElement('h2');
+        etikett.className = 'library-group-label';
+        // Ordet står här och inte i domänmodulen: indelningen är en beräkning,
+        // "Utan bokhylla" är gränssnitt.
+        etikett.textContent = grupp.titel ?? 'Utan bokhylla';
+        sektion.appendChild(etikett);
+
+        const rutnat = document.createElement('div');
+        rutnat.className = 'library-group-grid';
+        if (grupp.objekt.length) {
+            grupp.objekt.forEach(({ item, type }) => rutnat.appendChild(renderItem(item, type)));
+        } else {
+            // Samma ord som panelens tomma grupp. Ingen uppmaning att dra:
+            // dragningen finns inte för fingret, och etiketten säger redan allt.
+            rutnat.appendChild(tomText('Tom'));
+        }
+        sektion.appendChild(rutnat);
+
+        sektion.addEventListener('dragover', (e) => {
+            if (S.draggedItemId === null) return;
+            e.preventDefault();
+            sektion.classList.add('drag-over');
+        });
+        sektion.addEventListener('dragleave', (e) => {
+            // Pekaren passerar barnen på vägen; bara att lämna sektionen räknas.
+            if (!sektion.contains(e.relatedTarget)) sektion.classList.remove('drag-over');
+        });
+        sektion.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            sektion.classList.remove('drag-over');
+            flyttaTillHylla(grupp.id);
+        });
+
+        return sektion;
+    };
+
+    /* Indelningen är tillbaka, men inte apparaten. Hyllorna hade förut egen
+     * rubrikrad, egen meny och egen "Repetera alla" i rutnätet — samma sak som
+     * sidopanelen redan gjorde, en gång till. Kvar är etiketten och rutnätet;
+     * åtgärderna bor där de bor.
+     *
+     * Står man i en hylla ritas ingen etikett: rubriken säger redan dess namn,
+     * och en enda grupp är ingen indelning. */
+    const visaGrupper = !shelfId && S.appData.bookshelves.length > 0;
+
+    if (!visaGrupper) {
+        if (items.length === 0) {
+            deckList.appendChild(tomText(filter ? 'Inget matchar sökningen.' : 'Bokhyllan är tom.'));
+        } else {
+            items.forEach(({ item, type }) => deckList.appendChild(renderItem(item, type)));
+        }
     } else {
-        items.forEach(({ item, type }) => deckList.appendChild(renderItem(item, type)));
+        const grupper = grupperaPaHylla(items, S.appData.bookshelves, { soker: Boolean(filter) });
+        if (grupper.length === 0) deckList.appendChild(tomText('Inget matchar sökningen.'));
+        else grupper.forEach((grupp) => deckList.appendChild(renderGrupp(grupp)));
     }
 
     /* Rubriken säger vad man tittar på. Står man i en bokhylla är det hyllans

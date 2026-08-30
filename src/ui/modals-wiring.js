@@ -2,7 +2,7 @@ import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
 import { openDeck, openNotebook } from './deck.js';
-import { renderLibrary } from './library.js';
+import { flyttaTillHylla, renderLibrary } from './library.js';
 import { initModalA11y } from './modals.js';
 import { switchView } from './router.js';
 
@@ -39,8 +39,11 @@ export const renderSidebar = () => {
     const current = (aktiv) => (aktiv ? ' aria-current="page"' : '');
     const matches = (title) => !filter || title.toLowerCase().includes(filter);
 
-    const emptyGroup = (labelHtml) =>
-        `<div class="sidebar-group">${labelHtml}<p class="sidebar-empty">Tom</p></div>`;
+    /* Hyll-id:t måste med även när hyllan är tom: gruppen är släppytan, och
+     * utan id hade ett släpp i den tagit kortleken ur alla hyllor i stället
+     * för att lägga den i den tomma. */
+    const emptyGroup = (shelfId, labelHtml) =>
+        `<div class="sidebar-group" data-shelf-id="${attr(shelfId ?? '')}">${labelHtml}<p class="sidebar-empty">Tom</p></div>`;
 
     const dueCount = (deck) =>
         deck.cards.filter((c) => c.type !== 'note' && c.nextReviewDate <= now).length;
@@ -48,7 +51,7 @@ export const renderSidebar = () => {
     const deckRow = (deck) => {
         const aktiv = S.currentViewName === 'deck' && S.currentDeckId === deck.id;
         const due = dueCount(deck);
-        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-deck-id="${attr(deck.id)}">
+        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} draggable="true" data-deck-id="${attr(deck.id)}">
             <span class="sidebar-chip" aria-hidden="true"></span>
             <span class="sidebar-item-name">${escapeHtml(deck.title)}</span>
             <span class="sidebar-count num ${due === 0 ? 'is-zero' : ''}"><span class="sr-only">väntar: </span>${due}</span>
@@ -57,7 +60,7 @@ export const renderSidebar = () => {
 
     const notebookRow = (nb) => {
         const aktiv = S.currentViewName === 'notebook' && S.currentNotebookId === nb.id;
-        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} data-notebook-id="${attr(nb.id)}">
+        return `<button type="button" class="sidebar-item ${aktiv ? 'active' : ''}"${current(aktiv)} draggable="true" data-notebook-id="${attr(nb.id)}">
             <span class="sidebar-chip" aria-hidden="true"></span>
             <span class="sidebar-item-name">${escapeHtml(nb.title)}</span>
             <span class="sidebar-count num is-zero"><span class="sr-only">anteckningar: </span>${nb.notes.length}</span>
@@ -76,8 +79,8 @@ export const renderSidebar = () => {
         );
         // En tom hylla visas bara när den är det man sökt efter. Etiketten
         // "Utan bokhylla" utan rader under sig är ingen upplysning.
-        if (!decks.length && !notebooks.length) return shelfMatches ? emptyGroup(labelHtml) : '';
-        return `<div class="sidebar-group" role="group" aria-labelledby="shelf-${attr(shelfId ?? 'root')}">
+        if (!decks.length && !notebooks.length) return shelfMatches ? emptyGroup(shelfId, labelHtml) : '';
+        return `<div class="sidebar-group" role="group" data-shelf-id="${attr(shelfId ?? '')}" aria-labelledby="shelf-${attr(shelfId ?? 'root')}">
             ${labelHtml}
             ${decks.map(deckRow).join('')}
             ${notebooks.map(notebookRow).join('')}
@@ -103,7 +106,11 @@ export const renderSidebar = () => {
             <span class="sidebar-item-name">Utan bokhylla</span>
         </div>`
         : '';
-    html += groupHtml(null, false, rootLabel);
+    /* Rotgruppen står kvar tom så länge det finns hyllor: den är stället man
+     * släpper en kortlek för att ta ut den ur sin hylla, och ett mål som
+     * försvinner så fort det tömts går inte att sikta på. Under en sökning
+     * gäller det inte — då är den bara en etikett utan träffar. */
+    html += groupHtml(null, !filter && S.appData.bookshelves.length > 0, rootLabel);
 
     if (!html) {
         html = `<p class="sidebar-empty">${filter ? 'Inget matchar sökningen.' : 'Inga kortlekar än.'}</p>`;
@@ -128,6 +135,50 @@ export const renderSidebar = () => {
     });
     tree.querySelectorAll('[data-notebook-id]').forEach((el) => {
         el.addEventListener('click', () => openNotebook(el.dataset.notebookId));
+    });
+
+    /* Kortlekar och anteckningsblock dras mellan hyllor. Samma tillstånd som
+     * bibliotekets dragning använder, så att en rad kan dras härifrån och
+     * släppas i bibliotekets hyllgrupp och tvärtom — panelen och rutnätet står
+     * bredvid varandra på skärmen och är två vyer av samma indelning.
+     *
+     * Hyllornas eget handtag rör vi inte: det sorterar om hyllor. */
+    tree.querySelectorAll('[data-deck-id], [data-notebook-id]').forEach((el) => {
+        const type = el.dataset.deckId ? 'deck' : 'notebook';
+        el.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            S.draggedItemId = el.dataset.deckId ?? el.dataset.notebookId;
+            S.draggedItemType = type;
+            el.classList.add('sidebar-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', type);
+        });
+        el.addEventListener('dragend', () => {
+            el.classList.remove('sidebar-dragging');
+            S.draggedItemId = null;
+            S.draggedItemType = null;
+            tree.querySelectorAll('.sidebar-group').forEach((g) => g.classList.remove('drag-over'));
+        });
+    });
+
+    tree.querySelectorAll('.sidebar-group').forEach((grupp) => {
+        const hyllId = grupp.dataset.shelfId || null;
+        grupp.addEventListener('dragover', (e) => {
+            if (S.draggedItemId === null) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            grupp.classList.add('drag-over');
+        });
+        grupp.addEventListener('dragleave', (e) => {
+            if (!grupp.contains(e.relatedTarget)) grupp.classList.remove('drag-over');
+        });
+        grupp.addEventListener('drop', (e) => {
+            if (S.draggedItemId === null) return;
+            e.preventDefault();
+            e.stopPropagation();
+            grupp.classList.remove('drag-over');
+            flyttaTillHylla(hyllId);
+        });
     });
 
     // Wire up drag-and-drop for shelf items
@@ -191,6 +242,9 @@ export const renderSidebar = () => {
         });
 
         el.addEventListener('dragover', (e) => {
+            // Är det en kortlek som dras hör släppet till gruppen omkring, och
+            // insättningslinjen hade lovat en omordning som inte händer.
+            if (S.draggedItemId !== null) return;
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             
@@ -211,6 +265,7 @@ export const renderSidebar = () => {
         });
 
         el.addEventListener('drop', (e) => {
+            if (S.draggedItemId !== null) return;
             e.preventDefault();
             el.classList.remove('drag-over-top', 'drag-over-bottom');
             

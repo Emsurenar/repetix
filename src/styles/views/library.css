@@ -235,7 +235,8 @@
 /* Allt som inte är en kortlek löper över hela raden. Tidigare sattes detta
  * som inline-stil från JS, vilket gjorde layouten omöjlig att ändra härifrån. */
 .grid-container > .library-filter-row,
-.grid-container > .library-group-label,
+.grid-container > .library-group,
+.grid-container > .bookshelf-empty,
 .grid-container > .empty-state {
   grid-column: 1 / -1;
 }
@@ -244,8 +245,62 @@
   margin-bottom: var(--s2);
 }
 
+/* ======================================================================
+ * BOKHYLLAN I RUTNÄTET
+ *
+ * Indelningen syns, apparaten gör det inte. Hyllan bär en etikett och sitt
+ * rutnät — ingen egen meny, ingen egen "Repetera alla". De raderna fanns en
+ * gång och gjorde varje hylla till en liten sida i sidan.
+ *
+ * Gruppen löper över hela bredden och ställer upp ett eget rutnät med samma
+ * spalter, så att kort i olika hyllor ändå står i linje med varandra.
+ * ====================================================================== */
+
+.library-group {
+  /* Radien är gemensam och sätts inte här: gruppen har ingen egen yta i vila,
+   * bara när något dras över den. */
+  display: block;
+}
+
+.library-group-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (min-width: 700px) {
+  .library-group-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .library-group-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Samma etikett som sidopanelens grupprubrik. Den är en skylt över en samling,
+ * inte en rubrik man läser — därför mikrograd och versaler, och därför tyst
+ * färg. Två olika sätt att skriva samma hyllnamn på två ställen i samma bild
+ * hade lästs som två olika saker. */
 .library-group-label {
-  margin-top: var(--s3);
+  margin: 0 0 var(--s3);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Målet lyser upp när något dras över det. Outline och inte border: en ram
+ * hade flyttat allt i gruppen en pixel när den tändes. */
+.library-group.drag-over {
+  outline: 1px solid var(--accent);
+  outline-offset: var(--s2);
+  border-radius: var(--r-md);
 }
 
 /* ======================================================================
