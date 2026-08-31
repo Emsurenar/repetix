@@ -1,5 +1,6 @@
 import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
 import { parseObjekt } from './svarstolk.js';
+import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
 import { showToast } from '../ui/toast.js';
@@ -165,7 +166,7 @@ Svara med ett enda JSON-objekt.`;
         const { text, truncated } = await callAIDetailed({
             system: systemInstructions,
             user: userInstructions,
-            maxTokens: 1000,
+            maxTokens: medTankeutrymme(1000),
             json: true,
             feature: 'regenerate',
         });

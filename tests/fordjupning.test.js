@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { fordjupningsPrompt, saknasForFordjupning } from '../src/ai/fordjupning.js';
+import { medTankeutrymme } from '../src/ai/tak.js';
 
 /* Fördjupningen är inte samma sak som förklaringen under repetitionen.
  *
@@ -47,9 +48,11 @@ describe('fordjupningsPrompt', () => {
   });
 
   /* Fältet är kort med flit, och en fördjupning man inte orkar läsa är samma
-   * sak som ingen fördjupning. */
+   * sak som ingen fördjupning. Det är texten som hålls kort: taket rymmer
+   * dessutom modellens tänkande, som annars äter av samma budget och kapar
+   * fördjupningen mitt i en mening. */
   it('håller svaret kort', () => {
-    expect(fordjupningsPrompt(kort).maxTokens).toBe(700);
+    expect(fordjupningsPrompt(kort).maxTokens).toBe(medTankeutrymme(700));
   });
 
   it('tar med kortlekens kontext när den finns', () => {

@@ -8,6 +8,7 @@
 
 import { hamtaKalltext } from '../core/sources.js';
 import { callAI } from './call.js';
+import { medTankeutrymme } from './tak.js';
 
 const SYSTEM = [
   'Du svarar på frågor om en föreläsningstext som står nedan.',
@@ -33,7 +34,7 @@ export async function fragaKallan({ sourceId, fraga, historik }) {
   return callAI({
     system: `${SYSTEM}\n\n"""\n${text}\n"""`,
     user: tidigare ? `${tidigare}\n\nNy fråga: ${fraga}` : fraga,
-    maxTokens: 900,
+    maxTokens: medTankeutrymme(900),
     feature: 'kalla-fraga',
     cache: true,
   });

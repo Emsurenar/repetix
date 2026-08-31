@@ -12,8 +12,10 @@
 // samma innehåll två gånger — en gång i fältet man ska kunna återkalla, en
 // gång i fältet man läser efteråt.
 
+import { medTankeutrymme } from './tak.js';
+
 /** Fältet är kort med flit. En fördjupning ingen orkar läsa är ingen alls. */
-const MAX_TOKENS = 700;
+const MAX_TOKENS = medTankeutrymme(700);
 
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 

@@ -1,5 +1,6 @@
 import { aiErrorMessage, callAI } from './call.js';
 import { buildDeckContext } from './client.js';
+import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
@@ -16,7 +17,7 @@ export const fetchExplanation = async (card) => {
         const text = await callAI({
             system: 'Du är en hjälpsam och pedagogisk lärare. Ge en kort, koncis förklaring eller minnesregel (max 300 ord totalt) för följande flashcard-fråga och svar. Målet är att hjälpa eleven förstå eller minnas svaret bättre. Eleven är däremot en vuxen person som förväntar sig rigorositet. Anpassa din förklaring efter den nivå och stil som framgår av kontexten.',
             user: `Fråga: ${card.front}\nSvar: ${card.back}${buildDeckContext(S.currentDeckId)}`,
-            maxTokens: 600,
+            maxTokens: medTankeutrymme(600),
             feature: 'explain',
         });
 
@@ -64,7 +65,7 @@ export const fetchTestQuestion = async (card, modifier = null) => {
         const text = await callAI({
             system: 'Du är en sträng men pedagogisk examinator. Din uppgift är att testa elevens förståelse baserat PÅ EXAKT DEN information som finns på flashcardet.\nDu ska skapa EN (1) specifik tentafråga som direkt prövar kunskapen i flashcardet.\nMålet är att se om eleven verkligen kan tillämpa konceptet på kortet. Om kortet handlar om matematik, gör en passande räkneuppgift. Handlar det om något annat, gör en tillämpad faktafråga.\n\nFORMAT:\nSkriv först ut provfrågan.\nSkriv därefter, under rubriken "Lösning:", det korrekta svaret och en förklaring. Formatera all eventuell matematik med LaTeX.',
             user: userContent,
-            maxTokens: 600,
+            maxTokens: medTankeutrymme(600),
             feature: 'testquestion',
         });
 

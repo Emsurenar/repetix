@@ -1,5 +1,6 @@
 import { aiErrorMessage, callAIDetailed } from './call.js';
 import { parseKortlista } from './svarstolk.js';
+import { medTankeutrymme } from './tak.js';
 import { renderProposedCards } from './proposed-cards.js';
 import { S } from '../core/state.js';
 import { hamtaKalltext } from '../core/sources.js';
@@ -106,7 +107,7 @@ ${contextSnippet}`;
         const { text, truncated } = await callAIDetailed({
             system: `Du är en pedagogisk expert. Din uppgift är att skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block, utan extra text. Formatet MÅSTE vara extremt strikt: [{"front": "fråga 1", "back": "svar 1"}].\nVIKTIGT: Eventuell matematik MÅSTE formateras med LaTeX. Eftersom du utvinner i JSON kan backslash försvinna. Använd därför konsekvent DUBBLA dollartecken $$ för block eller ENKLA dollartecken $ för inline formatering. Använd aldrig backslash-parenteser i din JSON.`,
             user: instructions,
-            maxTokens: 3500,
+            maxTokens: medTankeutrymme(3500),
             json: true,
             feature: S.aiGeneratorOptions.sourceType === 'kalla' ? 'kalla-kort' : 'topic',
             /* Att plocka kort ur en text användaren själv gett är närmare

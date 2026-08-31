@@ -1,5 +1,6 @@
 import { aiErrorMessage, callAI } from './call.js';
 import { buildDeckContext } from './client.js';
+import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
@@ -15,7 +16,7 @@ export const fetchStudyAi = async (card, question) => {
         const text = await callAI({
             system: 'Du är en tutor. Svara kort och pedagogiskt på elevens fråga utifrån flashcard-kontexten. Håll dig till ämnet. Inga långdragna introduktioner, svara rakt på sak!',
             user: instructions,
-            maxTokens: 600,
+            maxTokens: medTankeutrymme(600),
             feature: 'tutor',
         });
 

@@ -3,6 +3,7 @@ import { parseObjekt } from '../../ai/svarstolk.js';
 import { buildDeckContext } from '../../ai/client.js';
 import { fordjupningsPrompt, saknasForFordjupning } from '../../ai/fordjupning.js';
 import { fetchStudyAi } from '../../ai/study-ai.js';
+import { medTankeutrymme } from '../../ai/tak.js';
 import { createNote } from '../../core/backup.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
@@ -24,7 +25,7 @@ import { populateAddCardSections } from './add-card.js';
             const { text, truncated } = await callAIDetailed({
                 system: `Du är en expert på att organisera flashcards i mappar/kategorier. Analysera flashcard-frågan och välj den mest passande mappen från listan över befintliga mappar. Om ingen av de befintliga mapparna passar (eller om listan är tom), föreslå en helt ny passande mapp med ett kort, koncist och beskrivande namn (skrivet på samma språk som frågan, oftast svenska eller engelska).\n\nBefintliga mappar:\n${JSON.stringify(existingSections)}\n\nRegler för svar:\n- Om en befintlig mapp passar bra (tematiskt relaterad till frågan), välj den och svara med denna exakta JSON:\n{\n  "action": "existing",\n  "folderId": "id_på_mappen",\n  "folderTitle": "namn_på_mappen"\n}\n- Om ingen av de befintliga mapparna passar bra, eller om inga mappar finns, föreslå en ny och svara med denna exakta JSON:\n{\n  "action": "new",\n  "folderTitle": "Föreslaget Mappnamn"\n}\n\nSvara ENBART med den råa JSON-koden. Ingen introduktion, inga förklaringar, ingen markdown-kodblock.`,
                 user: `Fråga: "${questionText}"`,
-                maxTokens: 400,
+                maxTokens: medTankeutrymme(400),
                 json: true,
                 feature: 'autofolder',
             });
@@ -111,7 +112,7 @@ export function initUiWiringAiActions() {
        * @param {string} o.knappId
        * @param {string} o.malId fältet som fylls
        * @param {() => string|null} o.saknas felmeddelande, eller null
-       * @param {() => {system: string, user: string, maxTokens: number}} o.bygg
+       * @param {() => Parameters<typeof callAI>[0]} o.bygg
        * @param {string} o.klarText
        * @param {() => void} [o.efterat]
        */
@@ -157,8 +158,14 @@ export function initUiWiringAiActions() {
           return {
               system: `Du är en expert på fakta och lärande. ${promptInstruction}`,
               user: `Här är frågan: ${frontText}\nOm du är helt säker på svaret, ge det till mig${isLongForm ? ' i detalj' : ' kort'}. Om du är osäker, svara exakt "Jag vet inte".${buildDeckContext(S.currentDeckId)}`,
-              maxTokens: isLongForm ? 1500 : 300,
+              maxTokens: medTankeutrymme(isLongForm ? 1500 : 300),
               feature: 'answer',
+              /* Att besvara ett flashcard är återkallande, inte resonemang, och
+               * tänkandet debiteras som utdata till samma pris som texten. Låg
+               * ansträngning tar bort merparten av det. Den gäller båda
+               * längderna: det som skiljer långformatet är hur mycket som ska
+               * skrivas, inte hur mycket som behöver tänkas ut först. */
+              effort: 'low',
           };
       };
 

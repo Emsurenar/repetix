@@ -1,6 +1,7 @@
 import { nyttId } from '../core/utils.js';
 import { aiErrorMessage, callAIDetailed } from './call.js';
 import { parseLista } from './svarstolk.js';
+import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
@@ -35,7 +36,7 @@ export const fetchAiSort = async (deck) => {
         const { text, truncated } = await callAIDetailed({
             system: `Du är en expert på att organisera flashcards i logiska mappar/kategorier. Analysera korten noggrant och gruppera dem i mappar baserat på ämne, tema, eller logisk koppling.\n\nBefintliga mappar i kortleken: ${existingSections.length > 0 ? JSON.stringify(existingSections) : '(inga mappar finns ännu)'}\n\nRegler:\n- Använd befintliga mappar om de passar. Matcha exakt på namn.\n- Skapa nya mappar med tydliga, koncisa namn när inget befintligt passar.\n- Varje kort MÅSTE tilldelas exakt en mapp.\n- Tänk djupt på den bästa grupperingen. Kort som hör ihop tematiskt ska hamna i samma mapp.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar.\n- Mapp-namn ska vara korta och beskrivande.\n\nSvara med ENBART en ren JSON-array:\n[{"cardId": "...", "section": "mappnamn"}]`,
             user: `Här är korten att sortera:\n${JSON.stringify(cardSummaries)}`,
-            maxTokens: 4000,
+            maxTokens: medTankeutrymme(4000),
             json: true,
             feature: 'sort',
         });

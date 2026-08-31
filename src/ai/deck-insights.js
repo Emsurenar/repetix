@@ -1,5 +1,6 @@
 import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
 import { parseObjekt } from './svarstolk.js';
+import { medTankeutrymme } from './tak.js';
 import { createCard } from '../domain/model.js';
 import { hittaMapp } from '../domain/mappval.js';
 import { nyttId } from '../core/utils.js';
@@ -25,7 +26,7 @@ import { showToast } from '../ui/toast.js';
  * bara förbrukade tokens debiteras, så ett tak som aldrig nås kostar
  * ingenting — medan ett för lågt tak kostar hela anropet och ger noll
  * tillbaka. */
-const INSIKT_MAX_TOKENS = 2000;
+const INSIKT_MAX_TOKENS = medTankeutrymme(2000);
 
 // Cache: { deckId: { cardCount, sectionCount, summaryHtml, timestamp } }
 export const deckSummaryCache = {};
