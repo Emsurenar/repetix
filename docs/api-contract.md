@@ -40,8 +40,9 @@ Utför ett AI-anrop med den inloggade användarens nyckel.
   "provider": "anthropic",
   "model": "claude-opus-5",
   // Vilken funktion i appen som frågar. Loggas i ai_usage så att panelen kan
-  // visa vad pengarna gick till. Servern kan inte härleda det — bara klienten
-  // vet varför anropet görs.
+  // visa vad pengarna gick till, och avgör dessutom routningen: se "Lätta
+  // funktioner" nedan. Servern kan inte härleda det — bara klienten vet varför
+  // anropet görs.
   "feature": "topic"
 }
 ```
@@ -86,6 +87,38 @@ användaren valt.
 
 `feature` är obligatoriskt och högst 40 tecken. Värdet lagras som det kommer,
 utan lista över tillåtna värden: ett nytt AI-läge ska inte kräva en migration.
+Två värden har dessutom betydelse för vilken modell som väljs — se nästa
+avsnitt. Listan där är sluten, och att den är det gör inte fältet slutet: ett
+okänt värde routas som en tung funktion, vilket är den säkra sidan.
+
+### Lätta funktioner
+
+`autofolder` och `sort` sorterar in i fack. Ett missat mappförslag kostar ett
+klick att rätta, medan de genererande funktionerna är själva produkten — där är
+modellskillnaden inte en detalj. Därför får de två, och bara de två, köras på en
+svagare men gratis modell när användaren valt det.
+
+Slår användaren på `ai_light_free` i `user_settings` går de till
+`google` / `gemini-3-flash`. Modellen skrivs ut, aldrig leverantörens
+standard: Googles standard är `gemini-3-pro`, som inte ligger på gratisnivån.
+Att falla tillbaka på standarden hade alltså tyst börjat kosta pengar, vilket
+är raka motsatsen till vad valet betyder.
+
+Tre saker stänger av routningen, och ordningen mellan dem spelar roll:
+
+1. **En uttrycklig `provider` i begäran vinner alltid.** Fältet är till för att
+   ett anropsställe ska kunna kräva en viss leverantör, och en inställning ska
+   inte kunna åsidosätta ett krav.
+2. **Saknas Google-nyckel faller anropet tillbaka** på användarens sparade val.
+   Utan reträtten slutar mappgissningen fungera medan allt annat rullar vidare,
+   den dagen nyckeln tas bort från en annan enhet — och `no_key` från just två
+   funktioner ser ut som en bugg, inte som ett val.
+3. **Är `ai_light_free` av händer ingenting.** Kolumnen är `false` som standard.
+
+Gratisnivåns villkor skiljer sig från den betalda: Google får använda innehållet
+för att förbättra sina produkter, och det kan granskas av människor. Det är
+skälet till att routningen kräver ett aktivt val och inte slås på av sig själv
+när en Google-nyckel råkar finnas.
 
 `usage` skrivs också till `ai_usage`. Misslyckas den skrivningen returneras
 svaret ändå — en bokföringsrad får aldrig sänka det användaren bad om.

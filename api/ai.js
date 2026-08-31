@@ -17,6 +17,7 @@ import {
 } from './_lib/http.js';
 import { enforceRateLimit } from './_lib/limit.js';
 import { extractProviderMessage, getProvider, isAuthFailure } from './_lib/providers.js';
+import { arLattKandidat, valjMal } from './_lib/routing.js';
 import { recordUsage } from './_lib/usage.js';
 
 /**
@@ -99,7 +100,7 @@ export default async function handler(req, res) {
     const effort = TILLATEN_EFFORT.has(body.effort) ? body.effort : undefined;
     const cache = body.cache === true;
 
-    const { providerName, provider, model } = await resolveTarget(body, db, userId);
+    const { providerName, provider, model } = await resolveTarget(body, db, userId, feature);
     const apiKey = await loadApiKey(db, providerName, provider.label);
 
     const request = provider.buildRequest({
@@ -128,22 +129,40 @@ export default async function handler(req, res) {
 /**
  * Vilken leverantör och modell gäller för det här anropet?
  *
- * Begäran får styra, annars användarens sparade inställning, annars
- * leverantörens standard. Ett undantag: byter begäran leverantör utan att ange
- * modell ignoreras den sparade modellen, eftersom ett sparat id hör hemma i en
- * annan katalog och bara hade gett ett obegripligt fel från leverantören.
+ * Ordningen mellan källorna ligger i valjMal, som är ren och provad. Här blir
+ * bara två saker kvar: att hämta det den behöver veta, och att fylla i
+ * leverantörens standard när ingen modell pekats ut.
  */
-async function resolveTarget(body, db, userId) {
+async function resolveTarget(body, db, userId, feature) {
   const settings = await readSettings(db, userId);
-  const savedProvider = settings.ai_provider || 'anthropic';
 
-  const requested = readTextField(body.provider, { name: 'provider', max: MAX_PROVIDER_CHARS });
-  const providerName = requested || savedProvider;
+  const begardProvider = readTextField(body.provider, {
+    name: 'provider',
+    max: MAX_PROVIDER_CHARS,
+  });
+  const begardModell = readTextField(body.model, { name: 'model', max: MAX_MODEL_CHARS });
+  const lattFriPa = settings.ai_light_free === true;
+
+  // Nyckelläget kostar en fråga, så den ställs bara när svaret kan ändra något
+  // — alltså för de två lätta funktionerna hos den som slagit på brytaren. Att
+  // i stället låta nyckeln falla ut ur den här funktionen hade sparat frågan,
+  // men blandat ihop att välja mål med att hämta hemligheter.
+  const kandidat = arLattKandidat({ feature, begardProvider, begardModell, lattFriPa });
+  const harGoogleNyckel = kandidat ? await harNyckel(db, 'google') : false;
+
+  const val = valjMal({
+    feature,
+    begardProvider,
+    begardModell,
+    sparadProvider: settings.ai_provider,
+    sparadModell: settings.ai_model,
+    lattFriPa,
+    harGoogleNyckel,
+  });
+
+  const providerName = val.provider;
   const provider = getProvider(providerName);
-
-  const requestedModel = readTextField(body.model, { name: 'model', max: MAX_MODEL_CHARS });
-  const savedModel = providerName === savedProvider ? settings.ai_model : null;
-  const model = requestedModel || savedModel || provider.defaultModel;
+  const model = val.model || provider.defaultModel;
 
   if (!model) {
     throw new ApiError(
@@ -184,11 +203,35 @@ function assertModel(model) {
 async function readSettings(db, userId) {
   const { data, error } = await db
     .from('user_settings')
+    .select('ai_provider, ai_model, ai_light_free')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!error) return data ?? {};
+
+  /* PostgREST avvisar HELA frågan (42703, okänd kolumn) om ai_light_free inte
+   * finns än — migration 0009 kan vara okörd. Utan reträtten slutar varje
+   * AI-anrop fungera vid en distribution där koden hinner före migrationen,
+   * inte bara den nya routningen. Brytaren kan bara inte läsas förrän kolumnen
+   * finns, och att den då är av är rätt svar. */
+  const gammal = await db
+    .from('user_settings')
     .select('ai_provider, ai_model')
     .eq('user_id', userId)
     .maybeSingle();
-  if (error) throw dbError(error, 'Kunde inte läsa dina AI-inställningar.');
-  return data ?? {};
+  if (gammal.error) throw dbError(gammal.error, 'Kunde inte läsa dina AI-inställningar.');
+  return gammal.data ?? {};
+}
+
+/**
+ * Finns en nyckel för leverantören?
+ *
+ * Samma databasfunktion som loadApiKey använder, men bara närvaron intresserar
+ * — chiffertexten dekrypteras aldrig här och lämnar inte anropet.
+ */
+async function harNyckel(db, providerName) {
+  const { data, error } = await db.rpc('get_my_ai_key', { p_provider: providerName });
+  if (error) throw dbError(error, 'Kunde inte hämta din sparade API-nyckel.');
+  return Boolean(data);
 }
 
 /**

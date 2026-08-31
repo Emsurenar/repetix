@@ -23,16 +23,21 @@ vi.mock('../src/core/supabase.js', () => ({
 const { laddaVal } = await import('../src/ui/settings.js');
 
 describe('laddaVal', () => {
-  it('läser leverantör, modell och tak när kolumnen finns', async () => {
+  it('läser leverantör, modell, tak och brytaren när kolumnerna finns', async () => {
     state.fromImpl = (table) => {
       expect(table).toBe('user_settings');
       return {
         select: (kolumner) => {
-          expect(kolumner).toBe('ai_provider, ai_model, ai_monthly_budget');
+          expect(kolumner).toBe('ai_provider, ai_model, ai_monthly_budget, ai_light_free');
           return {
             eq: () => ({
               maybeSingle: async () => ({
-                data: { ai_provider: 'openai', ai_model: 'gpt-5.1', ai_monthly_budget: 10 },
+                data: {
+                  ai_provider: 'openai',
+                  ai_model: 'gpt-5.1',
+                  ai_monthly_budget: 10,
+                  ai_light_free: true,
+                },
                 error: null,
               }),
             }),
@@ -41,7 +46,29 @@ describe('laddaVal', () => {
       };
     };
 
-    await expect(laddaVal()).resolves.toEqual({ provider: 'openai', model: 'gpt-5.1', tak: 10 });
+    await expect(laddaVal()).resolves.toEqual({
+      provider: 'openai',
+      model: 'gpt-5.1',
+      tak: 10,
+      lattFri: true,
+    });
+  });
+
+  /* Migration 0009 kan vara okörd när koden distribueras. Brytaren ska då vara
+   * av — inte hindra att leverantör och modell läses. */
+  it('läser brytaren som av när ai_light_free saknas i raden', async () => {
+    state.fromImpl = () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: { ai_provider: 'openai', ai_model: 'gpt-5.1', ai_monthly_budget: null },
+            error: null,
+          }),
+        }),
+      }),
+    });
+
+    await expect(laddaVal()).resolves.toMatchObject({ lattFri: false });
   });
 
   /* Regressionen: PostgREST avvisar HELA frågan (42703) om ai_monthly_budget
@@ -49,7 +76,7 @@ describe('laddaVal', () => {
    * kollapsade laddaVal till null, och uppdatera() tolkade det som "inget
    * sparat" — användarens verkliga OpenAI-val visades som standardvalet
    * Anthropic, och ett tryck på Spara hade skrivit över det på riktigt. */
-  it('faller tillbaka på den gamla kolumnuppsättningen när ai_monthly_budget saknas', async () => {
+  it('faller tillbaka på den gamla kolumnuppsättningen när en ny kolumn saknas', async () => {
     let försök = 0;
     state.fromImpl = (table) => {
       expect(table).toBe('user_settings');
@@ -57,12 +84,12 @@ describe('laddaVal', () => {
       if (försök === 1) {
         return {
           select: (kolumner) => {
-            expect(kolumner).toBe('ai_provider, ai_model, ai_monthly_budget');
+            expect(kolumner).toBe('ai_provider, ai_model, ai_monthly_budget, ai_light_free');
             return {
               eq: () => ({
                 maybeSingle: async () => ({
                   data: null,
-                  error: { code: '42703', message: 'column "ai_monthly_budget" does not exist' },
+                  error: { code: '42703', message: 'column "ai_light_free" does not exist' },
                 }),
               }),
             };
@@ -84,7 +111,12 @@ describe('laddaVal', () => {
       };
     };
 
-    await expect(laddaVal()).resolves.toEqual({ provider: 'openai', model: 'gpt-5.1', tak: null });
+    await expect(laddaVal()).resolves.toEqual({
+      provider: 'openai',
+      model: 'gpt-5.1',
+      tak: null,
+      lattFri: false,
+    });
     expect(försök).toBe(2);
   });
 

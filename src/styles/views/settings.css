@@ -142,6 +142,34 @@
   min-height: 0;
 }
 
+/* Ett val som är av eller på, inte ett fält med ett värde. Raden är lika hög
+ * som en kontroll så att den linjerar mot etiketten i vänsterspalten, och hela
+ * raden är klickbar — med finger är rutan ensam ett för litet mål. */
+#view-settings .set-check {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--control-h);
+  font-size: var(--t-md);
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+#view-settings .set-check input {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  cursor: inherit;
+}
+
+/* Utan Google-nyckel går valet inte att göra. Att det syns på raden och inte
+ * bara på rutan gör skälet läsbart innan man försökt trycka. */
+#view-settings .set-check:has(input:disabled) {
+  color: var(--text-3);
+  cursor: default;
+}
+
 #view-settings .set-hint {
   margin: 0;
   font-size: var(--t-sm);

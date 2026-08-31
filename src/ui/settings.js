@@ -47,6 +47,15 @@ const el = (id) => document.getElementById(id);
  */
 const keyStatus = new Map();
 
+/**
+ * Brytaren för gratismodellen, som den lästes senast.
+ *
+ * Den behöver leva här och inte bara i rutan: rutan ritas om varje gång
+ * nyckelstatusen ändras, och utan det sparade värdet hade den då nollställts
+ * till av trots att kontot säger på.
+ */
+let lattFriSparad = false;
+
 /** Sant medan ett anrop pågår, så att dubbelklick inte skickar två gånger. */
 let busy = false;
 
@@ -199,14 +208,15 @@ export async function laddaVal() {
 
   const { data, error } = await supabase
     .from('user_settings')
-    .select('ai_provider, ai_model, ai_monthly_budget')
+    .select('ai_provider, ai_model, ai_monthly_budget, ai_light_free')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (!error) return data ? tolkaVal(data) : null;
 
   /* PostgREST avvisar HELA frågan (42703, okänd kolumn) om ai_monthly_budget
-   * inte finns än — migrationen som lägger till den kan vara okörd. Utan den
+   * eller ai_light_free inte finns än — migrationen som lägger till dem kan
+   * vara okörd. Reträtten gäller därför båda, av samma skäl. Utan den
    * här reträtten föll svaret bort, och uppdatera() tolkade det som "inget
    * sparat": användarens riktiga leverantör och modell ersattes tyst av
    * standardvärden i gränssnittet, och ett tryck på Spara skrev över dem på
@@ -220,7 +230,7 @@ export async function laddaVal() {
     .maybeSingle();
 
   if (gammal.error || !gammal.data) return null;
-  return { ...tolkaVal(gammal.data), tak: null };
+  return { ...tolkaVal(gammal.data), tak: null, lattFri: false };
 }
 
 function tolkaVal(data) {
@@ -228,6 +238,7 @@ function tolkaVal(data) {
     provider: data.ai_provider ?? '',
     model: data.ai_model ?? '',
     tak: data.ai_monthly_budget ?? null,
+    lattFri: data.ai_light_free === true,
   };
 }
 
@@ -282,6 +293,20 @@ async function sparaTak(varde) {
       { onConflict: 'user_id' }
     );
   return error ? { ok: false, error: 'Kunde inte spara taket.' } : { ok: true };
+}
+
+/** Sparar brytaren för gratismodellen. Se docs/api-contract.md, "Lätta funktioner". */
+async function sparaLattFri(pa) {
+  const userId = getUserId();
+  if (!supabase || !userId) return { ok: false, error: 'Du är inte inloggad.' };
+
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert(
+      { user_id: userId, ai_light_free: pa, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+  return error ? { ok: false, error: 'Kunde inte spara valet.' } : { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -489,6 +514,7 @@ function renderaNyckelstatus() {
     statusNode.dataset.tone = 'info';
     ovrigaNode.hidden = true;
     deleteBtn.hidden = true;
+    renderaLattFri();
     return;
   }
 
@@ -511,6 +537,34 @@ function renderaNyckelstatus() {
     .map((id) => providerLabel(id));
   ovrigaNode.textContent = ovriga.length ? `Nycklar finns även för: ${ovriga.join(', ')}.` : '';
   ovrigaNode.hidden = ovriga.length === 0;
+
+  // Brytaren hänger på om det finns en Google-nyckel, och det är den här
+  // funktionen som vet det. Att rita den härifrån håller de två i takt utan att
+  // varje ställe som ändrar nycklar behöver komma ihåg båda.
+  renderaLattFri();
+}
+
+/**
+ * Speglar brytaren för gratismodellen.
+ *
+ * Valbar först när en Google-nyckel finns. Utan nyckel hade ett påslag inte
+ * gjort någonting — servern faller tillbaka på vald leverantör — och en brytare
+ * som inte gör något är sämre än ingen brytare alls.
+ */
+function renderaLattFri() {
+  const ruta = el('settings-light-free');
+  const hint = el('settings-light-free-hint');
+  if (!ruta || !hint) return;
+
+  const harNyckel = keyStatus.has('google');
+  ruta.disabled = !getUserId() || !harNyckel;
+  // Har nyckeln tagits bort någon annanstans står valet kvar i kontot men
+  // gäller inte. Rutan visar vad som faktiskt körs, inte vad som står lagrat.
+  ruta.checked = lattFriSparad && harNyckel;
+
+  hint.textContent = ruta.disabled
+    ? 'Kräver en sparad Google-nyckel.'
+    : 'Gratisnivån kostar ingenting. Google får använda innehållet för att förbättra sina produkter.';
 }
 
 /**
@@ -580,6 +634,7 @@ async function uppdatera() {
     // standardmodell så att vyn ser ut som den kommer att göra efter
     // inloggning, i stället för att öppna fritextfältet i onödan.
     keyStatus.clear();
+    lattFriSparad = false;
     const providerId = valdLeverantor();
     renderaModeller(providerId, defaultModelFor(providerId));
     renderaNyckelstatus();
@@ -587,6 +642,7 @@ async function uppdatera() {
   }
 
   const val = await laddaVal();
+  lattFriSparad = val?.lattFri === true;
   valjLeverantor(isKnownProvider(val?.provider) ? val.provider : PROVIDERS[0].id);
   const providerId = valdLeverantor();
   renderaModeller(providerId, val?.model || defaultModelFor(providerId));
@@ -1031,6 +1087,23 @@ export function initSettings() {
     e.preventDefault();
     void sparaValetNu();
   });
+  /* Brytaren sparar direkt, som leverantören och modellen. Raden har inget
+   * mellanläge där ett val gjorts men inte gäller. Misslyckas skrivningen
+   * ställs rutan tillbaka, så att den aldrig visar något kontot inte säger. */
+  el('settings-light-free')?.addEventListener('change', async (e) => {
+    const pa = e.target.checked;
+    const res = await sparaLattFri(pa);
+    if (!res.ok) {
+      e.target.checked = !pa;
+      return visaMeddelande(res.error, 'fel');
+    }
+    lattFriSparad = pa;
+    visaMeddelande(
+      pa ? 'Mappval och sortering körs nu på Gemini Flash.' : 'Mappval och sortering följer ditt val igen.',
+      'ok'
+    );
+  });
+
   el('btn-settings-save-key')?.addEventListener('click', () => void onSparaNyckel());
   el('btn-settings-save-budget')?.addEventListener('click', async () => {
     const res = await sparaTak(el('settings-budget').value.trim());
