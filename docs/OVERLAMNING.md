@@ -325,6 +325,120 @@ betydelsen skiljer sig mellan lägen.
 provspelat ett kort, inga nya konsolfel. Rörelsen i Transportbandet och
 Dragkampen är sedd men inte provspelad med finger.
 
+### 4e. Mobilen, synken och delade kortlekar — klart (2026-09-02)
+
+Ägaren rapporterade fem fel från telefonen och bad om delningsfunktionen som
+designats sessionen innan. Allt är byggt och verifierat i webbläsaren med
+mobilemulering; delningen är enhetstestad men inte provkörd mot ett riktigt
+projekt, eftersom migration 0010 inte är körd.
+
+**Tre fel som satt i samma sak: stackning och fokus.**
+
+- **Menyvalen "Flytta till bokhylla" och "Ta bort" gick inte att trycka
+  på.** Radmenyn hänger ut under kortets nederkant, in över nästa kort.
+  Menyns z-index gäller bara inom närmaste stackningskontext — och kortet
+  BLIR en sådan så fort det bär en transform: under fingret (`scale` i
+  motion.css) och under pekaren (`translateY`). Just när man tryckte på
+  menyvalet målades alltså nästa kort ovanpå menyn. Uppmätt med
+  `elementFromPoint` på 375×812: första valet ryms i kortet, de två andra
+  träffade nästa korts titel. Löst med `z-index: 1` på
+  `.deck-card:has(.row-menu[open])` och ingen nedtryckning medan menyn är
+  öppen. Samma fel fanns med mus i rutnätet, för varje kort som inte stod i
+  sista raden.
+- **Två väljare samtidigt när man valde bokhylla.** Appens egen väljare
+  (`select.js`) lämnade den nativa `<select>` kvar som ett fokuserbart element
+  bakom knappen. Fokusfällan tar första fokuserbara elementet när en dialog
+  öppnas, och etikettens `for` pekade på den — och fokus i en select är på
+  telefon detsamma som att systemets rullista öppnas. Nu `tabindex="-1"`,
+  `aria-hidden`, `pointer-events: none`, och etiketten pekar på knappen.
+  Fällan hoppar över `tabindex="-1"`.
+- **Tangentbordet for upp så fort en dialog öppnades** (Dagbok var
+  exemplet). Varje dialog ställde markören i första fältet, och på telefon
+  knuffas dialogen upp över tangentbordet innan man hunnit läsa den. Regeln
+  bor nu i `src/ui/fokus.js`: `fokusera()` gör ingenting på pekskärm
+  (`pointer: coarse`), och fällan fokuserar panelen i stället för fältet.
+  Alla tolv anropsställen går den vägen. **Anropa aldrig `.focus()` på ett
+  fält direkt.**
+
+**Bokhyllan gick inte att ta bort** — inte för att raderingen var trasig,
+utan för att vägen till den gick genom sidopanelen, som på telefon ligger
+bakom hamburgaren. Hyllans etikett i rutnätet är nu en knapp som öppnar
+hyllan, där menyn med Byt namn och Ta bort står. Beslutet från etapp 4, att
+hyllan inte har egen apparat i rutnätet, står kvar: etiketten öppnar, den
+bär inga åtgärder.
+
+**Verktygsraden på telefon** bröt till fyra rader knappar ovanför korten.
+Nu tre: Nytt kort, Ny mapp och en AI-meny som bär de fem övriga (generera,
+sortera, sammanfatta, föreslå, PDF). Menyn är en `<details>` som de andra
+radmenyerna, med ett ord på knappen i stället för tre punkter. Valen trycker
+på de riktiga knapparna via `data-proxy`, och `synkaVerktygsmenyn()` i
+`deck.js` döljer ett val när dess knapp är dold — annars hade "Sortera i
+mappar" stått kvar som ett val som bara kan misslyckas. Med mus står alla
+knappar i raden som förut.
+
+**Synken.** Ägaren såg "Kunde inte synka" ofta, och orsaken kastades bort:
+`sync()` sparade felet men statusraden visade en fast sträng. Fyra ändringar
+i `src/core/sync.js`, med klassningen i `src/domain/syncfel.js`:
+
+- Felet klassas — nät, session, rättighet, data, server — och visas i
+  klartext under Inställningar → Konto med en "Synka nu"-knapp. Sidopanelen
+  säger "Logga in igen" när det är sessionen, annars som förut.
+- **Hämtningen körs även när det utgående misslyckades.** De två var
+  kopplade, och det var kopplingen som gjorde ett enskilt fel till en död
+  synk.
+- **En avvisad rad stoppar inte kön.** En skur som avvisas skickas om rad
+  för rad; de som går igenom kvitteras, de som avvisas ligger kvar och
+  försöks om nästa varv (med flit — kvitterades de vore ändringen tyst borta
+  ur molnet). Sidopanelen säger "Synkad, N avvisade".
+- **Utgången session förnyas och försöks om en gång.** En telefon som sovit
+  över natten har ingen timer som hunnit förnya token; första anropet fick
+  401 och visades som ett fel. Nätfel klassas som offline oavsett vad
+  `navigator.onLine` påstår, och försöks om efter 5, 15 och 45 sekunder.
+
+Vad som INTE är gjort: ingen av orsakerna är verifierad mot ägarens konto,
+eftersom den kräver hens inloggning. Nästa gång meddelandet kommer står
+orsaken i Inställningar → Konto och i konsolen (`console.warn`).
+
+**Delade kortlekar.** Designen från sessionen innan, byggd som väg A:
+ögonblicksbild vid delning. Ägarens tre val: egen kopia (inte levande
+delning), inkorg i appen (inget mejl), allt följer med (text, bilder,
+källor).
+
+- `supabase/migrations/0010_delning.sql`: tabellen `deck_shares`, tre
+  `security definer`-funktioner (`share_deck`, `publish_share`,
+  `respond_to_share`) och en policy för väntområdet `delningar/<id>/` i
+  bildhinken. Radnivåsäkerheten på innehållstabellerna har **inga undantag**.
+  Läs kommentaren överst i filen — den bär hela resonemanget.
+- `src/domain/delning.js` (rent, 17 tester): `byggNyttolast` skriver ned
+  leken utan id:n, utan repetitionsläge och utan avsändarens sökvägar;
+  `validera` prövar en mottagen last mot form och tak och kastar bort allt
+  utanför formatet; `packaUpp` ger allt färska id:n. **Nyttolasten litas
+  aldrig på** — den skrevs av någon annans webbläsare. Id är primärnyckel
+  ensamt i molnet, så ett id ur lasten hade kunnat skriva över en rad
+  mottagaren äger.
+- `src/core/delning.js`: raden först i läget `preparing`, sedan bilderna
+  till väntområdet, sedan `publish_share` — en accept ska aldrig hitta ett
+  halvfyllt väntområde. Vid accept kopieras bilderna till mottagarens egen
+  mapp FÖRE svaret (efteråt får hen inte läsa väntområdet), kortleken går in
+  genom `saveData` och synken som vilken ny lek som helst, och källorna
+  skrivs efter synken eftersom de pekar på kortleksraden i molnet.
+- Gränssnitt: "Dela" i kortlekens meny och nederst i kortleksvyn; Inkorg i
+  sidopanelens fot med ett tal, bara med konto; vyn `#view-inkorg` med
+  Mottagna (Acceptera/Neka) och Skickade (Återkalla/Ta bort). Räknaren
+  uppdateras efter varje lyckad synk.
+- Säkerheten vilar på e-postclaimet i token: **e-postbekräftelse måste vara
+  på**, annars kan vem som helst registrera någon annans adress och läsa hens
+  inkorg. Det står redan i checklistan; nu är det ett krav för mer än
+  takt-spärren.
+- Städning: obesvarad delning går ut efter 30 dagar. Avsändaren ser den som
+  "utgången" under Skickade och tar bort filer och rad därifrån. Ingen
+  automatisk sopare finns — samma lucka som för föräldralösa bilder.
+
+**Grenen `mappval-i-generatorn`** (mappval per kort i AI-generatorn) är
+sammanslagen till main. Dess dynamiskt skapade `<select>` klädde sig inte i
+appens egen väljare — `initUiSelects` går över sidan vid uppstart, och raden
+fanns inte då. `renderProposedCards` anropar nu `initSelect` själv.
+
 ### 5. Etapp 6 — publicering — klar utom själva deployen
 
 `README.md`, `LICENSE` (MIT) och `.github/workflows/ci.yml` finns. CI kör lint,
@@ -481,9 +595,12 @@ leverantör och modell ersattes av standardvärden i gränssnittet.
 
 #### Lanseringschecklista — kräver ägaren
 
-1. Kör migration `0003` till och med `0007` i Supabases SQL Editor, i
+1. Kör migration `0003` till och med `0010` i Supabases SQL Editor, i
    nummerordning. Hoppa inte över någon: `0004` failar stängt och stoppar
-   AI-anropen, och `0007` är det enda som skapar `ai_usage`.
+   AI-anropen, `0007` är det enda som skapar `ai_usage`, `0008` källorna,
+   `0009` gratismodellen och `0010` delningen. **0010 är inte körd**
+   (2026-09-02) — utan den svarar delningsdialogen att databasen saknar
+   funktionen.
 2. Verifiera RLS i det **körda** projektet, inte bara i filerna:
    `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
    och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`

@@ -104,6 +104,16 @@ beskriva vad en sak är, inte för att den ska se annorlunda ut.
 - **Inga instruerande stycken** i formulär och modaler. Etiketten bär
   betydelsen. Status och varningar med konsekvens får finnas.
 - **Vybytet visar aldrig två vyer samtidigt** och tonar aldrig från noll.
+- **Fokusera aldrig ett fält på pekskärm.** Fokus i ett fält är ett uppfällt
+  tangentbord, och dialogen knuffas upp över det innan man hunnit läsa den.
+  Gå alltid genom `fokusera()` i `src/ui/fokus.js`; anropa aldrig `.focus()`
+  på ett fält direkt.
+- **En radmeny som hänger ut över nästa kort** måste lyfta sitt kort
+  (`z-index` på `:has(.row-menu[open])`). Ett kort med transform är en egen
+  stackningskontext, och menyn täcks annars av syskonet efter.
+- **Appens egen väljare** (`src/ui/select.js`) klär varje `<select>`. En
+  select som skapas efter uppstart måste anropa `initSelect()` själv, annars
+  står systemets lista mitt i appen.
 
 ## AI
 
@@ -129,8 +139,15 @@ utkorg.
 - Radering är **mjuk** via `deleted_at`.
 - Ett kort har `front`, `back` och `description`. Beskrivningen är fördjupning
   som visas efter svaret och ingår aldrig i bedömningen.
+- **En delad kortlek är en kopia**, aldrig en levande delning. Delningen är
+  en ögonblicksbild i `deck_shares` (migration 0010), adresserad till en
+  e-postadress som aldrig slås upp. Bilderna väntar under `delningar/<id>/` i
+  hinken. Mottagaren får färska id:n på allt — nyttolasten litas aldrig på.
+  Radnivåsäkerheten på innehållstabellerna har inga undantag.
 
-Migrationer körs manuellt i Supabases SQL Editor, i ordning.
+Migrationer körs manuellt i Supabases SQL Editor, i ordning. **0010 är inte
+körd** (2026-09-02): utan den svarar delningen "Databasen saknar
+delningsfunktionen".
 
 ## Regler
 

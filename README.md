@@ -36,6 +36,12 @@ English so the repository can be read without it.
   append-only.
 - **Accounts and cloud sync** — Supabase Postgres with row-level security on
   every table, so the barrier sits in the database rather than in client code.
+- **Share a deck** with another account by e-mail address. The recipient sees
+  it in an in-app inbox and accepts or declines; accepting gives them their own
+  copy — cards, folders, images and source documents, with fresh ids and a
+  clean review state. No address lookup, no e-mail sent, no exceptions in the
+  row-level security: the snapshot travels in its own table and a staging
+  prefix in the image bucket.
 - **Markdown and LaTeX** on both sides of a card; KaTeX loads only when a card
   actually contains maths.
 - **Eight practice modes**, images on cards, and in-app account deletion.
@@ -74,6 +80,8 @@ The free tier is enough.
    in numeric order.** No CLI step; all of them are idempotent. `0004` is not
    optional — the rate limiter fails closed, so without it `/api/ai` answers
    `503`. Read the comment at the top of `0005` and run its check query first.
+   `0010` adds deck sharing; without it the share dialog reports that the
+   database lacks the function.
 3. **Auth.** Email + password sign-up is open. **Turn on email confirmation
    before letting strangers register** — rate limits count per user, so without
    friction at sign-up an attacker just makes more accounts. *Sign in with
@@ -124,6 +132,12 @@ for all four operations (`reviews` has no update or delete policy — the log is
 append-only even for its owner), DOMPurify on all rendered HTML, no inline
 event handlers so the CSP can use `script-src 'self'`, per-user rate limits
 counted atomically in Postgres, AES-256-GCM with a fresh IV per encryption.
+Deck sharing never trusts the payload: the recipient's client validates every
+field against shape and caps and mints new ids for everything, the sender is
+set from the token by a `security definer` function, and the staging area in
+the bucket is readable only by the addressed recipient while the share is
+pending. Sharing relies on the e-mail claim in the JWT, which is why e-mail
+confirmation must be on.
 
 Known gaps: no sweeper for storage objects orphaned before the deletion code
 existed, and no global quota across accounts — an IP-level rule on `/api/*` at
