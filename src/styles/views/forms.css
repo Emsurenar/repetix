@@ -974,6 +974,31 @@
   border-color: var(--line);
 }
 
+/* Mappen är ett fält i raden, inte en inställning bredvid den: samma yta,
+   samma linje och samma teckenstorlek som textrutorna ovanför. Chevronen
+   placeras här för att .select-wrap bara bär sin pil inne i Inställningar. */
+#modal-topic-generator .ai-card-field-group > .select-wrap {
+  max-width: none;
+}
+
+#modal-topic-generator .ai-card-section-select {
+  appearance: none;
+  padding: var(--s2) var(--s3);
+  padding-right: var(--s6);
+  font-size: var(--t-sm);
+  background: var(--surface-1);
+  border-color: var(--line);
+}
+
+#modal-topic-generator .ai-card-field-group > .select-wrap > svg {
+  position: absolute;
+  right: var(--s3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
 .ai-card-actions {
   display: flex;
   flex: 0 0 auto;
