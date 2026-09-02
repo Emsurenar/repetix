@@ -675,6 +675,21 @@
                     <button type="button" id="btn-settings-signout" class="btn text settings-danger set-row-action" hidden>Logga ut</button>
                 </div>
 
+                <!-- Synken. Sidopanelen säger bara att den stannade; här står
+                     varför, i klartext, och knappen är ett nytt försök utan
+                     att behöva ladda om sidan. Bara med konto: lokalt läge
+                     synkar ingenting. -->
+                <div class="set-row" id="settings-sync-row" hidden>
+                    <div class="set-label">Synk</div>
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <p id="settings-sync-status" class="settings-sync-status" role="status" data-tone="info"></p>
+                            <button type="button" id="btn-settings-sync" class="btn">Synka nu</button>
+                        </div>
+                        <p id="settings-sync-error" class="set-hint settings-sync-error" hidden></p>
+                    </div>
+                </div>
+
                 <!-- Sista raden i sista sektionen. En radering som inte går att
                      ångra ska inte gå att träffa på väg någon annanstans. -->
                 <!-- Ingen etikett. Knappen heter "Radera kontot" och raden hette

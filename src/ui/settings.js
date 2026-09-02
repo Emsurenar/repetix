@@ -25,6 +25,7 @@ import {
 } from '../ai/models.js';
 import { S } from '../core/state.js';
 import { cloudConfigured, deleteAccount, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
+import { onSyncChange, sync } from '../core/sync.js';
 import { getLocalDateString } from '../domain/stats.js';
 import { budgetLage, summera } from '../domain/usage.js';
 import { openAuth } from './auth.js';
@@ -620,6 +621,41 @@ function renderaInloggningslage() {
       : 'Du är inte inloggad. Appen kör mot lokal lagring.';
   }
   if (signOutBtn) signOutBtn.hidden = !inloggad;
+  const syncRow = el('settings-sync-row');
+  if (syncRow) syncRow.hidden = !inloggad;
+}
+
+/* Synkens tillstånd i klartext.
+ *
+ * Sidopanelen har plats för två ord. Här står hela meningen: vad som hände,
+ * och — när det är sessionen — vad man gör åt det. Raden ritas vid varje
+ * ändring i synken, inte bara när vyn öppnas, så att ett fel som inträffar
+ * medan man står här syns direkt. */
+function renderaSynk(state) {
+  const status = el('settings-sync-status');
+  const felrad = el('settings-sync-error');
+  const knapp = el('btn-settings-sync');
+  if (!status || !felrad) return;
+
+  const tid = state.lastSyncedAt ? formateraTid(new Date(state.lastSyncedAt).toISOString()) : null;
+  const text = {
+    syncing: 'Synkar...',
+    offline: 'Offline. Ändringarna skickas när nätet är tillbaka.',
+    error: 'Kunde inte synka.',
+    idle: tid ? `Synkad ${tid}.` : 'Inte synkad än.',
+  };
+  let rad = text[state.status] ?? '';
+  if (state.pending) rad += ` ${state.pending} ändringar väntar.`;
+  if (state.status === 'idle' && state.rejected) {
+    rad += ` ${state.rejected} rader avvisas av servern och försöks igen.`;
+  }
+  status.textContent = rad;
+  status.dataset.tone = state.status === 'error' ? 'fel' : 'info';
+
+  felrad.hidden = !state.error;
+  felrad.textContent = state.error ?? '';
+
+  if (knapp) knapp.disabled = state.status === 'syncing';
 }
 
 // ---------------------------------------------------------------------------
@@ -1115,6 +1151,11 @@ export function initSettings() {
   el('btn-settings-delete-key')?.addEventListener('click', () => void onTaBortNyckel());
   el('btn-settings-signin')?.addEventListener('click', () => openAuth());
   el('btn-settings-signout')?.addEventListener('click', () => void signOutAndClear());
+
+  // Villkorslöst kopplad, som budgetvarningen: felet ska stå här redan när
+  // vyn öppnas, inte först efter nästa synk.
+  onSyncChange(renderaSynk);
+  el('btn-settings-sync')?.addEventListener('click', () => void sync());
 
   /* Kontoraderingen. Två steg med flit: den första frågan säger vad som
    * försvinner, den andra kräver att man skriver sin egen e-post. Ett andra

@@ -252,11 +252,20 @@ function renderSyncStatus(state) {
     return;
   }
 
+  /* Sidopanelen bär bara klassen av fel — raden är för smal för en mening.
+   * Hela texten står under Inställningar → Konto, se renderaSynk i
+   * src/ui/settings.js. Sessionen är undantaget: det är det enda felet
+   * användaren själv måste göra något åt, och ordet ryms. */
+  const felord = state.errorType === 'session' ? 'Logga in igen' : 'Kunde inte synka';
   const text = {
     syncing: 'Synkar...',
     offline: state.pending ? `Offline, ${state.pending} väntar` : 'Offline',
-    error: state.pending ? `Kunde inte synka, ${state.pending} väntar` : 'Kunde inte synka',
-    idle: state.pending ? `${state.pending} väntar` : 'Synkad',
+    error: state.pending ? `${felord}, ${state.pending} väntar` : felord,
+    idle: state.pending
+      ? `${state.pending} väntar`
+      : state.rejected
+        ? `Synkad, ${state.rejected} avvisade`
+        : 'Synkad',
   };
   node.textContent = text[state.status] ?? '';
   node.dataset.state = state.status;

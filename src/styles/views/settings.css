@@ -453,6 +453,27 @@
   overflow-wrap: anywhere;
 }
 
+/* Synkens rad: tillståndet i samma grad som mejlen ovanför, felet under i
+ * hintens grad. Rött bara när något faktiskt gått fel — offline är ett läge,
+ * inte ett fel. */
+#view-settings .settings-sync-status {
+  flex: 1 1 12rem;
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h);
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+}
+
+#view-settings .settings-sync-status[data-tone='fel'] {
+  color: var(--danger);
+}
+
+#view-settings .settings-sync-error {
+  color: var(--text-2);
+}
+
 /* ======================================================================
  * SMAL SKÄRM
  *

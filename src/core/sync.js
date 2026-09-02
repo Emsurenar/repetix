@@ -25,6 +25,7 @@ import {
 } from './local-db.js';
 import { collapse, diffSnapshots, groupForSend } from '../domain/diff.js';
 import { TABLES, flatten } from '../domain/model.js';
+import { klassaSyncfel, vantetid } from '../domain/syncfel.js';
 import { getUserId, supabase } from './supabase.js';
 
 /** Hur många rader som skickas per anrop. Håller förfrågningarna små nog att
@@ -46,11 +47,30 @@ const OWNER_KEY = 'sync:owner';
 const listeners = new Set();
 const remoteListeners = new Set();
 const wipeListeners = new Set();
-let state = { status: 'idle', pending: 0, lastSyncedAt: null, error: null };
+/**
+ * @typedef {object} SyncState
+ * @property {'idle'|'syncing'|'offline'|'error'} status
+ * @property {number} pending rader i utkorgen
+ * @property {number|null} lastSyncedAt
+ * @property {string|null} error text att visa, se domain/syncfel.js
+ * @property {string|null} errorType felklassen bakom texten
+ * @property {number} rejected rader servern avvisar gång på gång. De ligger
+ *   kvar i utkorgen och försöks om, men stoppar inte resten — se pushOutbox.
+ */
+let state = {
+  status: 'idle',
+  pending: 0,
+  lastSyncedAt: null,
+  error: null,
+  errorType: null,
+  rejected: 0,
+};
 let running = null;
 let queued = false;
 let lastSnapshot = null;
 let debounce = null;
+/** Misslyckanden i följd, för väntetiden mellan förtida omförsök. */
+let misslyckanden = 0;
 
 export function onSyncChange(fn) {
   listeners.add(fn);
@@ -143,12 +163,40 @@ export function getReviewLog() {
   return reviewLog ?? [];
 }
 
+/**
+ * Skickar utkorgen.
+ *
+ * En rad servern avvisar stoppade tidigare allt: upserten kastade på första
+ * felet, inget kvitterades, och eftersom utgående går före inkommande kom
+ * heller inga ändringar ner från andra enheter. En enda främmande nyckel som
+ * pekade fel — en mapp raderad på en annan enhet i samma sekund som ett kort
+ * lades i den här — dödade synken permanent, och användaren såg bara "Kunde
+ * inte synka".
+ *
+ * Nu skickas en avvisad skur om rad för rad. De rader som går igenom
+ * kvitteras; de som avvisas ligger kvar i utkorgen och försöks om vid nästa
+ * varv, men stoppar varken resten av kön eller hämtningen. Att de ligger kvar
+ * är med flit: kvitterades de vore ändringen tyst borta ur molnet, och lokalt
+ * hade den sett ut att vara sparad.
+ *
+ * @returns {Promise<{skickade: number, avvisade: number, fel: Error|null}>}
+ *   `fel` är det första felet som avvisade en rad, för statusraden.
+ */
 async function pushOutbox() {
   const pending = await getOutbox(BATCH * 4);
-  if (!pending.length) return 0;
+  if (!pending.length) return { skickade: 0, avvisade: 0, fel: null };
 
   const collapsed = collapse(pending);
   const { upserts, deletes } = groupForSend(collapsed);
+
+  /** table:id för rader som avvisades. Deras seq kvitteras inte. */
+  const avvisade = new Set();
+  let forstaFel = null;
+
+  const notera = (table, id, error) => {
+    avvisade.add(`${table}:${id}`);
+    if (!forstaFel) forstaFel = error;
+  };
 
   for (const { table, rows } of upserts) {
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -157,7 +205,18 @@ async function pushOutbox() {
       // id ska sluta vara raderad, inte förbli osynlig för andra enheter.
       const payload = chunk.map((r) => ({ ...r, deleted_at: null }));
       const { error } = await supabase.from(table).upsert(payload, { onConflict: 'id' });
-      if (error) throw error;
+      if (!error) continue;
+
+      /* Bara ett fel som handlar om raderna delas upp. Ett nätfel eller en
+       * utgången session gäller alla rader lika, och hundra anrop till hade
+       * bara varit hundra likadana fel. */
+      const { typ } = klassaSyncfel(error);
+      if (typ !== 'data' && typ !== 'rattighet') throw error;
+
+      for (const rad of payload) {
+        const { error: radfel } = await supabase.from(table).upsert([rad], { onConflict: 'id' });
+        if (radfel) notera(table, rad.id, radfel);
+      }
     }
   }
 
@@ -172,14 +231,20 @@ async function pushOutbox() {
         .from(table)
         .update({ deleted_at: new Date().toISOString() })
         .in('id', chunk);
-      if (error) throw error;
+      if (error) {
+        const { typ } = klassaSyncfel(error);
+        if (typ !== 'data' && typ !== 'rattighet') throw error;
+        for (const id of chunk) notera(table, id, error);
+        continue;
+      }
 
       await taBortFiler(filer);
     }
   }
 
-  await ackOutbox(pending.map((m) => m.seq));
-  return pending.length;
+  const kvitteras = pending.filter((m) => !avvisade.has(`${m.table}:${m.id}`));
+  if (kvitteras.length) await ackOutbox(kvitteras.map((m) => m.seq));
+  return { skickade: kvitteras.length, avvisade: avvisade.size, fel: forstaFel };
 }
 
 /**
@@ -333,6 +398,53 @@ export function onMirrorWiped(fn) {
  * Kor en synkomgang: skickar utkorgen, laddar upp repetitioner och hamtar
  * serverns andringar. Flera samtidiga anrop delar samma korning.
  */
+/**
+ * En omgång: utkorgen, repetitionerna, hämtningen.
+ *
+ * Hämtningen körs ÄVEN när det utgående misslyckades. De två är oberoende —
+ * en avvisad rad på väg upp säger ingenting om vad som väntar på väg ner —
+ * och det var just kopplingen mellan dem som gjorde ett enskilt fel till en
+ * död synk. Felet kastas vidare efteråt, så att statusraden får veta.
+ */
+async function korOmgang() {
+  // Före allt annat: är spegeln vår? Att skicka utkorgen först hade
+  // laddat upp förra användarens köade ändringar under det nya kontot.
+  await claimMirror(getUserId());
+
+  let utgaendeFel = null;
+  let avvisade = 0;
+  try {
+    const resultat = await pushOutbox();
+    avvisade = resultat.avvisade;
+    if (resultat.fel) utgaendeFel = resultat.fel;
+    await pushReviews();
+  } catch (err) {
+    utgaendeFel = err;
+  }
+
+  const changed = await pull();
+  return { changed, utgaendeFel, avvisade };
+}
+
+/**
+ * Förnyar sessionen när servern sagt att den gått ut.
+ *
+ * Klienten förnyar token på en timer, men en telefon som sovit över natten
+ * har ingen timer som hunnit gå. Första anropet på morgonen får då 401 —
+ * och visades som "Kunde inte synka" trots att ett enda försök till, med en
+ * förnyad token, hade gått igenom.
+ *
+ * @returns {Promise<boolean>} sant om sessionen kunde förnyas
+ */
+async function fornyaSession() {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    return !error && Boolean(data?.session);
+  } catch {
+    return false;
+  }
+}
+
 export function sync() {
   if (!supabase || !getUserId()) return Promise.resolve(false);
   // En synk som startas medan en annan pagar far inte tappas bort: den kan
@@ -343,39 +455,59 @@ export function sync() {
   }
 
   running = (async () => {
-    setState({ status: 'syncing', error: null });
-    try {
-      // Före allt annat: är spegeln vår? Att skicka utkorgen först hade
-      // laddat upp förra användarens köade ändringar under det nya kontot.
-      await claimMirror(getUserId());
-      await pushOutbox();
-      await pushReviews();
-      const changed = await pull();
-      setState({
-        status: 'idle',
-        pending: await outboxSize(),
-        lastSyncedAt: Date.now(),
-        error: null,
-      });
-      if (changed) for (const fn of remoteListeners) fn();
-      return changed;
-    } catch (err) {
-      // Ett misslyckande är normalt offline. Utkorgen ligger kvar och skickas
-      // vid nästa försök, så ingenting går förlorat.
-      setState({
-        status: navigator.onLine ? 'error' : 'offline',
-        pending: await outboxSize().catch(() => state.pending),
-        error: err?.message ?? String(err),
-      });
-      return false;
-    } finally {
-      running = null;
-      if (queued) {
-        queued = false;
-        scheduleSync({ delayMs: 0 });
+    setState({ status: 'syncing', error: null, errorType: null });
+    let fornyad = false;
+    for (;;) {
+      try {
+        const { changed, utgaendeFel, avvisade } = await korOmgang();
+        if (utgaendeFel) throw utgaendeFel;
+        misslyckanden = 0;
+        setState({
+          status: 'idle',
+          pending: await outboxSize(),
+          lastSyncedAt: Date.now(),
+          error: null,
+          errorType: null,
+          rejected: avvisade,
+        });
+        if (changed) for (const fn of remoteListeners) fn();
+        return changed;
+      } catch (err) {
+        const fel = klassaSyncfel(err);
+
+        // En gång, inte i en slinga: går förnyelsen igenom och nästa försök
+        // ändå faller på sessionen är det något annat än en gammal token.
+        if (fel.typ === 'session' && !fornyad) {
+          fornyad = true;
+          if (await fornyaSession()) continue;
+        }
+
+        /* Orsaken loggas, så att den går att läsa i konsolen — och den visas
+         * i klartext under Inställningar → Konto. Statusraden i sidopanelen
+         * bär bara klassen; den är för smal för en mening. */
+        console.warn('Synken misslyckades:', fel.typ, err);
+        misslyckanden += 1;
+        // Ett misslyckande är normalt offline. Utkorgen ligger kvar och skickas
+        // vid nästa försök, så ingenting går förlorat.
+        setState({
+          status: fel.typ === 'natverk' || !navigator.onLine ? 'offline' : 'error',
+          pending: await outboxSize().catch(() => state.pending),
+          error: fel.text,
+          errorType: fel.typ,
+        });
+
+        const vanta = vantetid(misslyckanden, fel.typ);
+        if (vanta > 0) scheduleSync({ delayMs: vanta });
+        return false;
       }
     }
-  })();
+  })().finally(() => {
+    running = null;
+    if (queued) {
+      queued = false;
+      scheduleSync({ delayMs: 0 });
+    }
+  });
 
   return running;
 }
