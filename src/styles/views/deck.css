@@ -136,6 +136,21 @@
   margin-bottom: var(--s5);
 }
 
+/* Telefonens AI-meny finns bara på telefon. Med mus står de fem handlingarna
+ * i raden, där de får plats, och en meny hade gömt dem i onödan. */
+.deck-toolbar-menu {
+  display: none;
+}
+
+.deck-toolbar-menu-toggle svg {
+  flex: 0 0 auto;
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.deck-toolbar-menu[open] .deck-toolbar-menu-toggle svg {
+  transform: rotate(180deg);
+}
+
 /* ======================================================================
  * AI-INSIKTER
  *
@@ -705,6 +720,25 @@
    * bryta till fyra rader knappar ovanför innehållet. */
   .deck-toolbar .btn {
     flex: 1 1 auto;
+  }
+
+  .deck-toolbar > .deck-tool-ai {
+    display: none;
+  }
+
+  .deck-toolbar-menu {
+    display: block;
+    flex: 1 1 auto;
+  }
+
+  .deck-toolbar-menu > summary {
+    width: 100%;
+  }
+
+  /* Menyn fälls ut under hela raden, inte bara under sin knapp: valen är
+   * meningar, och en spalt lika smal som ordet AI hade brutit dem. */
+  .deck-toolbar-menu .row-menu-items {
+    min-width: 14rem;
   }
 
   #card-list {

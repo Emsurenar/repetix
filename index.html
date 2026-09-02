@@ -181,9 +181,13 @@
                 <button id="btn-add-card" class="btn">Nytt kort</button>
                 <button id="btn-add-note-card" class="btn hidden">Ny anteckning</button>
                 <button id="btn-add-section" class="btn">Ny mapp</button>
-                <button id="btn-open-topic-generator" class="btn">AI-generera</button>
-                <button id="btn-ai-sort" class="btn">AI-sortera</button>
-                <button id="btn-lagg-till-kalla" class="btn">Lägg till PDF</button>
+                <!-- De fem AI-handlingarna. På en bred skärm står de i raden;
+                     på telefon döljs de och nås i stället genom menyn nedanför,
+                     vars val trycker på dem. Sju knappar på 375 pixlar blev
+                     fyra rader kontroller ovanför korten man kom för att se. -->
+                <button id="btn-open-topic-generator" class="btn deck-tool-ai">AI-generera</button>
+                <button id="btn-ai-sort" class="btn deck-tool-ai">AI-sortera</button>
+                <button id="btn-lagg-till-kalla" class="btn deck-tool-ai">Lägg till PDF</button>
                 <!-- Filinmatningen är dold och triggas av knappen: en naken
                      <input type="file"> går inte att forma efter appens
                      kontroller, och accept begränsar väljaren till PDF. -->
@@ -194,8 +198,26 @@
                      som bara öppnar ett formulär. Korta ord: raden bär redan
                      fem knappar, och i en kortlek behövs inte "kortleken" sägas
                      en gång till. -->
-                <button id="btn-ai-summary" class="btn primary" data-ai-generate="summary">Sammanfatta</button>
-                <button id="btn-ai-suggest" class="btn primary" data-ai-generate="suggestion">Föreslå kort</button>
+                <button id="btn-ai-summary" class="btn primary deck-tool-ai" data-ai-generate="summary">Sammanfatta</button>
+                <button id="btn-ai-suggest" class="btn primary deck-tool-ai" data-ai-generate="suggestion">Föreslå kort</button>
+                <!-- Telefonens meny. Samma radmeny som korten bär, med ett ord
+                     på knappen i stället för tre punkter: här är den en av
+                     radens tre handlingar, inte ett hörn på ett kort. Varje val
+                     pekar på knappen det står för, och src/ui/deck.js döljer
+                     valet när dess knapp är dold. -->
+                <details class="row-menu deck-toolbar-menu" id="deck-toolbar-menu">
+                    <summary class="btn primary deck-toolbar-menu-toggle">
+                        AI
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </summary>
+                    <div class="row-menu-items">
+                        <button type="button" data-proxy="btn-open-topic-generator">Generera kort</button>
+                        <button type="button" data-proxy="btn-ai-sort">Sortera i mappar</button>
+                        <button type="button" data-proxy="btn-ai-summary">Sammanfatta</button>
+                        <button type="button" data-proxy="btn-ai-suggest">Föreslå kort</button>
+                        <button type="button" data-proxy="btn-lagg-till-kalla">Lägg till PDF</button>
+                    </div>
+                </details>
                 <button id="btn-study" hidden></button> <!-- Bär repetitionen; panelen ovanför trycker på den -->
             </div>
             <!-- Kortlekens källor. Tom lista döljer hela raden — en rubrik över
