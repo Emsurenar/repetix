@@ -7,9 +7,10 @@ import { valjMenyplacering } from '../domain/menyplacering.js';
 import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook } from './deck.js';
 import { deckList } from './dom.js';
-import { renderSidebar } from './modals-wiring.js';
+import { filterBookshelf, renderSidebar } from './modals-wiring.js';
 import { showConfirmModal, showPromptModal } from './modals.js';
 import { showToast } from './toast.js';
+import { openDelaModal } from './wiring/dela.js';
 
 
 /* Menyknappens ikon. Tre punkter i stället för tecknet "⋮": ett glyf som
@@ -363,7 +364,27 @@ export const renderLibrary = () => {
         etikett.className = 'library-group-label';
         // Ordet står här och inte i domänmodulen: indelningen är en beräkning,
         // "Utan bokhylla" är gränssnitt.
-        etikett.textContent = grupp.titel ?? 'Utan bokhylla';
+        if (grupp.id) {
+            /* Etiketten är vägen in i hyllan. Hyllans åtgärder står i
+             * rubrikraden när hyllan är öppnad, och den enda vägen dit gick
+             * genom sidopanelen — som på telefon ligger bakom hamburgaren.
+             * Ägaren skapade en bokhylla och hittade sedan inget sätt att ta
+             * bort den. Nu öppnar ett tryck på etiketten hyllan, precis som
+             * ett tryck på samma etikett i panelen. */
+            const knapp = document.createElement('button');
+            knapp.type = 'button';
+            knapp.className = 'library-group-open';
+            knapp.textContent = grupp.titel;
+            knapp.setAttribute('aria-label', `Öppna bokhyllan ${grupp.titel}`);
+            knapp.insertAdjacentHTML(
+                'beforeend',
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>'
+            );
+            knapp.addEventListener('click', () => filterBookshelf(grupp.id));
+            etikett.appendChild(knapp);
+        } else {
+            etikett.textContent = 'Utan bokhylla';
+        }
         sektion.appendChild(etikett);
 
         const rutnat = document.createElement('div');

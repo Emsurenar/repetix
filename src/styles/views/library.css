@@ -250,6 +250,35 @@
   color: var(--text-3);
 }
 
+/* Etiketten som öppnar hyllan. Samma text som förut, nu en knapp: ärver
+ * etikettens typ helt och lägger bara till pilen, som är det enda som säger
+ * att den går att trycka på. En kontrollhöjd hög för fingrets skull, men
+ * placerad så att texten står kvar där etiketten stod. */
+.library-group-open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  min-height: var(--control-h);
+  margin: calc((var(--control-h) - 1lh) / -2) 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.library-group-open:hover {
+  color: var(--text-1);
+}
+
+.library-group-open svg {
+  flex: 0 0 auto;
+  color: var(--line-strong);
+}
+
 /* Målet lyser upp när något dras över det. Outline och inte border: en ram
  * hade flyttat allt i gruppen en pixel när den tändes. */
 .library-group.drag-over {
