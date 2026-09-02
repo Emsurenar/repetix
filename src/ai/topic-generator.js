@@ -8,6 +8,15 @@ import { fixLatexInCards } from '../ui/images.js';
 import { showToast } from '../ui/toast.js';
 
 
+/**
+ * Mappväljarens värde för "Låt AI välja", och förvalet.
+ *
+ * Ett eget värde och inte tomma strängen: tomt betyder redan "ingen mapp", och
+ * att låta det betyda två saker hade gjort skillnaden mellan "lägg dem på
+ * toppnivån" och "bestäm åt mig" omöjlig att avläsa.
+ */
+export const AI_VALJER_MAPP = '__ai__';
+
 export const fetchCardsByTopic = async (topic, modifier = null, deck = null) => {
     // Show Loading step, hide others
     document.getElementById('topic-setup-step').classList.add('hidden');
@@ -103,9 +112,21 @@ ${contextSnippet}`;
         }
     }
 
+    /* Mappval per kort, men bara när väljaren står kvar på "Låt AI välja".
+     * Ett uttalat val i inställningssteget är ett krav och inte en gissning —
+     * samma regel som routningen följer när ett anropsställe kräver en viss
+     * leverantör. Ber vi ändå om en mapp får vi ett svar vi måste kasta, och
+     * betalar för tokens ingen använder. */
+    const valjMapp = S.aiGeneratorOptions.sectionId === AI_VALJER_MAPP;
+    const befintligaMappar = (deck?.sections ?? []).map((s) => s.title);
+    const mappFormat = valjMapp ? ', "section": "mappnamn"' : '';
+    const mappRegler = valjMapp
+        ? `\n\nVarje kort ska dessutom ha fältet "section" med namnet på mappen kortet hör hemma i.\nBefintliga mappar i kortleken: ${befintligaMappar.length > 0 ? JSON.stringify(befintligaMappar) : '(inga mappar finns ännu)'}\nRegler för mappen:\n- Använd en befintlig mapp när den passar, och matcha då namnet exakt.\n- Hitta annars på ett kort och beskrivande namn. Kort som hör ihop tematiskt ska få samma namn.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar.\n- Sätt "section" till null när kortet inte hör hemma i någon mapp.`
+        : '';
+
     try {
         const { text, truncated } = await callAIDetailed({
-            system: `Du är en pedagogisk expert. Din uppgift är att skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block, utan extra text. Formatet MÅSTE vara extremt strikt: [{"front": "fråga 1", "back": "svar 1"}].\nVIKTIGT: Eventuell matematik MÅSTE formateras med LaTeX. Eftersom du utvinner i JSON kan backslash försvinna. Använd därför konsekvent DUBBLA dollartecken $$ för block eller ENKLA dollartecken $ för inline formatering. Använd aldrig backslash-parenteser i din JSON.`,
+            system: `Du är en pedagogisk expert. Din uppgift är att skapa flashcards.\n\nDu MÅSTE svara med ENBART en ren JSON-array, utan markdown-block, utan extra text. Formatet MÅSTE vara extremt strikt: [{"front": "fråga 1", "back": "svar 1"${mappFormat}}].${mappRegler}\nVIKTIGT: Eventuell matematik MÅSTE formateras med LaTeX. Eftersom du utvinner i JSON kan backslash försvinna. Använd därför konsekvent DUBBLA dollartecken $$ för block eller ENKLA dollartecken $ för inline formatering. Använd aldrig backslash-parenteser i din JSON.`,
             user: instructions,
             maxTokens: medTankeutrymme(3500),
             json: true,

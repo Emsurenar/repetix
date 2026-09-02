@@ -1,5 +1,6 @@
 import { AiError, aiErrorMessage, callAIDetailed } from './call.js';
 import { parseObjekt } from './svarstolk.js';
+import { fordelaMappar } from '../domain/mappval.js';
 import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
@@ -15,6 +16,58 @@ export const renderProposedCards = () => {
     // Bara talet. Instruktionen som stod här sade vad listan under redan visar.
     document.getElementById('topic-summary-count').innerText = `${S.proposedTopicCards.length} kort`;
     
+    /* Mappväljaren visas bara när modellen faktiskt föreslagit mappar. Har
+     * användaren pekat ut en mapp i inställningssteget gäller den för hela
+     * omgången, och en väljare per rad hade påstått att korten kan hamna på
+     * olika ställen när de inte kan det. */
+    const deck = S.appData?.decks?.find((d) => d.id === S.currentDeckId);
+    const befintliga = deck?.sections ?? [];
+    const namnen = S.proposedTopicCards.map((c) => c.section);
+    const visaMapp = namnen.some((n) => typeof n === 'string' && n.trim() !== '');
+    // Samma fördelning som sparandet gör, så listan över nya mappar i väljaren
+    // är exakt de som faktiskt kommer att skapas.
+    const nyaNamn = visaMapp ? fordelaMappar(befintliga, namnen).nya : [];
+    const samma = (a, b) =>
+        typeof a === 'string' &&
+        typeof b === 'string' &&
+        a.trim().toLowerCase() === b.trim().toLowerCase();
+
+    const mappval = (index) =>
+        visaMapp
+            ? `
+                <label class="ai-card-field-group">
+                    <span class="label">Mapp</span>
+                    <span class="select-wrap">
+                        <select class="ai-card-section-select field" data-index="${index}"></select>
+                        <svg width="9" height="6" viewBox="0 0 9 6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M1 1.5L4.5 5L8 1.5" />
+                        </svg>
+                    </span>
+                </label>`
+            : '';
+
+    /* Alternativen byggs som noder, inte som markup. escapeHtml bygger på
+     * textContent och lämnar citattecknet orört: i ett value-attribut stänger
+     * ett " värdet, och resten av mappnamnet blir egna attribut på option —
+     * mätt till ett riktigt onerror. Namnet kommer från modellen, som kan ha
+     * läst det ur en text användaren klistrat in, så det är inte appens egen
+     * sträng. En nod tar värdet som värde och kan inte tolkas som något. */
+    const fyllMappval = (rad, card) => {
+        const sel = rad.querySelector('.ai-card-section-select');
+        if (!sel) return;
+        const alternativ = (text, varde) => {
+            const opt = document.createElement('option');
+            opt.textContent = text;
+            opt.value = varde;
+            sel.appendChild(opt);
+        };
+        alternativ('Ingen mapp', '');
+        befintliga.forEach((sec) => alternativ(sec.title, sec.title));
+        nyaNamn.forEach((titel) => alternativ(`${titel} (ny)`, titel));
+        const traff = [...sel.options].find((o) => samma(o.value, card.section));
+        sel.value = traff ? traff.value : '';
+    };
+
     S.proposedTopicCards.forEach((card, index) => {
         const div = document.createElement('div');
         div.className = 'ai-generated-card-item';
@@ -36,7 +89,7 @@ export const renderProposedCards = () => {
                 <label class="ai-card-field-group">
                     <span class="label">Baksida (Svar)</span>
                     <textarea class="ai-card-back-input" rows="2" data-index="${index}">${escapeHtml(card.back)}</textarea>
-                </label>
+                </label>${mappval(index)}
             </div>
             <div class="ai-card-actions">
                 <button type="button" class="btn-icon btn-ai-card-regenerate" data-index="${index}" title="Generera om detta kort" aria-label="Generera om detta kort">
@@ -48,6 +101,7 @@ export const renderProposedCards = () => {
             </div>
         `;
         container.appendChild(div);
+        fyllMappval(div, card);
     });
 
     // Listen to changes to save textarea inputs back to the array immediately
@@ -62,6 +116,13 @@ export const renderProposedCards = () => {
         ta.addEventListener('input', (e) => {
             const idx = parseInt(e.currentTarget.getAttribute('data-index'));
             S.proposedTopicCards[idx].back = e.currentTarget.value;
+        });
+    });
+
+    container.querySelectorAll('.ai-card-section-select').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+            const idx = parseInt(e.currentTarget.getAttribute('data-index'));
+            S.proposedTopicCards[idx].section = e.currentTarget.value;
         });
     });
 

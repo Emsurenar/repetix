@@ -1,6 +1,7 @@
 import { nyttId } from '../../core/utils.js';
 import { updateSaveCountBadge } from '../proposed-cards.js';
-import { fetchCardsByTopic } from '../topic-generator.js';
+import { AI_VALJER_MAPP, fetchCardsByTopic } from '../topic-generator.js';
+import { fordelaMappar } from '../../domain/mappval.js';
 import { createCard } from '../../domain/model.js';
 import { kortIVyn } from '../../domain/deck-view.js';
 import { S } from '../../core/state.js';
@@ -34,7 +35,7 @@ export function initAiWiringTopicGenerator() {
               quantity: 'auto',
               difficulty: 'intermediate',
               focus: 'mixed',
-              sectionId: ''
+              sectionId: AI_VALJER_MAPP
           };
 
           // Reset toggles in DOM
@@ -63,7 +64,12 @@ export function initAiWiringTopicGenerator() {
 
           // Load folder dropdown
           const sectionSelect = document.getElementById('select-topic-section');
-          sectionSelect.innerHTML = '<option value="">Ingen mapp (Huvudnivå)</option>';
+          /* AI-valet först och som förval. Det som gjorde att man måste köra
+           * AI sortera direkt efteråt var att förvalet lade hela omgången på
+           * ett och samma ställe, oavsett vad korten handlade om. */
+          sectionSelect.innerHTML =
+              `<option value="${AI_VALJER_MAPP}">Låt AI välja mapp per kort</option>` +
+              '<option value="">Ingen mapp (Huvudnivå)</option>';
           if (deck.sections && deck.sections.length > 0) {
               deck.sections.forEach(sec => {
                   const opt = document.createElement('option');
@@ -76,7 +82,7 @@ export function initAiWiringTopicGenerator() {
           optNew.value = '__new__';
           optNew.innerText = '+ Skapa ny mapp...';
           sectionSelect.appendChild(optNew);
-          sectionSelect.value = '';
+          sectionSelect.value = AI_VALJER_MAPP;
 
           // Show/hide steps
           document.getElementById('topic-setup-step').classList.remove('hidden');
@@ -221,13 +227,41 @@ export function initAiWiringTopicGenerator() {
                   const front = item.querySelector('.ai-card-front-input').value.trim();
                   const back = item.querySelector('.ai-card-back-input').value.trim();
                   if (front && back) {
-                      cardsToSave.push({ front, back });
+                      const mapp = item.querySelector('.ai-card-section-select');
+                      cardsToSave.push({ front, back, section: mapp ? mapp.value : null });
                   }
               }
           });
 
           if (cardsToSave.length === 0) {
               showToast("Inga kort valda att spara!");
+              return;
+          }
+
+          /* Mappen per kort när AI valt den, annars en enda för hela omgången
+           * som förut. De två går inte att slå ihop: det uttalade valet gäller
+           * alla kort, AI:ns ett i taget. */
+          if (S.aiGeneratorOptions.sectionId === AI_VALJER_MAPP) {
+              const { tilldelning, nya } = fordelaMappar(
+                  deck.sections,
+                  cardsToSave.map((c) => c.section)
+              );
+              if (!deck.sections) deck.sections = [];
+              const idForNamn = new Map();
+              nya.forEach((titel) => {
+                  const sek = { id: nyttId(), title: titel };
+                  deck.sections.push(sek);
+                  idForNamn.set(titel, sek.id);
+              });
+              cardsToSave.forEach((c, i) => {
+                  const { sektionId, nyttNamn } = tilldelning[i];
+                  const mal = sektionId ?? (nyttNamn ? idForNamn.get(nyttNamn) : null);
+                  deck.cards.push(createCard(c.front, c.back, false, [], mal));
+              });
+              saveData();
+              renderCards(kortIVyn(deck, S.currentSectionId));
+              showToast(`${cardsToSave.length} kort sparades i ${nya.length > 0 ? `${nya.length} nya mappar` : 'sina mappar'}!`);
+              closeTopicModal();
               return;
           }
 
