@@ -29,6 +29,7 @@ import { getLocalDateString } from '../domain/stats.js';
 import { budgetLage, summera } from '../domain/usage.js';
 import { openAuth } from './auth.js';
 import { updateBreadcrumb } from './breadcrumb.js';
+import { fokusera } from './fokus.js';
 import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
 import { showToast } from './toast.js';
@@ -922,7 +923,7 @@ async function onSparaNyckel() {
 
   if (!nyckel) {
     visaMeddelande('Klistra in en nyckel först.', 'fel');
-    input?.focus();
+    fokusera(input);
     return;
   }
 
@@ -1070,7 +1071,7 @@ export function initSettings() {
     const customField = el('settings-model-custom-field');
     const isCustom = el('settings-model').value === CUSTOM_MODEL;
     if (customField) customField.hidden = !isCustom;
-    if (isCustom) el('settings-model-custom')?.focus();
+    if (isCustom) fokusera(el('settings-model-custom'));
     doljMeddelande();
     void sparaValetNu();
   });

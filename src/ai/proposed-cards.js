@@ -4,6 +4,7 @@ import { fordelaMappar } from '../domain/mappval.js';
 import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
+import { initSelect } from '../ui/select.js';
 import { showToast } from '../ui/toast.js';
 
 
@@ -102,6 +103,11 @@ export const renderProposedCards = () => {
         `;
         container.appendChild(div);
         fyllMappval(div, card);
+        /* Väljaren klär sig i appens egen först här: initUiSelects gick över
+         * sidan vid uppstart, och den här raden fanns inte då. Utan det stod
+         * systemets egen lista mitt i en dialog som i övrigt är appens. */
+        const mappSelect = div.querySelector('.ai-card-section-select');
+        if (mappSelect) initSelect(mappSelect);
     });
 
     // Listen to changes to save textarea inputs back to the array immediately

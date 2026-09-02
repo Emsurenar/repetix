@@ -12,6 +12,8 @@
 // för att kräva att varje anropsställe ropar på oss gör att fällan gäller
 // direkt, även för kod som ännu inte känner till den.
 
+import { fokusera, pekskarm } from './fokus.js';
+
 /** Överlägg som ska hålla fokus. Spelhallens helskärmslägen ingår inte. */
 const OVERLAY_SELECTOR = '.modal, .auth-overlay';
 
@@ -93,7 +95,13 @@ const isVisible = (node) =>
  */
 function focusables(root) {
   return [...root.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
-    (node) => node.offsetParent !== null || node.getClientRects().length > 0
+    (node) =>
+      (node.offsetParent !== null || node.getClientRects().length > 0) &&
+      /* tabindex="-1" är ett element som medvetet tagits ur tabbordningen:
+       * den nativa väljaren bakom appens egen. Att tabba dit hade sett ut som
+       * att fokus försvann, och att ge den fokus vid öppning drog på telefon
+       * upp systemets egen lista bredvid appens. */
+      node.getAttribute('tabindex') !== '-1'
   );
 }
 
@@ -113,10 +121,13 @@ function enter(overlay) {
       (node.tagName === 'INPUT' && !['checkbox', 'radio', 'file'].includes(node.type)) ||
       node.tagName === 'TEXTAREA'
   );
-  const first = falt ?? kandidater[0];
+  /* På pekskärm står fokus på panelen, aldrig i ett fält. Ett fält med fokus
+   * är ett uppfällt tangentbord, och då knuffas dialogen man just öppnat upp
+   * över det innan man hunnit läsa den. Panelen tar emot fokus lika bra för
+   * fällans skull, och fältet är ett tryck bort — för den som vill skriva. */
+  const first = pekskarm() ? null : (falt ?? kandidater[0]);
   if (first) {
-    first.focus();
-    if (falt && typeof falt.select === 'function') falt.select();
+    fokusera(first, { valj: Boolean(falt) });
     return;
   }
 
@@ -124,7 +135,7 @@ function enter(overlay) {
   // användaren kvar i sidan bakom och kan tabba runt i den.
   const panel = overlay.firstElementChild ?? overlay;
   panel.setAttribute('tabindex', '-1');
-  panel.focus();
+  panel.focus({ preventScroll: true });
 }
 
 /**
@@ -365,11 +376,9 @@ export const showPromptModal = (title, defaultValue = '') => {
     input.value = defaultValue;
     modal.classList.remove('hidden');
     // Efter att fokusfällan flyttat in fokus: markeringen ska ligga kvar så
-    // att man kan skriva över det gamla namnet direkt.
-    setTimeout(() => {
-      input.focus();
-      input.select();
-    }, 50);
+    // att man kan skriva över det gamla namnet direkt. Inte på pekskärm —
+    // där får fältet vänta på ett tryck, se fokus.js.
+    setTimeout(() => fokusera(input, { valj: true }), 50);
 
     const form = document.getElementById('form-prompt-modal');
     const cancelBtn = document.getElementById('btn-prompt-cancel');

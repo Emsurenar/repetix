@@ -4,17 +4,14 @@ import { createCard } from '../../domain/model.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { openDeck } from '../deck.js';
+import { fokusera } from '../fokus.js';
 import { fileToDataUrl, renderImagePreviews, uploadCardImages } from '../images.js';
 import { switchView } from '../router.js';
 import { showToast } from '../toast.js';
 
 
-/* Tangentbordet ska inte fara upp av sig sjalvt.
- *
- * Med mus ar automatiskt fokus en tjanst: pennan ligger redan i handen. Med
- * finger ar det motsatsen — halva skarmen tacks av tangentbordet i samma
- * ogonblick som vyn oppnas, innan man hunnit se vad som star dar. */
-const pekskarm = () => window.matchMedia?.('(pointer: coarse)').matches === true;
+/* Tangentbordet ska inte fara upp av sig sjalvt. Regeln bor i fokus.js och
+ * galler numera varje falt i appen, inte bara det har. */
 
 
     // --- Image upload button wiring ---
@@ -101,7 +98,7 @@ export function initUiWiringAddCard() {
               S.addCardImages = [];
               renderImagePreviews(document.getElementById('card-back-image-preview'), S.addCardImages, () => {});
               showToast('Kort sparat!');
-              if (!pekskarm()) document.getElementById('card-front').focus();
+              fokusera(document.getElementById('card-front'));
           }
       });
 
@@ -166,7 +163,7 @@ export function initUiWiringAddCard() {
           populateAddCardSections(deck, initialSelectVal);
           // Med mus öppnas dörren och pennan ligger redan i handen: första
           // fältet får fokus så att man kan börja skriva utan ett klick till.
-          if (!pekskarm()) document.getElementById('card-front').focus();
+          fokusera(document.getElementById('card-front'));
       }, true);
 
       // --- Section (mapp) create/rename modal ---

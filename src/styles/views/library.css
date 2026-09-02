@@ -365,6 +365,23 @@
   color: var(--text-3);
 }
 
+/* Kortet med öppen meny lyfts över sina syskon.
+ *
+ * Menyn hänger ut under kortets nederkant, in över nästa kort i listan. Dess
+ * z-index gäller bara inom närmaste stackningskontext — och kortet BLIR en
+ * sådan så fort det bär en transform: under fingret (scale i motion.css) och
+ * under pekaren (translateY). Just när man trycker på "Flytta till bokhylla"
+ * målades alltså nästa kort ovanpå menyn, och trycket träffade det kortet i
+ * stället. Bara första valet, som ryms inom kortets egen höjd, gick att nå —
+ * uppmätt på 375×812 låg andra och tredje valet helt över nästa kort.
+ *
+ * Med ett eget z-index ligger hela kortet, meny inräknad, över de syskon som
+ * kommer efter det i flödet. Bara medan menyn är öppen: ett z-index i vila
+ * hade ändrat vilket kort som vinner över vilket vid varje överlapp. */
+.deck-card:has(.row-menu[open]) {
+  z-index: 1;
+}
+
 /* ======================================================================
  * TOM HYLLA
  * ====================================================================== */

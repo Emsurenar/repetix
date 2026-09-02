@@ -8,6 +8,7 @@ import { createNote } from '../../core/backup.js';
 import { S } from '../../core/state.js';
 import { saveData } from '../../core/storage.js';
 import { openNotebook } from '../deck.js';
+import { fokusera } from '../fokus.js';
 import { switchView } from '../router.js';
 import { showToast } from '../toast.js';
 import { populateAddCardSections } from './add-card.js';
@@ -66,7 +67,7 @@ export function initUiWiringAiActions() {
           const questionText = document.getElementById('card-front').value.trim();
           if (!questionText) {
               showToast('Skriv en fråga först!');
-              document.getElementById('card-front').focus();
+              fokusera(document.getElementById('card-front'));
               return;
           }
           runAutoFolder(questionText);

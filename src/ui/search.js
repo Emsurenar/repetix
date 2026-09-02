@@ -8,6 +8,7 @@ import { renderDagensMapp } from './dagens-mapp.js';
 import { openDeck, openNotebook, studyDagensMapp } from './deck.js';
 import { renderLibrary } from './library.js';
 import { renderSidebar } from './modals-wiring.js';
+import { fokusera } from './fokus.js';
 import { switchView } from './router.js';
 import { startBookshelfStudy, startSectionStudy } from './study.js';
 
@@ -26,7 +27,7 @@ export const openGlobalSearch = () => {
     S.currentSearchResults = [];
     performGlobalSearch();
 
-    setTimeout(() => input.focus(), 50);
+    setTimeout(() => fokusera(input), 50);
 };
 
 export const closeGlobalSearch = () => {

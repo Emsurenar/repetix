@@ -139,15 +139,30 @@ export function initSelect(select) {
   select.parentNode.insertBefore(rot, select);
   rot.appendChild(select);
 
+  /* Den nativa väljaren tas ur tabbordningen och ur hjälpmedlens träd.
+   *
+   * Den låg kvar som ett fokuserbart element bakom knappen, och två saker
+   * gav den fokus utan att någon bett om det: fokusfällan, som tar första
+   * fokuserbara elementet när en dialog öppnas, och etiketten, vars for/id
+   * pekade på den. På en telefon är fokus i en select detsamma som att
+   * systemets egen rullista öppnas — så den dök upp bredvid appens egen
+   * lista, samtidigt. Knappen bär nu både namn, etikett och fokus. */
+  select.tabIndex = -1;
+  select.setAttribute('aria-hidden', 'true');
+
   const trigger = document.createElement('button');
   trigger.type = 'button';
   trigger.className = 'select-trigger';
   trigger.setAttribute('aria-haspopup', 'listbox');
   trigger.setAttribute('aria-expanded', 'false');
-  // Fältets egen etikett pekar på den nativa väljaren med for/id. Knappen
-  // ärver samma namn i stället för att lämnas namnlös för uppläsaren.
+  // Fältets egen etikett pekade på den nativa väljaren med for/id. Den pekas
+  // om till knappen: ett tryck på etiketten öppnar då appens lista i stället
+  // för systemets, och uppläsaren hittar knappens namn där det står.
   const etikettEl = select.id && document.querySelector(`label[for="${select.id}"]`);
-  if (etikettEl) trigger.setAttribute('aria-label', etikettEl.textContent.trim());
+  if (etikettEl) {
+    trigger.id = `${select.id}-valjare`;
+    etikettEl.htmlFor = trigger.id;
+  }
 
   const etikett = document.createElement('span');
   etikett.className = 'select-value';

@@ -68,6 +68,13 @@
   transform: scale(0.995);
 }
 
+/* Inte medan menyn är öppen. Ett tryck på ett menyval är ett tryck inuti
+ * kortet, och kortet gav då efter under menyn man siktade på — ytan man
+ * trycker på ska stå still. Stackningen sköts i library.css. */
+.deck-card:has(.row-menu[open]):active {
+  transform: none;
+}
+
 /* ----------------------------------------------------------------------
  * ATT SVÄVA
  *

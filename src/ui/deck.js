@@ -9,6 +9,7 @@ import { kortIVyn, sektionerIVyn } from '../domain/deck-view.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
 import { cardList } from './dom.js';
+import { fokusera } from './fokus.js';
 import { safeParse } from './images.js';
 import { renderLatex } from './latex.js';
 import { renderLibrary } from './library.js';
@@ -144,7 +145,7 @@ function oppnaFragepanel(kalla) {
   panel.classList.remove('hidden');
   document.getElementById('deck-kallfraga-kalla').textContent = kalla.title;
   document.getElementById('deck-kallfraga-svar').innerHTML = '';
-  document.getElementById('deck-kallfraga-input').focus();
+  fokusera(document.getElementById('deck-kallfraga-input'));
 }
 
 export function initUiKallfraga() {

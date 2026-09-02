@@ -4,6 +4,7 @@ import { escapeHtml } from '../core/utils.js';
 import { renderCards } from '../ui/deck.js';
 import { renderCardBackImages, renderImagePreviews, safeParse } from '../ui/images.js';
 import { renderLatex } from '../ui/latex.js';
+import { fokusera } from '../ui/fokus.js';
 import { showConfirmModal } from '../ui/modals.js';
 import { showToast } from '../ui/toast.js';
 
@@ -110,7 +111,7 @@ export const openMoveCardModal = (card) => {
     document.getElementById('input-move-search').value = '';
     renderMoveTargets();
     document.getElementById('modal-move-card').classList.remove('hidden');
-    setTimeout(() => document.getElementById('input-move-search').focus(), 100);
+    setTimeout(() => fokusera(document.getElementById('input-move-search')), 100);
 };
 
 export const openMoveSectionModal = (sectionId) => {
@@ -173,7 +174,7 @@ export const openSectionModal = (section = null) => {
     }
     
     modal.classList.remove('hidden');
-    input.focus();
+    fokusera(input, { valj: Boolean(section) });
 };
 
 export const closeSectionModal = () => {

@@ -869,6 +869,9 @@ textarea:disabled {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+  /* Ett tryck som råkar landa på pixeln får inte öppna systemets lista.
+   * Fokus och etikett har redan flyttats till knappen i select.js. */
+  pointer-events: none;
 }
 
 .select-trigger {

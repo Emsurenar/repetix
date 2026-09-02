@@ -15,6 +15,7 @@ import {
   signUp,
   updatePassword,
 } from '../core/supabase.js';
+import { fokusera } from './fokus.js';
 
 /** Sätts när användaren aktivt valt att köra lokalt, så att vi inte frågar igen. */
 const SKIP_KEY = 'repetix_skip_auth';
@@ -106,7 +107,7 @@ function setBusy(busy) {
 
 export function openAuth() {
   el('auth-overlay')?.classList.remove('hidden');
-  el('auth-email')?.focus();
+  fokusera(el('auth-email'));
 }
 
 export function closeAuth() {
@@ -209,7 +210,7 @@ export function initAuthUi({ onSignedIn: signedInCallback } = {}) {
     const email = el('auth-email').value.trim();
     if (!email) {
       showError('Skriv in din e-postadress först, så skickar vi en återställningslänk.');
-      el('auth-email').focus();
+      fokusera(el('auth-email'));
       return;
     }
     const { error } = await sendPasswordReset(email);
@@ -250,7 +251,7 @@ export function initAuthUi({ onSignedIn: signedInCallback } = {}) {
   onPasswordRecovery(() => {
     setMode('recovery');
     openAuth();
-    el('auth-new-password')?.focus();
+    fokusera(el('auth-new-password'));
   });
 
   onAuthChange((user) => {
