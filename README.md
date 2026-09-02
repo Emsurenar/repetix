@@ -1,7 +1,10 @@
 # Repetix
 
-A spaced-repetition flashcard app: decks, scheduled reviews, offline-first
-sync, optional AI help, and eight practice modes. Vanilla JavaScript in ES
+A spaced-repetition flashcard app with AI at its centre: it writes cards from a
+topic or a source text, sorts them into folders, reads a deck back to you as
+insights, and tutors you mid-review — all on your own provider key, which never
+reaches the browser. Around that sits the ordinary app: decks, scheduled
+reviews, offline-first sync, and eight practice modes. Vanilla JavaScript in ES
 modules, built with Vite. No framework.
 
 **The interface is entirely in Swedish**, deliberately — no translation layer,
@@ -13,10 +16,17 @@ English so the repository can be read without it.
 | | |
 |---|---|
 | ![The arcade: eight practice modes, each with its own blurred backdrop](docs/skarmbilder/spelhallen.png) | ![A deck: what is due, the folders, and the cards](docs/skarmbilder/kortlek.png) |
-| The arcade. Each mode keeps the same backdrop every time. | A deck: what is due today, the AI panels, and the cards by folder. |
+| The arcade. Each mode keeps the same backdrop every time. | A deck: what is due today, the AI toolbar, and the cards by folder. |
 
 ## What it does
 
+- **AI on your own key** — write a deck from a topic, a pasted text or a source
+  document saved on the deck, and ask that source a question; have a single
+  card's answer or elaboration written, and the folder it belongs in guessed;
+  sort a whole deck into folders; summarise one; get an explanation, an exam
+  question or a tutor mid-review. Anthropic, OpenAI, Google or OpenRouter. The
+  key is verified against the provider, encrypted with AES-256-GCM and stored
+  server-side; only a hint like `sk-ant...4f2a` ever comes back.
 - **Spaced repetition** — a SuperMemo-2 variant with four grades
   (`src/domain/srs.js`), pure functions, invariant `Igen ≤ Svårt < Bra < Lätt`
   tested across 196 states.
@@ -26,8 +36,6 @@ English so the repository can be read without it.
   append-only.
 - **Accounts and cloud sync** — Supabase Postgres with row-level security on
   every table, so the barrier sits in the database rather than in client code.
-- **Bring your own AI key** — card generation, deck insights, auto-sorting and
-  a tutor, all on the user's own provider key, which never reaches the browser.
 - **Markdown and LaTeX** on both sides of a card; KaTeX loads only when a card
   actually contains maths.
 - **Eight practice modes**, images on cards, and in-app account deletion.
