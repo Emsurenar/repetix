@@ -60,6 +60,7 @@ const CLOSE_BUTTONS = {
   'modal-topic-generator': 'btn-close-topic-modal-top',
   'modal-diary': 'btn-close-diary-top',
   'modal-ai-sort': 'btn-cancel-ai-sort',
+  'modal-dela': 'btn-cancel-dela',
 };
 
 /**

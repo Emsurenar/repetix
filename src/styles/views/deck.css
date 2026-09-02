@@ -657,6 +657,8 @@
  * i stället för som dess sista utväg. */
 .deck-danger-zone {
   display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
   margin-top: var(--s8);
   padding-top: var(--s5);
   border-top: 1px solid var(--line);
@@ -716,8 +718,8 @@
     margin-bottom: var(--s5);
   }
 
-  /* Verktygsraden scrollar i sidled i sin egen behållare i stället för att
-   * bryta till fyra rader knappar ovanför innehållet. */
+  /* Tre handlingar på en rad: Nytt kort, Ny mapp, och AI-menyn som bär de
+   * fem övriga. Raden bröt förut till fyra rader knappar ovanför korten. */
   .deck-toolbar .btn {
     flex: 1 1 auto;
   }

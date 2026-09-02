@@ -17,6 +17,7 @@ import './styles/views/forms.css';
 import './styles/views/auth.css';
 import './styles/views/search.css';
 import './styles/views/settings.css';
+import './styles/views/inkorg.css';
 import './styles/games-legacy.css';
 // Spelhallen laddas sist och ar scopad till #view-playground: den ska vinna
 // over den gamla stilmallens .pg-regler utan !important.
@@ -66,6 +67,8 @@ import { initUiSearch } from './ui/search.js';
 import { initSettings } from './ui/settings.js';
 import { initSenastePlats } from './ui/senaste-plats.js';
 import { initTangentbord } from './ui/tangentbord.js';
+import { initUiWiringDela } from './ui/wiring/dela.js';
+import { initUiInkorg } from './ui/inkorg.js';
 
 export function start() {
   initCoreState();
@@ -97,6 +100,8 @@ export function start() {
   initAppInit();
   initUiSearch();
   initSettings();
+  initUiWiringDela();
+  initUiInkorg();
   /* Sparar var man står. Ligger efter initAppInit med flit: uppstarten byter
    * ingen vy själv, och dess återställning är skjuten till en mikrotask — som
    * alltså kör efter den här raden och därmed med lyssnaren på plats. */

@@ -1,0 +1,84 @@
+/* Inkorgen: två listor, rader med titel, en tyst rad under, och handlingarna
+ * till höger. Samma form som kortlekens källor i deck.css — det är rader man
+ * svarar på, inte kort man går in i. */
+
+#view-inkorg .inkorg-sektion {
+  margin-bottom: var(--s7);
+}
+
+#view-inkorg .inkorg-rubrik {
+  margin: 0 0 var(--s3);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+#view-inkorg .inkorg-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#view-inkorg .inkorg-rad {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  /* Listrad, inte knapp — därför den mindre radien, enligt tokens.css. */
+  border-radius: var(--r-sm);
+}
+
+#view-inkorg .inkorg-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#view-inkorg .inkorg-titel {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+#view-inkorg .inkorg-meta {
+  margin: var(--s1) 0 0;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+#view-inkorg .inkorg-handlingar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--s2);
+}
+
+#view-inkorg .inkorg-tom {
+  margin: 0;
+  padding: var(--s4) 0;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+@media (max-width: 600px) {
+  /* På telefon får raden två våningar: texten över, knapparna under. */
+  #view-inkorg .inkorg-rad {
+    flex-wrap: wrap;
+  }
+
+  #view-inkorg .inkorg-text {
+    flex: 1 1 100%;
+  }
+
+  #view-inkorg .inkorg-handlingar {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+}

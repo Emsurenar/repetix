@@ -98,6 +98,14 @@
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="1.5" width="4.4" height="4.4"/><rect x="8.1" y="1.5" width="4.4" height="4.4"/><rect x="1.5" y="8.1" width="4.4" height="4.4"/><rect x="8.1" y="8.1" width="4.4" height="4.4"/></svg>
                 <span class="sidebar-item-name">Spelhallen</span>
             </button>
+            <!-- Delningar som väntar. Bara med konto: utan moln finns ingen
+                 att få något av. Talet bär samma form som kortleksradernas
+                 förfallna kort. -->
+            <button type="button" id="btn-open-inkorg" class="sidebar-item" hidden>
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1.5 8.5V11a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8.5"/><path d="M1.5 8.5h3l1 1.5h3l1-1.5h3"/><path d="M3 8.5 4.2 3h5.6L11 8.5"/></svg>
+                <span class="sidebar-item-name">Inkorg</span>
+                <span id="inkorg-count" class="sidebar-count num is-zero">0</span>
+            </button>
             <button type="button" id="btn-open-settings" class="sidebar-item">
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1.5 3.5h11"/><path d="M1.5 10.5h11"/><circle cx="5" cy="3.5" r="1.7"/><circle cx="9.5" cy="10.5" r="1.7"/></svg>
                 <span class="sidebar-item-name">Inställningar</span>
@@ -257,8 +265,27 @@
             </div>
 
             <div class="deck-danger-zone">
+                <!-- Delningen står här, längst ned, bredvid utgången: båda är
+                     saker man gör med hela leken, sällan, och ingen av dem hör
+                     hemma bland handlingarna ovanför korten. -->
+                <button id="btn-share-deck" class="btn text">Dela kortleken</button>
                 <button id="btn-delete-deck" class="btn danger">Ta bort kortleken</button>
             </div>
+        </section>
+
+        <!-- View: Inkorg -->
+        <section id="view-inkorg" class="view hidden" aria-labelledby="inkorg-title">
+            <div class="view-header">
+                <h1 id="inkorg-title">Inkorg</h1>
+            </div>
+            <section class="inkorg-sektion" aria-labelledby="inkorg-mottagna-title">
+                <h2 id="inkorg-mottagna-title" class="inkorg-rubrik">Mottagna</h2>
+                <ul id="inkorg-lista" class="inkorg-lista"></ul>
+            </section>
+            <section class="inkorg-sektion" aria-labelledby="inkorg-skickade-title">
+                <h2 id="inkorg-skickade-title" class="inkorg-rubrik">Skickade</h2>
+                <ul id="inkorg-skickade" class="inkorg-lista"></ul>
+            </section>
         </section>
 
         <!-- View: Add Card Form -->
@@ -975,6 +1002,26 @@
                 <div class="modal-actions">
                     <button type="button" id="btn-cancel-move-item" class="btn text">Avbryt</button>
                     <button type="submit" class="btn primary">Flytta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dela en kortlek. Adressen skrivs; den slås aldrig upp — se 0010. -->
+    <div id="modal-dela" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dela-modal-title">
+        <div class="modal-content">
+            <h2 id="dela-modal-title">Dela <span id="dela-titel"></span></h2>
+            <form id="form-dela">
+                <div class="form-group">
+                    <label for="dela-epost">Mottagarens e-post</label>
+                    <input type="email" id="dela-epost" autocomplete="email" inputmode="email" required>
+                </div>
+                <!-- En följd, inte en instruktion: vad mottagaren faktiskt får. -->
+                <p id="dela-sammanfattning" class="form-hint"></p>
+                <p id="dela-status" class="form-hint dela-status" role="status" hidden></p>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancel-dela" class="btn text">Avbryt</button>
+                    <button type="submit" id="btn-dela" class="btn primary">Dela</button>
                 </div>
             </form>
         </div>

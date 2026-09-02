@@ -21,6 +21,7 @@ import {
   sync,
 } from '../core/sync.js';
 import { cloudConfigured, getUserId, initAuth, signOut, supabase } from '../core/supabase.js';
+import { uppdateraInkorg } from '../core/delning.js';
 import { hasSkippedAuth, initAuthUi, openAuth } from '../ui/auth.js';
 import { renderDecks } from '../ui/deck.js';
 import { renderSidebar } from '../ui/modals-wiring.js';
@@ -59,6 +60,11 @@ export async function initCloud() {
 
   onSyncChange(renderSyncStatus);
   onRemoteChange(() => void applyRemoteChanges());
+  // Inkorgen räknas om i synkens takt: en delning som kommit sedan sist
+  // syns inom en minut, utan en egen klocka.
+  onSyncChange((state) => {
+    if (state.status === 'idle' && state.lastSyncedAt) void uppdateraInkorg();
+  });
   // Nar anvandaren lamnar en repetition eller stanger en modal ar det tryggt
   // att byta in andringar som skjutits upp.
   onViewChange(() => flushPendingRemoteChanges());
@@ -229,6 +235,10 @@ function sameLibrary(a, b) {
 // ---------------------------------------------------------------------------
 
 function updateAccountButton() {
+  // Inkorgen finns bara med konto: utan moln finns ingen att få något av.
+  const inkorg = document.getElementById('btn-open-inkorg');
+  if (inkorg) inkorg.hidden = !getUserId();
+
   const btn = document.getElementById('btn-account');
   if (!btn) return;
   btn.hidden = false;

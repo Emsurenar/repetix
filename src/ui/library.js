@@ -171,6 +171,7 @@ export const renderLibrary = () => {
                 ${rowMenu(`Åtgärder för ${item.title}`, `
                         <button type="button" class="btn-item-rename">Byt namn</button>
                         <button type="button" class="btn-item-move">Flytta till bokhylla</button>
+                        <button type="button" class="btn-item-share">Dela</button>
                         <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
                 <div class="deck-card-foot">
                     <div class="progress" aria-hidden="true">
@@ -225,6 +226,11 @@ export const renderLibrary = () => {
         itemEl.querySelector('.btn-item-move').addEventListener('click', (e) => {
             e.stopPropagation();
             openMoveItemModal(item, type);
+        });
+
+        itemEl.querySelector('.btn-item-share')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            void openDelaModal(item);
         });
 
         itemEl.querySelector('.btn-item-delete').addEventListener('click', async (e) => {

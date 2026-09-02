@@ -8,7 +8,8 @@ export const views = {
     addNote: document.getElementById('view-add-note'),
     study: document.getElementById('view-study'),
     complete: document.getElementById('view-study-complete'),
-    playground: document.getElementById('view-playground')
+    playground: document.getElementById('view-playground'),
+    inkorg: document.getElementById('view-inkorg'),
 };
 
 export const deckList = document.getElementById('deck-list');

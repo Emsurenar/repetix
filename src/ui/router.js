@@ -105,6 +105,8 @@ export const switchView = (viewName, sectionId = null) => {
         updateBreadcrumb([]);
     } else if (viewName === 'complete') {
         updateBreadcrumb([lib, { label: 'Klart!' }]);
+    } else if (viewName === 'inkorg') {
+        updateBreadcrumb([lib, { label: 'Inkorg' }]);
     } else if (viewName === 'playground') {
         updateBreadcrumb([lib, { label: 'Spelhallen' }]);
         // Ensure playground content is rendered even if called without openPlayground()

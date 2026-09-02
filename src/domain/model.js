@@ -340,6 +340,13 @@ export function stripTransientFields(card) {
  *   visas efter svaret. Den halls skild fran `back` eftersom svaret ar det man
  *   ska kunna aterkalla; ett svar som svaller gar inte att prova sig sjalv pa.
  */
+/**
+ * Id för ett kort. Tidsstämpel plus slump: spelhallen läser den inledande
+ * stämpeln för att sortera fram de dammigaste korten, så formen är inte fri.
+ * Kortlekar och mappar har uuid ur core/utils.js; se kommentaren där.
+ */
+export const nyttKortId = () => Date.now().toString() + Math.random().toString(36).substr(2, 5);
+
 export const createCard = (
     front,
     back,
@@ -349,7 +356,7 @@ export const createCard = (
     options = {}
 ) => {
     const card = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        id: nyttKortId(),
         front,
         back,
         isLongForm,
@@ -368,7 +375,7 @@ export const createCard = (
 
 export const createNoteCard = (content, sectionId = null) => {
     return {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        id: nyttKortId(),
         type: 'note',
         content,
         sectionId: sectionId || null,
