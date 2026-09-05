@@ -504,6 +504,39 @@
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
+/* Nyhetsrutan. En liten versaletikett över versionsnumret, samma form som
+ * appens andra små rubriker; punkterna med ett fetstilt ledord var, så att
+ * listan går att skumma. */
+.nyheter-etikett {
+  margin: 0 0 var(--s1);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.nyheter-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+.nyheter-lista li::marker {
+  color: var(--text-3);
+}
+
+.nyheter-lista strong {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
 /* Höga dialoger: huvudet och fotens knappar står stilla, mitten rullar. Utan
  * det hamnar Spara utanför skärmen så fort listan blir lång. */
 .modal-tall {

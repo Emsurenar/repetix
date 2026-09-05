@@ -62,6 +62,7 @@ const CLOSE_BUTTONS = {
   'modal-ai-sort': 'btn-cancel-ai-sort',
   'modal-dela': 'btn-cancel-dela',
   'modal-ta-emot': 'btn-cancel-ta-emot',
+  'modal-nyheter': 'btn-nyheter-ok',
 };
 
 /**

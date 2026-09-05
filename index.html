@@ -1178,6 +1178,33 @@
         </div>
     </div>
 
+    <!-- Nyheterna i den här versionen. Visas en gång per konto, första
+         gången appen öppnas efter en uppdatering (src/ui/nyheter.js). Texten
+         är statisk och byts när nästa version släpps. -->
+    <div id="modal-nyheter" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="nyheter-title">
+        <div class="modal-content modal-tall nyheter">
+            <p class="nyheter-etikett">Nytt i den här versionen</p>
+            <h2 id="nyheter-title">Repetix 3.1</h2>
+            <p class="modal-lead">Vänner, delning av mappar och kort, en lugnare verktygsrad och en rad förbättringar i det som redan fanns.</p>
+            <div class="modal-scroll">
+                <ul class="nyheter-lista">
+                    <li><strong>Vänner och profiler.</strong> Välj ett användarnamn och en bild under Inställningar → Profil. Sök på vänners namn, skicka förfrågningar och se deras profil: kort, kortlekar, bemästrade kort, streak, rekord, prestationer och ett halvår av aktivitet. Vänlistan visar vad var och en gjort den senaste veckan.</li>
+                    <li><strong>Dela mer, och med vänner.</strong> Mappar och enskilda kort går nu att dela, inte bara hela kortlekar. Dina vänner står som förslag i dela-dialogen, och på en väns profil ser du allt ni delat med varandra. Det du tar emot läggs i en kortlek du väljer.</li>
+                    <li><strong>En lugnare verktygsrad.</strong> Kortleken har tre knappar: Nytt kort, Ny mapp och AI. AI fäller ut verktygen — generera, sortera, föreslå, PDF — med en rad om vad var och en gör. Likadant på telefon och dator.</li>
+                    <li><strong>Sammanfattningen skriver sig själv.</strong> En mening om vad kortleken handlar om står under titeln och skrivs om när leken ändras. Knappen Sammanfatta är borta.</li>
+                    <li><strong>Högerklick överallt.</strong> Kortlekar, bokhyllor, mappar och kort öppnar sin meny med ett högerklick — i biblioteket, i kortleken och i sidopanelen.</li>
+                    <li><strong>Aktivitetskartan slutar idag.</strong> Sista rutan är dagens, och den innevarande månaden har fått sitt namn. Kartan läser nu hela repetitionsloggen, inte bara de senaste nittio dagarna.</li>
+                    <li><strong>Skaffa en API-nyckel utan att vara tekniker.</strong> Under fältet i Inställningar finns en genomgång per leverantör: vad du behöver, steg för steg, vad det kostar och vad som brukar gå fel.</li>
+                    <li><strong>Billigare AI.</strong> Sortering, mappval, dagbok och generering ur text tänker mindre och skickar mindre; kortförslaget läser ett urval av leken i stället för hela.</li>
+                    <li><strong>Smått och gott.</strong> Dagbokens och sorteringens dialoger har fått appens riktiga stil, en säkerhetslucka i flyttdialogen är tätad, och Jeopardys omvända kort har fått en riktig etikett.</li>
+                </ul>
+            </div>
+            <div class="modal-foot">
+                <button type="button" id="btn-nyheter-ok" class="btn primary">Kör igång</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Ta emot en mapp eller ett kort: var ska det in? Sista valet i listan
          är en ny kortlek med delningens namn. -->
     <div id="modal-ta-emot" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ta-emot-title">

@@ -1,6 +1,6 @@
 {
   "name": "repetix",
-  "version": "0.1.0",
+  "version": "3.1.0",
   "private": true,
   "type": "module",
   "description": "Repetitionsapp med spaced repetition, molnsynk och leverantorsoberoende AI",

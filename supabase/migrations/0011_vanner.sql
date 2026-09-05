@@ -41,7 +41,15 @@ alter table public.profiles
   add column if not exists handle            text,
   add column if not exists avatar_path       text,
   add column if not exists stats             jsonb,
-  add column if not exists stats_updated_at  timestamptz;
+  add column if not exists stats_updated_at  timestamptz,
+  -- Senaste versionen vars nyheter kontot fått se. Bor på profilen så att
+  -- rutan visas en gång per konto och inte en gång per webbläsare; utan
+  -- kolumnen faller klienten tillbaka på localStorage.
+  add column if not exists seen_release      text;
+
+alter table public.profiles drop constraint if exists profiles_seen_release_len;
+alter table public.profiles add constraint profiles_seen_release_len
+  check (seen_release is null or length(seen_release) <= 20);
 
 -- Handtaget: små bokstäver, siffror och understreck, 3–20 tecken. Gemener
 -- av samma skäl som e-postadresser normaliseras — @Anna och @anna ska inte
