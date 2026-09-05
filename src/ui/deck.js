@@ -8,6 +8,7 @@ import { kortIVyn, sektionerIVyn } from '../domain/deck-view.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
 import { visaSammanfattning } from './sammanfattning.js';
+import { openDelaModal } from './wiring/dela.js';
 import { cardList } from './dom.js';
 import { fokusera } from './fokus.js';
 import { safeParse } from './images.js';
@@ -410,6 +411,7 @@ const renderCardItem = (card, deck) => {
                     <button type="button" class="btn-study-card">Repetera direkt</button>
                     <button type="button" class="btn-edit-card">Redigera</button>
                     <button type="button" class="btn-move-card">Flytta</button>
+                    <button type="button" class="btn-share-card">Dela</button>
                     <button type="button" class="btn-delete-card danger">Ta bort</button>`)}
         </div>
     `;
@@ -463,6 +465,11 @@ const renderCardItem = (card, deck) => {
     listItem.querySelector('.btn-move-card').addEventListener('click', (e) => {
         e.stopPropagation();
         openMoveCardModal(card);
+    });
+
+    listItem.querySelector('.btn-share-card').addEventListener('click', (e) => {
+        e.stopPropagation();
+        void openDelaModal(deck, { card });
     });
 
     renderLatex(listItem);
@@ -637,6 +644,7 @@ export const renderCards = (cards) => {
                     ${rowMenu(`Åtgärder för ${section.title}`, `
                             <button type="button" class="btn-section-rename">Byt namn</button>
                             <button type="button" class="btn-section-move">Flytta</button>
+                            <button type="button" class="btn-section-share">Dela</button>
                             <button type="button" class="btn-section-delete danger">Ta bort</button>`)}
                 </div>
             </div>
@@ -727,6 +735,11 @@ export const renderCards = (cards) => {
         sectionEl.querySelector('.btn-section-move').addEventListener('click', (e) => {
             e.stopPropagation();
             openMoveSectionModal(section.id);
+        });
+
+        sectionEl.querySelector('.btn-section-share').addEventListener('click', (e) => {
+            e.stopPropagation();
+            void openDelaModal(deck, { section });
         });
 
         sectionEl.querySelector('.btn-section-delete').addEventListener('click', (e) => {

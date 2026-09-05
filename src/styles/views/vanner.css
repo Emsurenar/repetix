@@ -347,6 +347,89 @@
   overscroll-behavior-x: contain;
 }
 
+#view-profil .profil-delat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#view-profil .profil-delat-rad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s2) var(--s3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+#view-profil .profil-delat-titel {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+#view-profil .profil-delat-meta {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * DELNINGSDIALOGEN: vännerna som brickor
+ *
+ * Chips, och därför den enda plats som får kapselns hörn. Vald bricka bär
+ * accenten som kant och ton — ett tillstånd, inte en massa.
+ * ====================================================================== */
+
+#modal-dela .form-label {
+  display: block;
+  margin-bottom: var(--s2);
+}
+
+#modal-dela .dela-vanner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+#modal-dela .dela-van {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--control-h);
+  padding: 0 var(--s3) 0 var(--s1);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+#modal-dela .dela-van:hover {
+  background: var(--surface-2);
+}
+
+#modal-dela .dela-van[aria-pressed='true'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+#modal-dela .avatar-chip {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-pill);
+  font-size: var(--t-micro);
+}
+
 /* ======================================================================
  * INSTÄLLNINGARNA: bilden i sin rad
  * ====================================================================== */

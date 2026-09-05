@@ -11,8 +11,10 @@
  */
 
 import {
+  NY_KORTLEK,
   TAK,
   byggNyttolast,
+  infogaIKortlek,
   packaUpp,
   sammanfatta,
   stagingVag,
@@ -60,14 +62,27 @@ export function delningTillganglig() {
 function feltext(error, standard) {
   const m = typeof error?.message === 'string' ? error.message : '';
   if (/dela med dig själv|obesvarade delningar|finns inte/i.test(m)) return m.replace(/\.?$/, '.');
+  if (/inte vänner|ingen mottagare|okänd sorts/i.test(m)) return m.replace(/\.?$/, '.');
   if (/schema cache|could not find the function|does not exist|relation .* does not exist/i.test(m)) {
-    return 'Databasen saknar delningsfunktionen. Kör migration 0010.';
+    return 'Databasen saknar delningsfunktionen. Kör migration 0010 och 0011.';
   }
   if (/failed to fetch|load failed|networkerror/i.test(m)) {
     return 'Ingen kontakt med servern. Kontrollera din uppkoppling.';
   }
   return standard;
 }
+
+/* Sant när felet betyder att 0011 inte är körd: kolumnen eller relationen
+ * finns inte. Frågorna nedan ställs då om i den form 0010 förstår, så att
+ * inkorgen fungerar med adresser även innan vännerna finns. */
+const saknar0011 = (error) =>
+  error?.code === '42703' ||
+  error?.code === 'PGRST200' ||
+  /column .* does not exist|relationship|schema cache/i.test(error?.message ?? '');
+
+/* Ett värde i ett or-filter. PostgREST läser kommatecken och parenteser som
+ * syntax; citattecknen gör adressen till en sträng. */
+const citerad = (v) => `"${String(v).replace(/"/g, '')}"`;
 
 // ---------------------------------------------------------------------------
 // Dela
@@ -102,19 +117,20 @@ async function laggIVantomrade(fran, till) {
 }
 
 /**
- * Vad som skulle följa med om kortleken delades nu. För dialogens rad.
+ * Vad som skulle följa med om det delades nu. För dialogens rad.
  *
- * @param {object} deck
+ * @param {object} deck det som delas
+ * @param {string} [kind]
  */
-export async function delningsInnehall(deck) {
-  const kallor = delningTillganglig() ? await hamtaKallor(deck.id) : [];
-  const byggd = byggNyttolast(deck, { kallor: kallor.map((k) => ({ ...k, text: '' })) });
+export async function delningsInnehall(deck, kind = 'deck') {
+  const kallor = kind === 'deck' && delningTillganglig() ? await hamtaKallor(deck.id) : [];
+  const byggd = byggNyttolast(deck, { kallor: kallor.map((k) => ({ ...k, text: '' })), kind });
   if (!byggd.ok) return { ok: false, fel: byggd.fel };
   return { ok: true, ...sammanfatta(byggd.nyttolast) };
 }
 
 /**
- * Delar en kortlek med en adress.
+ * Delar en kortlek, en mapp eller ett kort — med en adress eller med en vän.
  *
  * Ordningen: raden först, i läget preparing, för väntområdets policy kräver
  * att delningen finns. Sedan bilderna. Först när alla ligger där publiceras
@@ -122,32 +138,45 @@ export async function delningsInnehall(deck) {
  * på vägen fel städas raden och det som hann kopieras bort: en delning som
  * inte gick att fullborda ska inte ligga kvar som en gåta i "Skickade".
  *
- * @param {{deck: object, epost: string}} arg
+ * Källorna följer bara med en hel kortlek: en mapp eller ett kort är en
+ * del av leken, och källan hör till helheten.
+ *
+ * @param {{deck: object, epost?: string, mottagarId?: string|null, kind?: string}} arg
+ *   `deck` är det som delas — en kortlek, eller det delbarMapp/delbartKort gav
  * @returns {Promise<{ok: true, id: string} | {ok: false, fel: string}>}
  */
-export async function delaKortlek({ deck, epost }) {
+export async function delaKortlek({ deck, epost, mottagarId = null, kind = 'deck' }) {
   if (!delningTillganglig()) return { ok: false, fel: 'Att dela kräver ett konto.' };
-  const till = String(epost ?? '').trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(till) || till.length > 320) {
-    return { ok: false, fel: 'Adressen ser inte giltig ut.' };
+  let till = null;
+  if (mottagarId) {
+    if (mottagarId === getUserId()) return { ok: false, fel: 'Du kan inte dela med dig själv.' };
+  } else {
+    till = String(epost ?? '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(till) || till.length > 320) {
+      return { ok: false, fel: 'Adressen ser inte giltig ut.' };
+    }
+    if (till === minEpost()) return { ok: false, fel: 'Du kan inte dela med dig själv.' };
   }
-  if (till === minEpost()) return { ok: false, fel: 'Du kan inte dela med dig själv.' };
 
   // Källtexterna hämtas en i taget: de är tunga, och listan ovan bär dem inte.
-  const kallmeta = await hamtaKallor(deck.id);
   const kallor = [];
-  for (const k of kallmeta.slice(0, TAK.kallor)) {
-    const text = await hamtaKalltext(k.id);
-    if (text) kallor.push({ title: k.title, pages: k.pages, chars: k.chars, text });
+  if (kind === 'deck') {
+    const kallmeta = await hamtaKallor(deck.id);
+    for (const k of kallmeta.slice(0, TAK.kallor)) {
+      const text = await hamtaKalltext(k.id);
+      if (text) kallor.push({ title: k.title, pages: k.pages, chars: k.chars, text });
+    }
   }
 
-  const byggd = byggNyttolast(deck, { kallor });
+  const byggd = byggNyttolast(deck, { kallor, kind });
   if (!byggd.ok) return { ok: false, fel: byggd.fel };
   const { nyttolast, bilder } = byggd;
   const tal = sammanfatta(nyttolast);
 
   const { data: id, error } = await supabase.rpc('share_deck', {
     p_recipient_email: till,
+    p_recipient_id: mottagarId,
+    p_kind: nyttolast.kind,
     p_title: nyttolast.title,
     p_card_count: tal.kort + tal.anteckningar,
     p_image_count: tal.bilder,
@@ -204,24 +233,39 @@ function sattAntal(n) {
 export async function uppdateraInkorg() {
   const epost = minEpost();
   if (!delningTillganglig() || !epost) return sattAntal(0);
-  const { count, error } = await supabase
-    .from('deck_shares')
-    .select('id', { count: 'exact', head: true })
-    .eq('recipient_email', epost)
-    .eq('status', 'pending');
+  const fraga = (ny) => {
+    const q = supabase.from('deck_shares').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+    return ny
+      ? q.or(`recipient_email.eq.${citerad(epost)},recipient_id.eq.${getUserId()}`)
+      : q.eq('recipient_email', epost);
+  };
+  let { count, error } = await fraga(true);
+  if (error && saknar0011(error)) ({ count, error } = await fraga(false));
   if (!error) sattAntal(count ?? 0);
 }
+
+const PROFIL = 'id, handle, display_name, avatar_path, updated_at';
 
 /** Delningar som väntar på mig. Utan nyttolasten — den hämtas vid accept. */
 export async function hamtaInkorg() {
   const epost = minEpost();
   if (!delningTillganglig() || !epost) return { ok: true, rader: [] };
-  const { data, error } = await supabase
-    .from('deck_shares')
-    .select('id, sender_email, title, card_count, image_count, source_count, created_at, expires_at')
-    .eq('recipient_email', epost)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+  const fraga = (ny) => {
+    const q = supabase
+      .from('deck_shares')
+      .select(
+        ny
+          ? `id, sender_email, title, card_count, image_count, source_count, created_at, expires_at, kind, sender:profiles!deck_shares_sender_profile_fkey(${PROFIL})`
+          : 'id, sender_email, title, card_count, image_count, source_count, created_at, expires_at'
+      )
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    return ny
+      ? q.or(`recipient_email.eq.${citerad(epost)},recipient_id.eq.${getUserId()}`)
+      : q.eq('recipient_email', epost);
+  };
+  let { data, error } = await fraga(true);
+  if (error && saknar0011(error)) ({ data, error } = await fraga(false));
   if (error) return { ok: false, fel: feltext(error, 'Kunde inte hämta inkorgen.'), rader: [] };
   sattAntal(data?.length ?? 0);
   return { ok: true, rader: data ?? [] };
@@ -230,13 +274,39 @@ export async function hamtaInkorg() {
 /** Delningar jag skickat, nyast först. */
 export async function hamtaSkickade() {
   if (!delningTillganglig()) return { ok: true, rader: [] };
+  const fraga = (ny) =>
+    supabase
+      .from('deck_shares')
+      .select(
+        ny
+          ? `id, recipient_email, title, status, card_count, created_at, expires_at, responded_at, kind, recipient:profiles!deck_shares_recipient_id_fkey(${PROFIL})`
+          : 'id, recipient_email, title, status, card_count, created_at, expires_at, responded_at'
+      )
+      .eq('sender_id', getUserId())
+      .order('created_at', { ascending: false })
+      .limit(100);
+  let { data, error } = await fraga(true);
+  if (error && saknar0011(error)) ({ data, error } = await fraga(false));
+  if (error) return { ok: false, fel: feltext(error, 'Kunde inte hämta skickade delningar.'), rader: [] };
+  return { ok: true, rader: data ?? [] };
+}
+
+/**
+ * Det som delats mellan mig och en annan, åt båda håll, nyast först. För
+ * profilens "Delat mellan er". Kräver 0011: raderna adresseras med id.
+ *
+ * @param {string} userId
+ */
+export async function delningarMed(userId) {
+  if (!delningTillganglig() || !userId) return { ok: true, rader: [] };
+  const mig = getUserId();
   const { data, error } = await supabase
     .from('deck_shares')
-    .select('id, recipient_email, title, status, card_count, created_at, expires_at, responded_at')
-    .eq('sender_id', getUserId())
+    .select('id, kind, title, status, card_count, created_at, responded_at, sender_id, recipient_id')
+    .or(`and(sender_id.eq.${mig},recipient_id.eq.${userId}),and(sender_id.eq.${userId},recipient_id.eq.${mig})`)
     .order('created_at', { ascending: false })
     .limit(100);
-  if (error) return { ok: false, fel: feltext(error, 'Kunde inte hämta skickade delningar.'), rader: [] };
+  if (error) return { ok: false, fel: feltext(error, 'Kunde inte hämta delningarna.'), rader: [] };
   return { ok: true, rader: data ?? [] };
 }
 
@@ -249,11 +319,15 @@ export async function hamtaSkickade() {
  * skickad. Går synken inte igenom just då stannar källorna kvar hos
  * avsändaren — kortleken finns ändå, och det sägs.
  *
+ * En mapp eller ett kort läggs i en av mottagarens egna kortlekar när
+ * `malDeckId` pekar på en; annars, och för hela kortlekar, blir det en ny.
+ *
  * @param {string} delningsId
- * @returns {Promise<{ok: true, deck: object, bilderSaknas: number, kallorSaknas: number, varning: string|null}
+ * @param {{malDeckId?: string|null}} [val]
+ * @returns {Promise<{ok: true, deck: object, sectionId: string|null, ny: boolean, bilderSaknas: number, kallorSaknas: number, varning: string|null}
  *   | {ok: false, fel: string}>}
  */
-export async function acceptera(delningsId) {
+export async function acceptera(delningsId, { malDeckId = null } = {}) {
   if (!delningTillganglig()) return { ok: false, fel: 'Att ta emot kräver ett konto.' };
 
   const { data, error } = await supabase
@@ -272,6 +346,10 @@ export async function acceptera(delningsId) {
     kortId: nyttKortId,
     nu: Date.now(),
   });
+  const kind = prov.varde.kind ?? 'deck';
+  const tillBefintlig = kind !== 'deck' && malDeckId && malDeckId !== NY_KORTLEK;
+  const mal = tillBefintlig ? S.appData.decks.find((d) => d.id === malDeckId) : null;
+  if (tillBefintlig && !mal) return { ok: false, fel: 'Kortleken finns inte längre.' };
 
   // Bilderna, var och en till sin egen mapp hos mottagaren. En som inte går
   // att kopiera lämnar ett kort utan bild — inte en delning utan kortlek.
@@ -290,7 +368,14 @@ export async function acceptera(delningsId) {
 
   // In i biblioteket, och upp i molnet. recordChanges körs direkt i stället
   // för att vänta på saveData:s fördröjning: källorna nedan behöver raden.
-  S.appData.decks.push(deck);
+  let resultat;
+  if (mal) {
+    const { sectionId } = infogaIKortlek(deck, mal, { nyttId, kind });
+    resultat = { deck: mal, sectionId, ny: false };
+  } else {
+    S.appData.decks.push(deck);
+    resultat = { deck, sectionId: null, ny: true };
+  }
   saveData();
   await recordChanges(S.appData);
   const synkad = await sync();
@@ -301,7 +386,7 @@ export async function acceptera(delningsId) {
       kallorSaknas = kallor.length;
     } else {
       for (const k of kallor) {
-        const res = await sparaKalla({ deckId: deck.id, title: k.title, text: k.text, pages: k.pages });
+        const res = await sparaKalla({ deckId: resultat.deck.id, title: k.title, text: k.text, pages: k.pages });
         if (!res.ok) kallorSaknas += 1;
       }
     }
@@ -313,10 +398,10 @@ export async function acceptera(delningsId) {
 
   return {
     ok: true,
-    deck,
+    ...resultat,
     bilderSaknas,
     kallorSaknas,
-    varning: svarsfel ? 'Kortleken är mottagen, men delningen kunde inte märkas som besvarad.' : null,
+    varning: svarsfel ? 'Delningen är mottagen, men kunde inte märkas som besvarad.' : null,
   };
 }
 

@@ -3,6 +3,10 @@ import {
   TAK,
   bildandelse,
   byggNyttolast,
+  delbarMapp,
+  delbartKort,
+  infogaIKortlek,
+  kortTitel,
   packaUpp,
   sammanfatta,
   stagingVag,
@@ -189,5 +193,78 @@ describe('sammanfatta och stagingVag', () => {
 
   it('lägger filen under delningens eget id', () => {
     expect(stagingVag('abc', '0.webp')).toBe('delningar/abc/0.webp');
+  });
+});
+
+describe('sorter: mapp och kort', () => {
+  it('nyttolasten bär sorten, och en hel kortlek är förvalet', () => {
+    expect(byggNyttolast(deck).nyttolast.kind).toBe('deck');
+    expect(byggNyttolast(deck, { kind: 'section' }).nyttolast.kind).toBe('section');
+    expect(byggNyttolast(deck, { kind: 'påhittad' }).nyttolast.kind).toBe('deck');
+  });
+
+  /* Laster från före 0011 saknar fältet; de var alltid hela kortlekar. */
+  it('validera läser sorten och faller tillbaka på deck', () => {
+    const { nyttolast } = byggNyttolast(deck, { kind: 'card' });
+    expect(validera(nyttolast).varde.kind).toBe('card');
+    delete nyttolast.kind;
+    expect(validera(nyttolast).varde.kind).toBe('deck');
+    expect(validera({ ...nyttolast, kind: 'skräp' }).varde.kind).toBe('deck');
+  });
+
+  it('delbarMapp tar mappens kort, utan mapp-pekare och utan andra mappar', () => {
+    const lek = {
+      id: 'd',
+      title: 'Lek',
+      sections: [{ id: 's1', title: 'Grunder' }, { id: 's2', title: 'Annat' }],
+      cards: [
+        { id: 'k1', front: 'a', back: '1', sectionId: 's1' },
+        { id: 'k2', front: 'b', back: '2', sectionId: 's2' },
+        { id: 'k3', front: 'c', back: '3', sectionId: null },
+      ],
+    };
+    const mapp = delbarMapp(lek, lek.sections[0]);
+    expect(mapp.title).toBe('Grunder');
+    expect(mapp.sections).toEqual([]);
+    expect(mapp.cards.map((c) => c.id)).toEqual(['k1']);
+    expect(mapp.cards[0].sectionId).toBeNull();
+    expect(byggNyttolast(mapp, { kind: 'section' }).nyttolast.cards[0].sectionId).toBeNull();
+  });
+
+  it('delbartKort tar ett kort med framsidan som titel', () => {
+    const kort = { id: 'k1', front: '# Vad är **entropi**?', back: 'x', sectionId: 's1' };
+    const ensamt = delbartKort({ id: 'd', title: 'Lek', cards: [kort] }, kort);
+    expect(ensamt.title).toBe('Vad är entropi?');
+    expect(ensamt.cards).toHaveLength(1);
+    expect(ensamt.cards[0].sectionId).toBeNull();
+  });
+
+  it('kortTitel tar bort markdown, kapar och har en reserv', () => {
+    expect(kortTitel({ front: '  `x` = _y_  ' })).toBe('x = y');
+    expect(kortTitel({ front: 'a'.repeat(120) })).toHaveLength(80);
+    expect(kortTitel({ front: 'a'.repeat(120) }).endsWith('…')).toBe(true);
+    expect(kortTitel({})).toBe('Kort');
+  });
+
+  it('infogaIKortlek lägger en mapp med sina kort i leken', () => {
+    let n = 0;
+    const nyttId = () => `ny-${++n}`;
+    const packad = { title: 'Grunder', cards: [{ id: 'k1', front: 'a', back: '1', sectionId: null }] };
+    const mal = { id: 'm', title: 'Mål', sections: [], cards: [{ id: 'gammalt' }] };
+    const { deck, sectionId } = infogaIKortlek(packad, mal, { nyttId, kind: 'section' });
+    expect(deck).toBe(mal);
+    expect(sectionId).toBe('ny-1');
+    expect(mal.sections).toEqual([{ id: 'ny-1', title: 'Grunder' }]);
+    expect(mal.cards.map((c) => c.id)).toEqual(['gammalt', 'k1']);
+    expect(mal.cards[1].sectionId).toBe('ny-1');
+  });
+
+  it('infogaIKortlek lägger ett kort löst, och tål en lek utan listor', () => {
+    const packad = { title: 'Fråga', cards: [{ id: 'k1', front: 'a', back: '1', sectionId: null }] };
+    const mal = { id: 'm', title: 'Mål' };
+    const { sectionId } = infogaIKortlek(packad, mal, { nyttId: () => 'x', kind: 'card' });
+    expect(sectionId).toBeNull();
+    expect(mal.sections).toEqual([]);
+    expect(mal.cards).toEqual([{ id: 'k1', front: 'a', back: '1', sectionId: null }]);
   });
 });

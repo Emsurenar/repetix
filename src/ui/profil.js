@@ -9,6 +9,7 @@
  * Samma vy för ens egen profil: det man ser är exakt det andra ser.
  */
 
+import { delningarMed } from '../core/delning.js';
 import { S } from '../core/state.js';
 import { getUserId } from '../core/supabase.js';
 import {
@@ -20,11 +21,12 @@ import {
   skickaVanforfragan,
   taBortVanskap,
 } from '../core/vanner.js';
-import { initialer, profilRekord, provaProfilstatistik, vanskapsLage } from '../domain/vanner.js';
+import { delningsSort, initialer, profilRekord, provaProfilstatistik, vanskapsLage } from '../domain/vanner.js';
 import { aktivitetskartaHtml, veckorSomFarPlats } from './aktivitetskarta.js';
 import { showConfirmModal } from './modals.js';
 import { switchView } from './router.js';
 import { showToast } from './toast.js';
+import { openDelaModal } from './wiring/dela.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -124,6 +126,7 @@ async function ritaHandlingar(profil) {
     p.textContent = 'Vänner';
     host.append(
       p,
+      knapp('Dela med ' + profilnamn(profil), 'btn primary', () => openDelaModal(null, { mottagare: profil })),
       knapp('Ta bort vän', 'btn text', async (b) => {
         const ok = await showConfirmModal('Ta bort vän', `${profilnamn(profil)} tas bort ur din vänlista. Delningar mellan er påverkas inte.`, 'Ta bort', true);
         if (ok) await kor(b, () => taBortVanskap(rad.id));
@@ -217,6 +220,40 @@ function ritaStatistik(profil) {
   }
 }
 
+const STATUSORD = { preparing: 'förbereds', pending: 'väntar på svar', accepted: 'mottagen', declined: 'nekad' };
+
+/** Det som delats mellan mig och profilen, åt båda håll. */
+async function ritaDelat(profil) {
+  const sektion = el('profil-delat-sektion');
+  const lista = el('profil-delat');
+  if (!sektion || !lista) return;
+  const mig = getUserId();
+  if (profil.id === mig) {
+    sektion.hidden = true;
+    return;
+  }
+  const res = await delningarMed(profil.id);
+  if (visadId !== profil.id) return;
+  lista.innerHTML = '';
+  sektion.hidden = !res.ok || res.rader.length === 0;
+  if (!res.ok) return;
+  for (const r of res.rader) {
+    const li = document.createElement('li');
+    li.className = 'profil-delat-rad';
+    const t = document.createElement('span');
+    t.className = 'profil-delat-titel';
+    t.textContent = r.title;
+    const m = document.createElement('span');
+    m.className = 'profil-delat-meta';
+    const riktning = r.sender_id === mig ? `Du delade ${delningsSort(r.kind)}en` : `${profilnamn(profil)} delade ${delningsSort(r.kind)}en`;
+    const d = new Date(r.created_at);
+    const nar = Number.isNaN(d.getTime()) ? '' : ` · ${d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}`;
+    m.textContent = `${riktning} · ${r.card_count} kort · ${STATUSORD[r.status] ?? r.status}${nar}`;
+    li.append(t, m);
+    lista.appendChild(li);
+  }
+}
+
 /**
  * Öppnar en profil. Vyn visas direkt med det som redan är känt — namnet
  * — och fylls på när svaren kommer.
@@ -243,6 +280,8 @@ export async function openProfil(userId) {
   handlingar.innerHTML = '';
   status.hidden = true;
   innehall.hidden = true;
+  const delat = el('profil-delat-sektion');
+  if (delat) delat.hidden = true;
   S.profilNamn = 'Profil';
   switchView('profil');
 
@@ -265,6 +304,7 @@ export async function openProfil(userId) {
 
   ritaStatistik(profil);
   void ritaHandlingar(profil);
+  void ritaDelat(profil);
 }
 
 export function initUiProfil() {

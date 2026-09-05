@@ -351,6 +351,12 @@
                     <div id="profil-prestationer" class="profil-prestationer"></div>
                 </section>
             </div>
+            <!-- Det som delats mellan er, åt båda håll. Bara på någon
+                 annans profil: med sig själv delar man inget. -->
+            <section class="profil-sektion" id="profil-delat-sektion" hidden aria-labelledby="profil-delat-title">
+                <h2 id="profil-delat-title" class="profil-rubrik">Delat mellan er</h2>
+                <ul id="profil-delat" class="profil-delat"></ul>
+            </section>
         </section>
 
         <!-- View: Add Card Form -->
@@ -1140,10 +1146,25 @@
     <!-- Dela en kortlek. Adressen skrivs; den slås aldrig upp — se 0010. -->
     <div id="modal-dela" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dela-modal-title">
         <div class="modal-content">
-            <h2 id="dela-modal-title">Dela <span id="dela-titel"></span></h2>
+            <h2 id="dela-modal-title">Dela <span id="dela-vad"></span><span id="dela-titel"></span></h2>
             <form id="form-dela">
+                <!-- Kortleken väljs här bara när dialogen öppnats från en
+                     profil; från en kortlek är valet redan gjort. -->
+                <div class="form-group" id="dela-kortlek-rad" hidden>
+                    <label for="dela-kortlek">Kortlek</label>
+                    <span class="select-wrap">
+                        <select id="dela-kortlek" class="field"></select>
+                        <svg width="9" height="6" viewBox="0 0 9 6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1.5L4.5 5L8 1.5" /></svg>
+                    </span>
+                </div>
+                <!-- Vännerna som brickor: ett tryck väljer mottagaren. Raden
+                     döljs för den som inte har några vänner än. -->
+                <div class="form-group" id="dela-vanner-rad" hidden>
+                    <span class="form-label" id="dela-vanner-label">Till en vän</span>
+                    <div id="dela-vanner" class="dela-vanner" role="group" aria-labelledby="dela-vanner-label"></div>
+                </div>
                 <div class="form-group">
-                    <label for="dela-epost">Mottagarens e-post</label>
+                    <label for="dela-epost" id="dela-epost-label">Mottagarens e-post</label>
                     <input type="email" id="dela-epost" autocomplete="email" inputmode="email" required>
                 </div>
                 <!-- En följd, inte en instruktion: vad mottagaren faktiskt får. -->
@@ -1154,6 +1175,26 @@
                     <button type="submit" id="btn-dela" class="btn primary">Dela</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Ta emot en mapp eller ett kort: var ska det in? Sista valet i listan
+         är en ny kortlek med delningens namn. -->
+    <div id="modal-ta-emot" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ta-emot-title">
+        <div class="modal-content">
+            <h2 id="ta-emot-title">Ta emot <span id="ta-emot-titel"></span></h2>
+            <div class="form-group">
+                <label for="ta-emot-kortlek"><span id="ta-emot-vad">Mappen</span> läggs i</label>
+                <span class="select-wrap">
+                    <select id="ta-emot-kortlek" class="field"></select>
+                    <svg width="9" height="6" viewBox="0 0 9 6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1.5L4.5 5L8 1.5" /></svg>
+                </span>
+            </div>
+            <p id="ta-emot-status" class="form-hint dela-status" role="status" hidden></p>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-ta-emot" class="btn text">Avbryt</button>
+                <button type="button" id="btn-ta-emot" class="btn primary">Ta emot</button>
+            </div>
         </div>
     </div>
 

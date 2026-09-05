@@ -24,6 +24,17 @@ export const NYTTOLAST_VERSION = 1;
 export const STAGING_PREFIX = 'delningar';
 
 /**
+ * Vad som delas: en hel kortlek, en mapp ur en, eller ett enda kort. Samma
+ * ögonblicksbild i alla tre fallen — en lek med mappar och kort — sorten
+ * säger bara vad mottagaren erbjuds att göra med den: en kortlek blir en
+ * ny kortlek, en mapp och ett kort läggs i en av mottagarens egna.
+ */
+export const SORTER = new Set(['deck', 'section', 'card']);
+
+/** Värdet som betyder "en ny kortlek" när mottagaren väljer var det ska in. */
+export const NY_KORTLEK = '__ny__';
+
+/**
  * Taken. Samma tal som check-villkoren i migration 0010 där de finns där.
  *
  * `text` gäller ett enskilt fält på ett kort. Tjugo tusen tecken är sju
@@ -88,6 +99,54 @@ export function bildandelse(post) {
 }
 
 /**
+ * Kortets titel när det delas ensamt: framsidan utan markdown, kapad. Det
+ * är vad inkorgen visar och vad en ny kortlek döps till om mottagaren inte
+ * lägger kortet i en befintlig.
+ *
+ * @param {object} card
+ */
+export function kortTitel(card) {
+  const t = str(card?.front)
+    .replace(/[#*_`>[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return (t.length > 80 ? `${t.slice(0, 79)}…` : t) || 'Kort';
+}
+
+/**
+ * En mapp som en delbar lek: mappens titel, inga mappar, mappens kort utan
+ * mapp-pekare. byggNyttolast tar den som vilken lek som helst.
+ *
+ * @param {object} deck
+ * @param {{id: string, title: string}} section
+ */
+export function delbarMapp(deck, section) {
+  return {
+    id: deck?.id,
+    title: trimmad(section?.title, TAK.titel) || 'Mapp',
+    sections: [],
+    cards: (deck?.cards ?? [])
+      .filter((c) => c && c.sectionId === section?.id)
+      .map((c) => ({ ...c, sectionId: null })),
+  };
+}
+
+/**
+ * Ett kort som en delbar lek.
+ *
+ * @param {object} deck
+ * @param {object} card
+ */
+export function delbartKort(deck, card) {
+  return {
+    id: deck?.id,
+    title: kortTitel(card),
+    sections: [],
+    cards: card ? [{ ...card, sectionId: null }] : [],
+  };
+}
+
+/**
  * Bygger nyttolasten för en kortlek.
  *
  * Bilderna ersätts av filnamn i väntområdet: nyttolasten bär aldrig bytes,
@@ -100,11 +159,11 @@ export function bildandelse(post) {
  * vad mottagaren kan.
  *
  * @param {object} deck
- * @param {{kallor?: Array<{title: string, pages?: number, chars?: number, text: string}>}} [alternativ]
+ * @param {{kallor?: Array<{title: string, pages?: number, chars?: number, text: string}>, kind?: string}} [alternativ]
  * @returns {{ok: true, nyttolast: object, bilder: Array<{fran: string, filnamn: string}>}
  *   | {ok: false, fel: string}}
  */
-export function byggNyttolast(deck, { kallor = [] } = {}) {
+export function byggNyttolast(deck, { kallor = [], kind = 'deck' } = {}) {
   const kort = (deck?.cards ?? []).filter((c) => c && typeof c === 'object');
   if (kort.length > TAK.kort) return { ok: false, fel: `En delning kan bära högst ${TAK.kort} kort.` };
   const mappar = deck?.sections ?? [];
@@ -143,6 +202,7 @@ export function byggNyttolast(deck, { kallor = [] } = {}) {
 
   const nyttolast = {
     version: NYTTOLAST_VERSION,
+    kind: SORTER.has(kind) ? kind : 'deck',
     title: trimmad(deck?.title, TAK.titel) || 'Kortlek',
     sections: mappar.map((s) => ({ id: str(s.id), title: trimmad(s.title, TAK.titel) })),
     cards,
@@ -179,6 +239,8 @@ export function validera(nyttolast) {
 
   const title = trimmad(nyttolast.title, TAK.titel);
   if (!title) return misslyckas('Delningen saknar namn.');
+  // Sorten saknas i laster från före 0011; de är hela kortlekar.
+  const kind = SORTER.has(nyttolast.kind) ? nyttolast.kind : 'deck';
 
   const sections = nyttolast.sections;
   if (!Array.isArray(sections) || sections.length > TAK.mappar) {
@@ -250,7 +312,10 @@ export function validera(nyttolast) {
     });
   }
 
-  return { ok: true, varde: { version: NYTTOLAST_VERSION, title, sections: mappar, cards: kort, sources: kallor } };
+  return {
+    ok: true,
+    varde: { version: NYTTOLAST_VERSION, kind, title, sections: mappar, cards: kort, sources: kallor },
+  };
 }
 
 /**
@@ -318,4 +383,29 @@ export function packaUpp(varde, { nyttId, kortId, nu }) {
     bilder,
     kallor: varde.sources.map((k) => ({ ...k })),
   };
+}
+
+/**
+ * Lägger en uppackad mapp eller ett uppackat kort i en av mottagarens egna
+ * kortlekar. En mapp blir en ny mapp med lastens titel och sina kort; ett
+ * kort läggs löst i leken. Kortens id är redan färska, från packaUpp.
+ *
+ * @param {{title: string, cards: object[]}} packad det packaUpp gav
+ * @param {object} mal mottagarens kortlek, muteras
+ * @param {{nyttId: () => string, kind: string}} verktyg
+ * @returns {{deck: object, sectionId: string|null}}
+ */
+export function infogaIKortlek(packad, mal, { nyttId, kind }) {
+  // Listorna garanteras oavsett sort: resten av appen läser deck.sections
+  // och deck.cards utan att fråga om de finns.
+  if (!Array.isArray(mal.sections)) mal.sections = [];
+  if (!Array.isArray(mal.cards)) mal.cards = [];
+  let sectionId = null;
+  if (kind === 'section') {
+    const mapp = { id: nyttId(), title: packad.title };
+    mal.sections.push(mapp);
+    sectionId = mapp.id;
+  }
+  for (const c of packad.cards) mal.cards.push({ ...c, sectionId });
+  return { deck: mal, sectionId };
 }
