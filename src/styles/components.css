@@ -474,7 +474,21 @@ textarea:disabled {
   bottom: calc(100% + var(--s1));
 }
 
-.row-menu-items button {
+/* Menyn vid pekaren (src/ui/kontextmeny.js) delar radmenyns yta och val:
+ * samma kant, samma hörn, samma knappar. Den är fast placerad och får sina
+ * koordinater av skriptet, klippta mot skärmkanten. */
+.kontextmeny {
+  position: fixed;
+  z-index: 70;
+  min-width: 11rem;
+  padding: var(--s1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+.row-menu-items button,
+.kontextmeny button {
   display: flex;
   align-items: center;
   gap: var(--s2);
@@ -491,11 +505,14 @@ textarea:disabled {
   cursor: pointer;
 }
 
-.row-menu-items button:hover {
+.row-menu-items button:hover,
+.kontextmeny button:hover,
+.kontextmeny button:focus-visible {
   background: var(--surface-2);
 }
 
-.row-menu-items button.danger {
+.row-menu-items button.danger,
+.kontextmeny button.danger {
   color: var(--danger);
 }
 

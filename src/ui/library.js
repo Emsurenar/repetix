@@ -11,6 +11,7 @@ import { filterBookshelf, renderSidebar } from './modals-wiring.js';
 import { showConfirmModal, showPromptModal } from './modals.js';
 import { showToast } from './toast.js';
 import { openDelaModal } from './wiring/dela.js';
+import { oppnaKontextmeny } from './kontextmeny.js';
 
 
 /* Menyknappens ikon. Tre punkter i stället för tecknet "⋮": ett glyf som
@@ -96,6 +97,102 @@ export const flyttaTillHylla = (hyllId) => {
     return true;
 };
 
+/**
+ * Kortlekens och anteckningsblockets åtgärder, i menyns ordning.
+ *
+ * En lista och inte fyra lyssnare: samma val nås från kortets tre punkter i
+ * rutnätet och från ett högerklick på raden i sidopanelen, och de två ska
+ * inte kunna glida isär. Klassnamnen står kvar på knapparna för den som
+ * söker efter dem.
+ *
+ * @param {object} item
+ * @param {'deck'|'notebook'} type
+ * @returns {Array<{text: string, klass: string, danger?: boolean, onClick: () => void}>}
+ */
+export const objektAtgarder = (item, type) => {
+    const val = [
+        {
+            text: 'Byt namn',
+            klass: 'btn-item-rename',
+            onClick: async () => {
+                const newName = await showPromptModal(`Nytt namn för ${type === 'deck' ? 'kortleken' : 'anteckningsblocket'}:`, item.title);
+                if (newName && newName.trim()) {
+                    item.title = newName.trim();
+                    saveData();
+                    renderLibrary();
+                    renderSidebar();
+                }
+            },
+        },
+        { text: 'Flytta till bokhylla', klass: 'btn-item-move', onClick: () => openMoveItemModal(item, type) },
+    ];
+    if (type === 'deck') val.push({ text: 'Dela', klass: 'btn-item-share', onClick: () => void openDelaModal(item) });
+    val.push({
+        text: 'Ta bort',
+        klass: 'btn-item-delete',
+        danger: true,
+        onClick: async () => {
+            const confirmMsg = type === 'deck'
+                ? `Är du säker på att du vill radera kortleken "${item.title}" och alla dess kort?`
+                : `Är du säker på att du vill radera anteckningsblocket "${item.title}" och alla dess anteckningar?`;
+            if (!(await showConfirmModal('Radera', confirmMsg, 'Radera', true))) return;
+            if (type === 'deck') {
+                S.appData.decks = S.appData.decks.filter(d => d.id !== item.id);
+            } else {
+                S.appData.notebooks = S.appData.notebooks.filter(n => n.id !== item.id);
+            }
+            saveData();
+            renderLibrary();
+            renderSidebar();
+            showToast(type === 'deck' ? 'Kortleken har raderats' : 'Anteckningsblocket har raderats');
+        },
+    });
+    return val;
+};
+
+/** Bokhyllans åtgärder: samma två i rubrikraden och i sidopanelen. */
+export const hyllAtgarder = (shelf) => [
+    {
+        text: 'Byt namn',
+        klass: 'btn-bookshelf-rename',
+        onClick: async () => {
+            const newTitle = await showPromptModal('Nytt namn för bokhyllan:', shelf.title);
+            if (newTitle && newTitle.trim() !== '') {
+                shelf.title = newTitle.trim();
+                saveData();
+                renderLibrary();
+                renderSidebar();
+                showToast('Bokhyllan har bytt namn');
+            }
+        },
+    },
+    {
+        text: 'Ta bort',
+        klass: 'btn-bookshelf-delete',
+        danger: true,
+        onClick: () => {
+            S.currentBookshelfToDelete = shelf.id;
+            document.getElementById('modal-delete-bookshelf').classList.remove('hidden');
+        },
+    },
+];
+
+/* Menyvalen som knappar, och kopplingen av dem. Knappen bär sitt index så
+ * att lyssnaren hittar rätt val utan att lita på klassnamn. */
+const menyKnappar = (val) =>
+    val
+        .map((a, i) => `<button type="button" class="${a.klass}${a.danger ? ' danger' : ''}" data-atgard="${i}">${escapeHtml(a.text)}</button>`)
+        .join('');
+
+const kopplaMeny = (host, val) => {
+    host.querySelectorAll('[data-atgard]').forEach((knapp) => {
+        knapp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            val[Number(knapp.dataset.atgard)]?.onClick();
+        });
+    });
+};
+
 export const renderLibrary = () => {
     document.getElementById('dagens-mapp-container')?.removeAttribute('hidden');
     renderDagensMapp();
@@ -159,6 +256,7 @@ export const renderLibrary = () => {
         itemEl.draggable = true;
         itemEl.dataset.id = item.id;
         itemEl.dataset.type = type;
+        const atgarder = objektAtgarder(item, type);
 
         if (type === 'deck') {
             const deckCards = item.cards.filter(c => c.type !== 'note');
@@ -168,11 +266,7 @@ export const renderLibrary = () => {
 
             itemEl.innerHTML = `
                 <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
-                ${rowMenu(`Åtgärder för ${item.title}`, `
-                        <button type="button" class="btn-item-rename">Byt namn</button>
-                        <button type="button" class="btn-item-move">Flytta till bokhylla</button>
-                        <button type="button" class="btn-item-share">Dela</button>
-                        <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
+                ${rowMenu(`Åtgärder för ${item.title}`, menyKnappar(atgarder))}
                 <div class="deck-card-foot">
                     <div class="progress" aria-hidden="true">
                         <i class="progress-fill" style="width: ${maturePct}%"></i>
@@ -195,10 +289,7 @@ export const renderLibrary = () => {
 
             itemEl.innerHTML = `
                 <h3 class="deck-card-title">${escapeHtml(item.title)}</h3>
-                ${rowMenu(`Åtgärder för ${item.title}`, `
-                        <button type="button" class="btn-item-rename">Byt namn</button>
-                        <button type="button" class="btn-item-move">Flytta till bokhylla</button>
-                        <button type="button" class="btn-item-delete danger">Ta bort</button>`)}
+                ${rowMenu(`Åtgärder för ${item.title}`, menyKnappar(atgarder))}
                 <div class="deck-card-foot">
                     <div class="deck-card-nums">
                         <span class="deck-card-count num">${total} anteckningar</span>
@@ -212,44 +303,7 @@ export const renderLibrary = () => {
         }
 
 
-        itemEl.querySelector('.btn-item-rename')?.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const newName = await showPromptModal(`Nytt namn för ${type === 'deck' ? 'kortleken' : 'anteckningsblocket'}:`, item.title);
-            if (newName && newName.trim()) {
-                item.title = newName.trim();
-                saveData();
-                renderLibrary();
-                renderSidebar();
-            }
-        });
-
-        itemEl.querySelector('.btn-item-move').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openMoveItemModal(item, type);
-        });
-
-        itemEl.querySelector('.btn-item-share')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            void openDelaModal(item);
-        });
-
-        itemEl.querySelector('.btn-item-delete').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const confirmMsg = type === 'deck'
-                ? `Är du säker på att du vill radera kortleken "${item.title}" och alla dess kort?`
-                : `Är du säker på att du vill radera anteckningsblocket "${item.title}" och alla dess anteckningar?`;
-
-            if (await showConfirmModal('Radera', confirmMsg, 'Radera', true)) {
-                if (type === 'deck') {
-                    S.appData.decks = S.appData.decks.filter(d => d.id !== item.id);
-                } else {
-                    S.appData.notebooks = S.appData.notebooks.filter(n => n.id !== item.id);
-                }
-                saveData();
-                renderLibrary();
-                showToast(type === 'deck' ? 'Kortleken har raderats' : 'Anteckningsblocket har raderats');
-            }
-        });
+        kopplaMeny(itemEl, atgarder);
 
         itemEl.addEventListener('dragstart', (e) => {
             e.stopPropagation();
@@ -488,24 +542,9 @@ const renderShelfMenu = (shelf) => {
         return;
     }
 
-    host.innerHTML = rowMenu(`Åtgärder för ${shelf.title}`, `
-            <button type="button" class="btn-bookshelf-rename">Byt namn</button>
-            <button type="button" class="btn-bookshelf-delete danger">Ta bort</button>`);
-
-    host.querySelector('.btn-bookshelf-rename').addEventListener('click', async () => {
-        const newTitle = await showPromptModal('Nytt namn för bokhyllan:', shelf.title);
-        if (newTitle && newTitle.trim() !== '') {
-            shelf.title = newTitle.trim();
-            saveData();
-            renderLibrary();
-            showToast('Bokhyllan har bytt namn');
-        }
-    });
-
-    host.querySelector('.btn-bookshelf-delete').addEventListener('click', () => {
-        S.currentBookshelfToDelete = shelf.id;
-        document.getElementById('modal-delete-bookshelf').classList.remove('hidden');
-    });
+    const val = hyllAtgarder(shelf);
+    host.innerHTML = rowMenu(`Åtgärder för ${shelf.title}`, menyKnappar(val));
+    kopplaMeny(host, val);
 };
 
 export function initUiLibrary() {
@@ -565,6 +604,35 @@ export function initUiLibrary() {
       e.preventDefault();
       closeRowMenus(meny);
       meny.setAttribute('open', '');
+  });
+
+  /* Sidopanelens rader har ingen radmeny att öppna: de är trettio pixlar
+   * höga och fulla av text. Ett högerklick där öppnar i stället samma val
+   * vid pekaren — kortlekens fyra, hyllans två — så att panelen kan det
+   * rutnätet kan. Lyssnaren sitter på trädet, som överlever omritningarna,
+   * och stoppar händelsen så att dokumentets lyssnare ovan inte också
+   * letar efter en radmeny. */
+  document.getElementById('sidebar-tree')?.addEventListener('contextmenu', (e) => {
+      const rad = e.target.closest?.('[data-deck-id], [data-notebook-id], .sidebar-shelf-item');
+      if (!rad) return;
+
+      let val = null;
+      if (rad.dataset.deckId) {
+          const deck = S.appData.decks.find((d) => d.id === rad.dataset.deckId);
+          if (deck) val = objektAtgarder(deck, 'deck');
+      } else if (rad.dataset.notebookId) {
+          const nb = S.appData.notebooks.find((n) => n.id === rad.dataset.notebookId);
+          if (nb) val = objektAtgarder(nb, 'notebook');
+      } else if (rad.dataset.shelfId) {
+          const shelf = S.appData.bookshelves.find((h) => h.id === rad.dataset.shelfId);
+          if (shelf) val = hyllAtgarder(shelf);
+      }
+      if (!val) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      closeRowMenus(null);
+      oppnaKontextmeny({ x: e.clientX, y: e.clientY, val });
   });
 
   /* Menyn fälls uppåt när det inte finns plats nedåt.
