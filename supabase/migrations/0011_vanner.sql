@@ -132,9 +132,16 @@ declare
   v_till    uuid;
   v_rad     public.friendships%rowtype;
   v_vantar  integer;
+  v_id      uuid;
 begin
   if v_user is null then
     raise exception 'Ingen inloggad användare.' using errcode = '28000';
+  end if;
+
+  -- Den som frågar måste själv gå att se: den tillfrågade ska kunna läsa
+  -- namnet på den som vill bli vän, och profiler utan handtag är osynliga.
+  if not exists (select 1 from public.profiles where id = v_user and handle is not null) then
+    raise exception 'Välj ett användarnamn först.' using errcode = '22023';
   end if;
 
   select id into v_till from public.profiles
@@ -174,8 +181,8 @@ begin
 
   insert into public.friendships (requester_id, addressee_id)
   values (v_user, v_till)
-  returning id into v_rad.id;
-  return v_rad.id;
+  returning id into v_id;
+  return v_id;
 end;
 $$;
 
@@ -284,7 +291,9 @@ create index if not exists idx_deck_shares_recipient_id
 -- Läsa: avsändaren ser sina egna; den adresserade ser dem som väntar; en
 -- vän ser också det hen redan svarat på, så att "delat mellan er" på
 -- profilen kan visa historiken från båda håll. Nyttolasten nollas vid svar,
--- så en besvarad rad bär ändå inget innehåll.
+-- så en besvarad rad bär ändå inget innehåll. En utgången men obesvarad rad
+-- bär den däremot fortfarande — den döljs, annars hade klienten kunnat
+-- läsa lasten och packa upp den fast respond_to_share sedan säger nej.
 drop policy if exists deck_shares_select on public.deck_shares;
 create policy deck_shares_select on public.deck_shares
   for select to authenticated
@@ -298,6 +307,7 @@ create policy deck_shares_select on public.deck_shares
     or (
       recipient_id = (select auth.uid())
       and status <> 'preparing'
+      and (status <> 'pending' or expires_at > now())
     )
   );
 

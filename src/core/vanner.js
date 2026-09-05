@@ -39,7 +39,7 @@ export function vannerTillganglig() {
 function feltext(error, standard) {
   const m = typeof error?.message === 'string' ? error.message : '';
   const kod = error?.code;
-  if (/ingen med det namnet|dig själv|redan vänner|redan skickad|obesvarade förfrågningar|finns inte längre|inte vänner/i.test(m)) {
+  if (/ingen med det namnet|dig själv|redan vänner|redan skickad|obesvarade förfrågningar|finns inte längre|inte vänner|användarnamn först/i.test(m)) {
     return m.replace(/\.?$/, '.');
   }
   if (kod === '23505' || /duplicate key|profiles_handle_unique/i.test(m)) return 'Namnet är upptaget.';
