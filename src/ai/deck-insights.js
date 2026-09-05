@@ -28,17 +28,6 @@ import { showToast } from '../ui/toast.js';
  * tillbaka. */
 const INSIKT_MAX_TOKENS = medTankeutrymme(2000);
 
-const buildDeckCardList = (deck) => {
-    const cards = deck.cards.filter(c => c.type !== 'note');
-    const sections = (deck.sections || []).map(s => s.title);
-    const cardList = cards.map(c => {
-        const sec = c.sectionId ? (deck.sections || []).find(s => s.id === c.sectionId) : null;
-        return `F: ${c.front} | S: ${c.back}${sec ? ` [${sec.title}]` : ''}`;
-    }).join('\n');
-    const sectionInfo = sections.length > 0 ? `\nMappar: ${sections.join(', ')}` : '';
-    return { cards, sections, cardList, sectionInfo };
-};
-
 const renderSuggestionCard = (card, container) => {
     container.innerHTML = `
         <div class="deck-ai-suggestion-card">
@@ -64,7 +53,12 @@ const renderSuggestionCard = (card, container) => {
         ?.addEventListener('click', () => window.refreshSuggestedCard());
 };
 
-const fetchSuggestion = async (deck, info, signal) => {
+/* Förslaget läser ett jämnt urval av leken — högst 120 kort, 200 tecken per
+ * sida — och inte hela listan. En lek på tusen kort skickade tidigare allt,
+ * och kostade i ett anrop vad en veckas repetitioner kostar. Luckan syns i
+ * urvalet: det som saknas saknas oavsett om modellen sett vartannat kort
+ * eller varje. Mappnamnen står per kort, så att svaret kan peka rätt. */
+const fetchSuggestion = async (deck, signal) => {
     const { text, truncated } = await callAIDetailed({
         feature: 'suggest',
         system: `Du är en expert på spaced repetition och pedagogik. Du får en komplett lista med flashcards. Din uppgift: identifiera det kort som saknas mest i kortleken — den fråga som borde finnas men inte gör det. Tänk på:
@@ -81,7 +75,7 @@ Ange också vilken mapp kortet hör hemma i. Använd EXAKT namnet på en befintl
 
 Svara med ENBART ett rent JSON-objekt: {"front": "fråga", "back": "svar", "reasoning": "En mening om varför just detta kort saknas", "section": "mappnamn eller tom sträng"}
 Ingen markdown, inget brus. Skriv kortet på samma språk som de befintliga korten.`,
-        user: `Kortlek: "${deck.title}" (${info.cards.length} kort)${info.sectionInfo}\n\n${info.cardList}`,
+        user: underlagText(deck, { maxKort: 120, maxTecken: 200 }),
         maxTokens: INSIKT_MAX_TOKENS,
         json: true,
         signal,
@@ -160,9 +154,8 @@ export function initAiDeckInsights() {
       (async () => {
           const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
           if (!deck) return;
-          const info = buildDeckCardList(deck);
           try {
-              const card = await fetchSuggestion(deck, info);
+              const card = await fetchSuggestion(deck);
               renderSuggestionCard(card, suggestionContent);
           } catch (e) {
               suggestionContent.innerHTML = `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>`;
@@ -211,10 +204,8 @@ export const generateDeckSuggestion = async () => {
     suggestionContent.innerHTML = '<div class="ai-shimmer"></div>';
     visaInsikt(suggestionBox);
 
-    const info = buildDeckCardList(deck);
-
     try {
-        const card = await fetchSuggestion(deck, info);
+        const card = await fetchSuggestion(deck);
         renderSuggestionCard(card, suggestionContent);
         suggestionBox.classList.add('deck-ai-loaded');
     } catch (e) {

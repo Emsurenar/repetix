@@ -29,6 +29,9 @@ import { populateAddCardSections } from './add-card.js';
                 maxTokens: medTankeutrymme(400),
                 json: true,
                 feature: 'autofolder',
+                // Att välja mapp åt ett kort är klassificering; tänkandet
+                // kostade mer än svaret.
+                effort: 'low',
             });
 
             const result = parseObjekt(text, { truncated });

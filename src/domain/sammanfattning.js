@@ -87,37 +87,45 @@ export function gallra(lagrade, decks) {
   return Object.fromEntries(Object.entries(lagrade ?? {}).filter(([id]) => finns.has(id)));
 }
 
-const klipp = (s) => {
+const klipp = (s, max = MAX_TECKEN_PER_SIDA) => {
   const rad = String(s ?? '').replace(/\s+/g, ' ').trim();
-  return rad.length > MAX_TECKEN_PER_SIDA ? `${rad.slice(0, MAX_TECKEN_PER_SIDA)}…` : rad;
+  return rad.length > max ? `${rad.slice(0, max)}…` : rad;
 };
 
 /**
- * Texten modellen får läsa: titel, mappar och ett jämnt urval av korten.
+ * Texten modellen får läsa: titel, mappar och ett jämnt urval av korten,
+ * varje kort med sin mapp i hakparentes.
  *
  * Jämnt, inte de första åttio: en lek fylls i den ordning ämnet lästes, och
  * de första korten är då bara första kapitlet. Varje sida klipps också —
  * meningen ska säga vad leken handlar om, och för det räcker början av ett
- * svar.
+ * svar. Kortförslaget använder samma urval med rymligare tak: det ska hitta
+ * en lucka, och behöver då se lite mer av varje kort.
  *
  * @param {object} deck
+ * @param {{maxKort?: number, maxTecken?: number}} [tak]
  * @returns {string}
  */
-export function underlagText(deck) {
+export function underlagText(deck, { maxKort = MAX_KORT_I_UNDERLAG, maxTecken = MAX_TECKEN_PER_SIDA } = {}) {
   const kort = underlag(deck);
-  const steg = Math.max(1, kort.length / MAX_KORT_I_UNDERLAG);
+  const steg = Math.max(1, kort.length / maxKort);
   const urval = [];
-  for (let i = 0; i < kort.length && urval.length < MAX_KORT_I_UNDERLAG; i += steg) {
+  for (let i = 0; i < kort.length && urval.length < maxKort; i += steg) {
     urval.push(kort[Math.floor(i)]);
   }
+  const kap = (v) => klipp(v, maxTecken);
+  const mappnamn = new Map((deck?.sections ?? []).map((s) => [s?.id, s?.title]));
 
   const mappar = (deck?.sections ?? []).map((s) => s?.title).filter(Boolean);
   const huvud = [
-    `Titel: ${klipp(deck?.title)}`,
-    mappar.length ? `Mappar: ${mappar.map(klipp).join(', ')}` : '',
+    `Titel: ${kap(deck?.title)}`,
+    mappar.length ? `Mappar: ${mappar.map(kap).join(', ')}` : '',
     `Antal kort: ${kort.length}${urval.length < kort.length ? ` (urval av ${urval.length})` : ''}`,
   ].filter(Boolean);
-  const kortrader = urval.map((c) => `F: ${klipp(c.front)} | S: ${klipp(c.back)}`);
+  const kortrader = urval.map((c) => {
+    const mapp = c.sectionId && mappnamn.get(c.sectionId);
+    return `F: ${kap(c.front)} | S: ${kap(c.back)}${mapp ? ` [${kap(mapp)}]` : ''}`;
+  });
   return [...huvud, '', ...kortrader].join('\n');
 }
 

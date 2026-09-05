@@ -30,15 +30,29 @@ export const fetchAiSort = async (deck) => {
     status.textContent = `Analyserar ${unsortedCards.length} osorterade kort...`;
 
     const existingSections = (deck.sections || []).map(s => s.title);
-    const cardSummaries = unsortedCards.map(c => ({ id: c.id, front: c.front, back: c.back }));
+    /* Sidorna klipps. Ämnet syns i första raderna av ett svar; ett
+     * långformatskort med en essä på baksidan skickade tidigare hela essän
+     * för ett beslut som fattas på titeln. */
+    const klipp = (v, max) => {
+        const t = String(v ?? '').replace(/\s+/g, ' ').trim();
+        return t.length > max ? `${t.slice(0, max)}…` : t;
+    };
+    const cardSummaries = unsortedCards.map(c => ({ id: c.id, front: klipp(c.front, 300), back: klipp(c.back, 200) }));
 
     try {
         const { text, truncated } = await callAIDetailed({
-            system: `Du är en expert på att organisera flashcards i logiska mappar/kategorier. Analysera korten noggrant och gruppera dem i mappar baserat på ämne, tema, eller logisk koppling.\n\nBefintliga mappar i kortleken: ${existingSections.length > 0 ? JSON.stringify(existingSections) : '(inga mappar finns ännu)'}\n\nRegler:\n- Använd befintliga mappar om de passar. Matcha exakt på namn.\n- Skapa nya mappar med tydliga, koncisa namn när inget befintligt passar.\n- Varje kort MÅSTE tilldelas exakt en mapp.\n- Tänk djupt på den bästa grupperingen. Kort som hör ihop tematiskt ska hamna i samma mapp.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar.\n- Mapp-namn ska vara korta och beskrivande.\n\nSvara med ENBART en ren JSON-array:\n[{"cardId": "...", "section": "mappnamn"}]`,
+            system: `Du organiserar flashcards i mappar. Gruppera korten efter ämne och tema; kort som hör ihop ska hamna i samma mapp.\n\nKortleken heter "${deck.title}".\nBefintliga mappar i kortleken: ${existingSections.length > 0 ? JSON.stringify(existingSections) : '(inga mappar finns ännu)'}\n\nRegler:\n- Använd befintliga mappar om de passar. Matcha exakt på namn.\n- Skapa nya mappar med tydliga, koncisa namn när inget befintligt passar.\n- Varje kort MÅSTE tilldelas exakt en mapp.\n- Undvik att skapa för många mappar. Sikta på meningsfulla grupperingar, som en kursbok delar upp sina kapitel.\n- Mappnamn ska vara korta och beskrivande, på samma språk som korten.\n\nSvara med ENBART en ren JSON-array:\n[{"cardId": "...", "section": "mappnamn"}]`,
             user: `Här är korten att sortera:\n${JSON.stringify(cardSummaries)}`,
-            maxTokens: medTankeutrymme(4000),
+            /* Taket följer antalet: ett kort är ungefär trettiofem tokens i
+             * svaret, och ett fast tak på 4000 högg av leken vid hundratalet
+             * kort medan det för tjugo kort var tio gånger för stort. */
+            maxTokens: medTankeutrymme(Math.min(8000, 400 + unsortedCards.length * 35)),
             json: true,
             feature: 'sort',
+            /* Att lägga kort i mappar är klassificering, inte resonemang.
+             * Tänkandet debiteras som utdata; låg ansträngning tar bort
+             * merparten utan att grupperingen blir sämre. */
+            effort: 'low',
         });
 
         // Sorteringen listar {cardId, section}, inte kort — därför den råa

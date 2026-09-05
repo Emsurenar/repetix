@@ -29,6 +29,9 @@ export const fetchDiaryCards = async (diaryText) => {
             maxTokens: medTankeutrymme(4000),
             json: true,
             feature: 'diary',
+            // Dagboken är användarens egen text; korten plockas ur den, som
+            // ur en PDF. Låg ansträngning, av samma skäl som i generatorn.
+            effort: 'low',
         });
 
         // Samma ordningsfel som i topic-generator: vakten stod efter det som

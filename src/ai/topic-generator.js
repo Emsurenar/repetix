@@ -41,9 +41,18 @@ export const fetchCardsByTopic = async (topic, modifier = null, deck = null) => 
     // 1. Gather existing questions to prevent duplicates
     let contextSnippet = "";
     if (deck && deck.cards.length > 0) {
-        const existingFronts = deck.cards.map(c => `- ${c.front}`).join('\n');
-        const sampleCards = deck.cards.slice(-3).map(c => `F: ${c.front} | S: ${c.back}`).join('\n');
-        contextSnippet = `\n\nFöljande frågor finns redan i denna kortlek, du får ABSOLUT INTE skapa dubbletter av dessa eller frågor som är mycket lika dem:\n${existingFronts}\n\nFör att du ska förstå svårighetsgrad och tonaliteten, här är några fullständiga exempel på existerande kort:\n${sampleCards}\n\nDin uppgift är att skapa ${isAuto ? 'ett lämpligt antal' : qty} HELT UNIKA och NYA kort som kompletterar de befintliga!`;
+        /* Frågorna som redan finns, för att slippa dubbletter. Högst
+         * tvåhundra, de senaste: en lek på tusen kort skickade tidigare
+         * tusen rader för varje generering, och de äldsta säger minst om vad
+         * som brukar läggas till nu. Att det finns fler sägs, så att
+         * modellen inte tror att listan är hela leken. */
+        const alla = deck.cards.filter(c => c.type !== 'note');
+        const senaste = alla.slice(-200);
+        const kap = (v) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 160);
+        const existingFronts = senaste.map(c => `- ${kap(c.front)}`).join('\n');
+        const fler = alla.length > senaste.length ? `\n(och ${alla.length - senaste.length} äldre frågor till)` : '';
+        const sampleCards = alla.slice(-3).map(c => `F: ${kap(c.front)} | S: ${kap(c.back)}`).join('\n');
+        contextSnippet = `\n\nFöljande frågor finns redan i denna kortlek, du får ABSOLUT INTE skapa dubbletter av dessa eller frågor som är mycket lika dem:\n${existingFronts}${fler}\n\nFör att du ska förstå svårighetsgrad och tonaliteten, här är några fullständiga exempel på existerande kort:\n${sampleCards}\n\nDin uppgift är att skapa ${isAuto ? 'ett lämpligt antal' : qty} HELT UNIKA och NYA kort som kompletterar de befintliga!`;
     }
 
     /* Källans text hämtas först här, inte när källan valdes: den är hundra
@@ -131,11 +140,13 @@ ${contextSnippet}`;
             maxTokens: medTankeutrymme(3500),
             json: true,
             feature: S.aiGeneratorOptions.sourceType === 'kalla' ? 'kalla-kort' : 'topic',
-            /* Att plocka kort ur en text användaren själv gett är närmare
-             * extraktion än resonemang. Tänkandet debiteras som utdata och är
-             * den största posten vid generering — låg ansträngning skär bort
-             * merparten utan att korten blir sämre. */
-            effort: S.aiGeneratorOptions.sourceType === 'kalla' ? 'low' : undefined,
+            /* Att plocka kort ur en text användaren själv gett — en PDF eller
+             * inklistrade anteckningar — är närmare extraktion än resonemang.
+             * Tänkandet debiteras som utdata och är den största posten vid
+             * generering; låg ansträngning skär bort merparten utan att korten
+             * blir sämre. Ett fritt ämne får däremot tänka: där finns ingen
+             * text att hämta ur, och urvalet är hela uppgiften. */
+            effort: S.aiGeneratorOptions.sourceType === 'topic' ? undefined : 'low',
         });
 
         /* Vakten låg tidigare EFTER fixLatexInCards, som redan hade anropat
