@@ -10,6 +10,7 @@ import { fritextSessionReveal } from '../games/fritext.js';
 import { jeopardyReveal } from '../games/jeopardy.js';
 import { lucktextReveal } from '../games/lucktext.js';
 import { suddenDeathReveal } from '../games/suddendeath.js';
+import { aktivitetskartaHtml, veckorSomFarPlats } from './aktivitetskarta.js';
 import { washStyle } from './wash.js';
 import { transportbandetReveal } from '../games/transportbandet.js';
 import { renderLatex } from './latex.js';
@@ -54,7 +55,6 @@ export const renderPlayground = ({ tona = true } = {}) => {
     const masteredPct = totalCards > 0 ? (masteredCards / totalCards * 100) : 0;
 
     const dueNow = allCards.filter(c => c.nextReviewDate <= now).length;
-    const todayStr = getLocalDateString();
 
     // --- Streak ---
     // Raknas ur repetitionsloggen, inte ur card.lastReviewed. Det gamla sattet
@@ -98,33 +98,15 @@ export const renderPlayground = ({ tona = true } = {}) => {
     const tvaSpalter = window.matchMedia('(min-width: 1100px)').matches;
     const mellanrum = parseFloat(getComputedStyle(document.documentElement).fontSize) * 2;
     const kartbredd = tvaSpalter ? (innehallsbredd - mellanrum) / 2 : innehallsbredd;
-    const veckor = Math.max(12, Math.min(53, Math.floor((kartbredd - 26) / 24) || 12));
-    const heatmapDays = veckor * 7;
-    const heatmapData = [];
-    
-    // Find the Sunday of the current week to align rows to fixed weekdays
-    const nowObj = new Date(now);
-    const todayNum = nowObj.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-    const daysUntilSunday = todayNum === 0 ? 0 : 7 - todayNum;
-    
-    // Use midday of Sunday to avoid any midnight timezone shifts
-    const currentWeekSunday = new Date(nowObj.getFullYear(), nowObj.getMonth(), nowObj.getDate() + daysUntilSunday, 12, 0, 0);
-    
-    for (let i = 0; i < heatmapDays; i++) {
-        const d = new Date(currentWeekSunday.getTime());
-        d.setDate(d.getDate() - (heatmapDays - 1 - i));
-        
-        const dStr = getLocalDateString(d);
-        const isFuture = dStr > todayStr;
-        const count = isFuture ? 0 : (records.dailyCounts?.[dStr] || 0);
-        
-        heatmapData.push({
-            count: count,
-            date: d,
-            isFuture: isFuture
-        });
-    }
-    const heatmapMax = Math.max(1, ...heatmapData.map(cell => cell.count));
+    const veckor = veckorSomFarPlats(kartbredd);
+
+    /* Underlaget är dagsräkningarna ur repetitionsloggen med de äldre
+     * räkningarna invävda — samma tal som streaken räknas ur. Kartan läste
+     * tidigare pg_records rakt av, som gallras efter nittio dagar, medan
+     * kommentaren ovan lovade loggen: efter tre månader stod kartans vänstra
+     * halva tom fast repetitionerna fanns. Ritningen bor i aktivitetskarta.js
+     * och delas med profilen. */
+    const kartaHtml = aktivitetskartaHtml({ dagsrakningar, veckor, tona });
 
     // --- Achievements ---
     const achievementCats = getAchievements(allCards, streak, records);
@@ -204,53 +186,6 @@ export const renderPlayground = ({ tona = true } = {}) => {
             mark: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M2 10h16"/><path d="M2 6.5v7"/><path d="M18 6.5v7"/><path d="M12.5 4.5v11" stroke-width="2.4"/></svg>`,
         },
     ];
-
-    /* Aktivitetskartan ritas i veckokolumner, inte som ett band av 84 rutor.
-     * heatmapData börjar på en måndag och slutar på veckans söndag, så sju i
-     * taget blir exakt en vecka per kolumn. */
-    const weeks = [];
-    for (let i = 0; i < heatmapData.length; i += 7) weeks.push(heatmapData.slice(i, i + 7));
-
-    // Fyra steg, inte en genomskinlighet per tal: en ruta ska gå att placera i
-    // en skala med ögat, inte jamforas pixel mot pixel.
-    const heatLevel = (count) => {
-        if (count <= 0) return '';
-        const del = count / heatmapMax;
-        if (del > 0.75) return ' is-4';
-        if (del > 0.5) return ' is-3';
-        if (del > 0.25) return ' is-2';
-        return ' is-1';
-    };
-
-    const MANADER = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-    /* Kolumnen bär namnet på den månad den går in i: veckan som innehåller en
-     * 1:a ÄR månadens första kolumn. Räknades namnet ur veckans första dag
-     * hoppade en månad som börjar mitt i veckan över en hel kolumn — och den
-     * innevarande månaden fick inget namn alls förrän dess första måndag
-     * passerat. Kartan slutade alltså läsas som en historik som tog slut
-     * någon gång i förrgår: sista etiketten sa "aug" i september. */
-    const manadFor = (vecka) =>
-        MANADER[(vecka.find((c) => c.date.getDate() === 1) ?? vecka[0]).date.getMonth()];
-    /* En etikett per veckokolumn, men namnet skrivs bara ut där månaden
-     * byts — annars upprepas "jun" fyra gånger i rad. Tre etiketter utspridda
-     * med space-between hamnade där jämn fördelning råkade lägga dem och
-     * pekade inte på någon kolumn alls. */
-    const manadsrad = weeks.map((v, i) => {
-        const namn = manadFor(v);
-        return i === 0 || namn !== manadFor(weeks[i - 1]) ? namn : '';
-    });
-
-    const heatCell = (cell) => {
-        const d = cell.date;
-        /* Kartan slutar på idag. Dagarna som återstår av veckan ritas inte —
-         * de såg ut som dagar utan repetitioner, alltså som ett misslyckande
-         * som ännu inte hunnit inträffa. Platsen står kvar osynlig, eftersom
-         * kolumnen är veckans sju rader: tas rutan bort ur DOM:en glider
-         * resten av veckan uppåt och hamnar på fel veckodagsrad. */
-        if (cell.isFuture) return '<i class="heat-cell is-kommande" aria-hidden="true"></i>';
-        const titel = `${d.getDate()}/${d.getMonth() + 1}: ${cell.count} repetitioner`;
-        return `<i class="heat-cell${heatLevel(cell.count)}" title="${titel}"></i>`;
-    };
 
     // Prestationerna. Kategori för kategori, låsta i halvton — de visar vad
     // som finns kvar att göra och ska därför inte gömmas.
@@ -354,20 +289,7 @@ export const renderPlayground = ({ tona = true } = {}) => {
         <div class="arcade-columns">
         <section class="arcade-section arcade-col-aktivitet">
             <h2 class="arcade-heading">Aktivitet</h2>
-            <div class="heat" style="--veckor:${weeks.length}">
-                <div class="heat-months">${manadsrad.map((m) => `<span>${m}</span>`).join('')}</div>
-                <div class="heat-grid">
-                    <div class="heat-days"><span>må</span><span></span><span>on</span><span></span><span>fr</span><span></span><span></span></div>
-                    <div class="heat-cols${tona ? ' is-entering' : ''}">
-                        ${weeks.map((v, i) => `<div class="heat-col" style="--i:${i}">${v.map(heatCell).join('')}</div>`).join('')}
-                    </div>
-                </div>
-                <div class="heat-legend">
-                    <span>mindre</span>
-                    <i class="heat-cell"></i><i class="heat-cell is-1"></i><i class="heat-cell is-2"></i><i class="heat-cell is-3"></i><i class="heat-cell is-4"></i>
-                    <span>mer</span>
-                </div>
-            </div>
+            ${kartaHtml}
         </section>
 
         ${rekord.length ? `
