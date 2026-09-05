@@ -245,6 +245,26 @@ export function profilRekord(stats) {
   ].filter(Boolean);
 }
 
+/**
+ * Repetitionerna de senaste sju dagarna, ur en profils aktivitet: idag och
+ * de sex dagarna före. Det är talet vänlistan jämför på — en vecka är kort
+ * nog att gå att komma ikapp, och lång nog att en ledig dag inte syns.
+ *
+ * @param {Record<string, number>|null|undefined} activity dag → repetitioner
+ * @param {Date} [idag]
+ * @returns {number}
+ */
+export function veckosumma(activity, idag = new Date()) {
+  if (!activity || typeof activity !== 'object') return 0;
+  let summa = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(idag);
+    d.setDate(d.getDate() - i);
+    summa += antal(Number(activity[dagnyckel(d)]));
+  }
+  return summa;
+}
+
 /** Vad en delning kallas i löpande text, efter sort. */
 export function delningsSort(kind) {
   return { section: 'mapp', card: 'kort' }[kind] ?? 'kortlek';

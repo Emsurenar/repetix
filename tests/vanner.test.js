@@ -15,6 +15,7 @@ import {
   provaVisningsnamn,
   sokmonster,
   vanskapsLage,
+  veckosumma,
 } from '../src/domain/vanner.js';
 
 describe('handtag', () => {
@@ -158,6 +159,19 @@ describe('prövning av en mottagen statistikbild', () => {
       { n: 90, l: 'repetitioner totalt' },
     ]);
     expect(profilRekord(null)).toEqual([]);
+  });
+});
+
+describe('veckosumma', () => {
+  it('summerar idag och de sex dagarna före, inget annat', () => {
+    const idag = new Date(2026, 8, 5, 12);
+    const activity = { '2026-09-05': 3, '2026-08-30': 4, '2026-08-29': 100, '2026-09-06': 50 };
+    expect(veckosumma(activity, idag)).toBe(7);
+  });
+
+  it('tål tomt och skräp', () => {
+    expect(veckosumma(undefined)).toBe(0);
+    expect(veckosumma({ '2026-09-05': 'x' }, new Date(2026, 8, 5, 12))).toBe(0);
   });
 });
 

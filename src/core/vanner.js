@@ -243,6 +243,23 @@ export async function hamtaVanskaper() {
   return { ok: true, rader };
 }
 
+/**
+ * Vännernas profiler med statistikbild, för veckolistan. En fråga för alla:
+ * profilerna med handtag är läsbara för varje inloggad, så det behövs
+ * ingen funktion på servern.
+ *
+ * @param {string[]} ids
+ */
+export async function hamtaProfiler(ids) {
+  if (!vannerTillganglig() || !ids?.length) return { ok: true, rader: [] };
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, handle, display_name, avatar_path, updated_at, stats, stats_updated_at')
+    .in('id', ids.slice(0, 200));
+  if (error) return { ok: false, fel: feltext(error, 'Kunde inte hämta vännernas statistik.'), rader: [] };
+  return { ok: true, rader: data ?? [] };
+}
+
 /** Skickar en förfrågan till ett handtag. Kan bli ett ja, se 0011. */
 export async function skickaVanforfragan(handle) {
   if (!vannerTillganglig()) return { ok: false, fel: 'Kräver ett konto.' };

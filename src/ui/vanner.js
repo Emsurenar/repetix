@@ -9,15 +9,17 @@ import { S } from '../core/state.js';
 import { getUserId } from '../core/supabase.js';
 import {
   accepteraVanforfragan,
+  hamtaProfiler,
   hamtaVanskaper,
   minProfil,
   onVannerChange,
+  raknaStatistik,
   skickaVanforfragan,
   sokProfiler,
   taBortVanskap,
   vannerTillganglig,
 } from '../core/vanner.js';
-import { denAndra } from '../domain/vanner.js';
+import { denAndra, provaProfilstatistik, veckosumma } from '../domain/vanner.js';
 import { fokusera } from './fokus.js';
 import { avatarNod, openProfil, profilnamn } from './profil.js';
 import { switchView } from './router.js';
@@ -25,8 +27,11 @@ import { showToast } from './toast.js';
 
 const el = (id) => document.getElementById(id);
 
-/** En rad: bild, namn och handtag, handlingar till höger. Raden öppnar profilen. */
-function rad(profil, handlingar = []) {
+/**
+ * En rad: bild, namn och handtag, handlingar till höger. Raden öppnar
+ * profilen. `meta` är en tyst rad under namnet — veckans tal i vänlistan.
+ */
+function rad(profil, handlingar = [], meta = '') {
   const li = document.createElement('li');
   li.className = 'vanner-rad';
 
@@ -44,6 +49,12 @@ function rad(profil, handlingar = []) {
   handtag.className = 'vanner-handtag num';
   handtag.textContent = profil?.handle ? `@${profil.handle}` : '';
   text.append(namn, handtag);
+  if (meta) {
+    const m = document.createElement('span');
+    m.className = 'vanner-meta';
+    m.textContent = meta;
+    text.appendChild(m);
+  }
   oppna.appendChild(text);
   oppna.addEventListener('click', () => openProfil(profil.id));
 
@@ -131,10 +142,41 @@ export async function renderVanner() {
   const vanner = vanskaper.rader
     .filter((r) => r.status === 'accepted')
     .map((r) => denAndra(r, mig))
-    .filter(Boolean)
-    .sort((a, b) => profilnamn(a).localeCompare(profilnamn(b), 'sv'));
-  if (!vanner.length) lista.appendChild(tomRad('Inga vänner än. Sök på ett användarnamn ovanför.'));
-  for (const p of vanner) lista.appendChild(rad(p));
+    .filter(Boolean);
+  if (!vanner.length) {
+    lista.appendChild(tomRad('Inga vänner än. Sök på ett användarnamn ovanför.'));
+    return;
+  }
+
+  /* Veckans tal per vän, ur profilernas statistikbilder, och ens egna ur
+   * biblioteket. Listan sorteras på veckan: det är en jämförelse man kan
+   * göra något åt i kväll, inte en rangordning för alltid. En vän utan
+   * publicerad statistik står sist, utan tal. */
+  const { rader: profiler } = await hamtaProfiler(vanner.map((p) => p.id));
+  if (S.currentViewName !== 'vanner') return;
+  const statistik = new Map(profiler.map((p) => [p.id, provaProfilstatistik(p.stats)]));
+  const metaFor = (stats) => {
+    if (!stats) return 'Ingen statistik publicerad än';
+    const vecka = veckosumma(stats.activity);
+    const delar = [`${vecka.toLocaleString('sv-SE')} kort senaste veckan`];
+    if (stats.streak > 0) delar.push(`${stats.streak} dagars streak`);
+    return delar.join(' · ');
+  };
+  const veckaFor = (id) => {
+    const st = statistik.get(id);
+    return st ? veckosumma(st.activity) : -1;
+  };
+  vanner.sort((a, b) => veckaFor(b.id) - veckaFor(a.id) || profilnamn(a).localeCompare(profilnamn(b), 'sv'));
+
+  const egna = egen.ok && egen.profil ? egen.profil : null;
+  if (egna) {
+    const mina = raknaStatistik();
+    const minRad = rad(egna, [], metaFor(provaProfilstatistik(mina)));
+    minRad.classList.add('is-jag');
+    minRad.querySelector('.vanner-namn').textContent = `${profilnamn(egna)} (du)`;
+    lista.appendChild(minRad);
+  }
+  for (const p of vanner) lista.appendChild(rad(p, [], metaFor(statistik.get(p.id))));
 }
 
 async function sok(q) {

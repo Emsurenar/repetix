@@ -156,6 +156,18 @@
   color: var(--text-3);
 }
 
+#view-vanner .vanner-meta {
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* Ens egen rad överst i veckolistan: samma rad, lyft en yta, så att
+ * jämförelsen har en utgångspunkt utan att raden ser ut som en vän. */
+#view-vanner .vanner-rad.is-jag {
+  background: var(--surface-2);
+}
+
 #view-vanner .vanner-handlingar {
   display: flex;
   flex: 0 0 auto;
@@ -476,7 +488,19 @@
     flex: 1 1 100%;
   }
 
-  #view-vanner .vanner-handlingar {
+  #view-vanner .vanner-meta {
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* Ens egen rad överst i veckolistan: samma rad, lyft en yta, så att
+ * jämförelsen har en utgångspunkt utan att raden ser ut som en vän. */
+#view-vanner .vanner-rad.is-jag {
+  background: var(--surface-2);
+}
+
+#view-vanner .vanner-handlingar {
     flex: 1 1 100%;
     justify-content: flex-end;
   }
