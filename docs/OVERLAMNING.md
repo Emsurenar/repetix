@@ -591,16 +591,44 @@ tillbaka på den gamla kolumnuppsättningen och visar taket som saknat i ställe
 för att låta hela svaret falla bort — det senare hade gjort att en riktig
 leverantör och modell ersattes av standardvärden i gränssnittet.
 
-#### Kvar innan öppen registrering
+#### Vänner, profiler och delning med vänner — klart i koden (2026-09-05)
+
+Migration `0011_vanner.sql` och fem moduler: `domain/vanner.js` (rent, 38
+påståenden), `core/vanner.js` (Supabase), `ui/vanner.js`, `ui/profil.js`
+och `ui/aktivitetskarta.js` (kartan, bruten ur Spelhallen och delad med
+profilen). Delningen fick sorter (kortlek, mapp, kort) och mottagare per id.
+
+- **Profilen syns när den fått ett handtag.** `profiles` från 0001 släppte
+  bara igenom den egna raden; 0011 lägger en select-policy för rader med
+  `handle`. E-posten finns inte i raden. Bild i den publika hinken
+  `avatars`, nedskalad till 256 px i webbläsaren, en fil per konto.
+- **Statistiken är en ögonblicksbild** i `profiles.stats`, skriven av
+  ägarens klient efter varje lyckad synk när talen ändrats (signatur i
+  localStorage). Samma funktioner som Spelhallen. Radnivåsäkerheten på
+  korten, lekarna och loggen rörs inte. Talen går att förfalska av den som
+  redigerar sin egen rad — det är att ljuga om sin streak, inget mer.
+- **Vänskaper**: en rad per par, `pending` eller `accepted`, skrivs genom
+  `send_friend_request(handle)` och `accept_friend_request(id)`; en
+  förfrågan i motsatt riktning blir ett ja. Båda parter får ta bort raden.
+  `ar_vanner(a, b)` används av `share_deck`.
+- **Delning med vän** kräver accepterad vänskap (servern kontrollerar).
+  Inkorgens frågor ställs i ny form och faller tillbaka på 0010:s när
+  kolumnen eller relationen saknas, så adressdelning fungerar utan 0011.
+- **Verifierat**: syntax med JavaScriptCore (maskinen saknar Node), domänen
+  med jsc-körningar av testfilerna. **Inte verifierat**: ingen sida är
+  öppnad i webbläsare, och 0011 är inte körd mot något projekt. Första
+  körningen bör vara: kör 0011, ta ett handtag under Inställningar → Profil,
+  ladda upp en bild, sök på handtaget från ett andra konto, skicka en
+  förfrågan, acceptera, dela en mapp, ta emot den i en befintlig lek.
 
 #### Lanseringschecklista — kräver ägaren
 
-1. Kör migration `0003` till och med `0010` i Supabases SQL Editor, i
+1. Kör migration `0003` till och med `0011` i Supabases SQL Editor, i
    nummerordning. Hoppa inte över någon: `0004` failar stängt och stoppar
    AI-anropen, `0007` är det enda som skapar `ai_usage`, `0008` källorna,
-   `0009` gratismodellen och `0010` delningen. **0010 är inte körd**
-   (2026-09-02) — utan den svarar delningsdialogen att databasen saknar
-   funktionen.
+   `0009` gratismodellen, `0010` delningen och `0011` vännerna. **0010 och
+   0011 är inte körda** (2026-09-05) — utan dem svarar delningsdialogen och
+   Vänner att databasen saknar funktionen.
 2. Verifiera RLS i det **körda** projektet, inte bara i filerna:
    `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r';`
    och `select tablename, policyname, cmd from pg_policies where schemaname in ('public','storage');`

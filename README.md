@@ -37,12 +37,20 @@ English so the repository can be read without it.
   append-only.
 - **Accounts and cloud sync** — Supabase Postgres with row-level security on
   every table, so the barrier sits in the database rather than in client code.
-- **Share a deck** with another account by e-mail address. The recipient sees
-  it in an in-app inbox and accepts or declines; accepting gives them their own
-  copy — cards, folders, images and source documents, with fresh ids and a
-  clean review state. No address lookup, no e-mail sent, no exceptions in the
-  row-level security: the snapshot travels in its own table and a staging
-  prefix in the image bucket.
+- **Friends and profiles.** Pick a handle and a picture, find people by
+  handle, send and accept friend requests. A profile shows cards, decks,
+  mastered cards, reviews, streak, records, achievements and half a year of
+  activity — numbers the owner's own client publishes as a snapshot, so
+  nobody ever reads anyone else's rows.
+- **Share a deck, a folder or a single card** with a friend or with an e-mail
+  address. The recipient sees it in an in-app inbox and accepts or declines;
+  a deck becomes their own copy — cards, folders, images and source documents,
+  with fresh ids and a clean review state — while a folder or a card is put
+  into a deck of their choosing. Friends appear as suggestions in the share
+  dialog, and a friend's profile lists what the two of you have shared. No
+  address lookup, no e-mail sent, no exceptions in the row-level security:
+  the snapshot travels in its own table and a staging prefix in the image
+  bucket.
 - **Markdown and LaTeX** on both sides of a card; KaTeX loads only when a card
   actually contains maths.
 - **Eight practice modes**, images on cards, and in-app account deletion.
@@ -82,7 +90,9 @@ The free tier is enough.
    optional — the rate limiter fails closed, so without it `/api/ai` answers
    `503`. Read the comment at the top of `0005` and run its check query first.
    `0010` adds deck sharing; without it the share dialog reports that the
-   database lacks the function.
+   database lacks the function. `0011` adds friends, profiles, profile
+   pictures (a public `avatars` bucket) and sharing with friends; without it
+   the Vänner view reports the same, and sharing keeps working by address.
 3. **Auth.** Email + password sign-up is open. **Turn on email confirmation
    before letting strangers register** — rate limits count per user, so without
    friction at sign-up an attacker just makes more accounts. *Sign in with

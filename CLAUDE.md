@@ -112,8 +112,12 @@ beskriva vad en sak är, inte för att den ska se annorlunda ut.
   Gå alltid genom `fokusera()` i `src/ui/fokus.js`; anropa aldrig `.focus()`
   på ett fält direkt.
 - **Högerklick på en rad öppnar dess radmeny** (`contextmenu` i
-  `src/ui/library.js`), på samma plats som de tre punkterna. Fält, länkar och
-  verktygsradens AI-meny lämnas åt systemets egen meny.
+  `src/ui/library.js`), på samma plats som de tre punkterna. I sidopanelen,
+  som saknar radmenyer, öppnas samma val vid pekaren (`src/ui/kontextmeny.js`).
+  Fält och länkar lämnas åt systemets egen meny.
+- **Kortlekens verktygsrad är tre knappar**: Nytt kort, Ny mapp, AI. De fyra
+  AI-verktygen ligger i en remsa som fälls ut under raden, likadant med mus
+  och finger. Lägg inte tillbaka verktyg i raden.
 - **En radmeny som hänger ut över nästa kort** måste lyfta sitt kort
   (`z-index` på `:has(.row-menu[open])`). Ett kort med transform är en egen
   stackningskontext, och menyn täcks annars av syskonet efter.
@@ -147,13 +151,22 @@ utkorg.
   som visas efter svaret och ingår aldrig i bedömningen.
 - **En delad kortlek är en kopia**, aldrig en levande delning. Delningen är
   en ögonblicksbild i `deck_shares` (migration 0010), adresserad till en
-  e-postadress som aldrig slås upp. Bilderna väntar under `delningar/<id>/` i
-  hinken. Mottagaren får färska id:n på allt — nyttolasten litas aldrig på.
-  Radnivåsäkerheten på innehållstabellerna har inga undantag.
+  e-postadress som aldrig slås upp — eller, sedan 0011, till en väns id, som
+  bara en accepterad vän får skicka till. Sorten (`kind`: deck, section,
+  card) säger vad mottagaren erbjuds göra med lasten. Bilderna väntar under
+  `delningar/<id>/` i hinken. Mottagaren får färska id:n på allt —
+  nyttolasten litas aldrig på. Radnivåsäkerheten på innehållstabellerna har
+  inga undantag.
+- **Profilens statistik är en ögonblicksbild** som ägarens egen klient
+  publicerar i `profiles.stats` efter synk (`src/core/vanner.js`). Ingen
+  läser någon annans kort, lekar eller logg — regeln `user_id = auth.uid()`
+  gäller utan undantag. En profil syns för andra först när den fått ett
+  handtag. Profilbilder ligger i den publika hinken `avatars`.
 
-Migrationer körs manuellt i Supabases SQL Editor, i ordning. **0010 är inte
-körd** (2026-09-02): utan den svarar delningen "Databasen saknar
-delningsfunktionen".
+Migrationer körs manuellt i Supabases SQL Editor, i ordning. **0010 och 0011
+är inte körda** (2026-09-05): utan 0010 svarar delningen "Databasen saknar
+delningsfunktionen", utan 0011 svarar Vänner detsamma och delning till vän
+och av mappar/kort faller tillbaka på 0010:s form.
 
 ## Regler
 
