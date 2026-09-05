@@ -453,15 +453,32 @@ function renderaNyckelguide(providerId) {
   if (!innehall) return;
 
   rubrik.textContent = `Så skaffar du en nyckel hos ${providerLabel(providerId)}`;
-  kropp.innerHTML = `
-    <ol class="key-guide-steg">${innehall.steg.map((steg) => `<li>${escapeHtml(steg)}</li>`).join('')}</ol>
-    <p class="set-hint">${escapeHtml(innehall.format)}</p>
-    <div class="key-guide-lankar">${innehall.lankar
-      .map(
-        (l) =>
-          `<a class="btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>`
-      )
-      .join('')}</div>`;
+
+  const del = (namn, inre) => `<section class="key-guide-del"><h3 class="key-guide-rubrik">${namn}</h3>${inre}</section>`;
+  const lank = (l) =>
+    `<a class="btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>`;
+
+  kropp.innerHTML = [
+    del(
+      'Det här behöver du',
+      `<ul class="key-guide-lista">${innehall.behover.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul>`
+    ),
+    del(
+      'Steg för steg',
+      `<ol class="key-guide-steg">${innehall.steg
+        .map((steg) => `<li><strong>${escapeHtml(steg.rubrik)}</strong><span>${escapeHtml(steg.text)}</span></li>`)
+        .join('')}</ol>`
+    ),
+    del('Vad det kostar', `<p class="key-guide-text">${escapeHtml(innehall.kostnad)}</p>`),
+    del(
+      'Om det inte fungerar',
+      `<dl class="key-guide-problem">${innehall.problem
+        .map((p) => `<dt>${escapeHtml(p.rubrik)}</dt><dd>${escapeHtml(p.text)}</dd>`)
+        .join('')}</dl>`
+    ),
+    `<p class="set-hint">${escapeHtml(innehall.format)}</p>`,
+    `<div class="key-guide-lankar">${innehall.lankar.map(lank).join('')}</div>`,
+  ].join('');
 }
 
 /**

@@ -229,6 +229,30 @@
   border-top: 1px solid var(--line);
 }
 
+/* Fyra delar med var sin liten versalrubrik, samma rubrikform som inkorgens
+ * sektioner. Guiden är en artikel i miniatyr, och en artikel utan
+ * mellanrubriker läses inte — den skummas och stängs. */
+#view-settings .key-guide-body {
+  gap: var(--s4);
+}
+
+#view-settings .key-guide-del {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+#view-settings .key-guide-rubrik {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+#view-settings .key-guide-lista,
 #view-settings .key-guide-steg {
   display: grid;
   gap: var(--s2);
@@ -240,9 +264,43 @@
 }
 
 /* Siffran i datatypsnittet, som alla andra tal i appen. */
-#view-settings .key-guide-steg li::marker {
+#view-settings .key-guide-steg li::marker,
+#view-settings .key-guide-lista li::marker {
   font-family: var(--font-data);
   color: var(--text-3);
+}
+
+/* Varje steg är en rubrik och ett stycke: rubriken säger vad steget är, så
+ * att den som redan gjort det kan hoppa över stycket. */
+#view-settings .key-guide-steg li strong {
+  display: block;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+#view-settings .key-guide-text {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+#view-settings .key-guide-problem {
+  display: grid;
+  gap: var(--s1);
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+}
+
+#view-settings .key-guide-problem dt {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+#view-settings .key-guide-problem dd {
+  margin: 0 0 var(--s2);
+  color: var(--text-2);
 }
 
 #view-settings .key-guide-lankar {
