@@ -28,6 +28,7 @@ import { renderSidebar } from '../ui/modals-wiring.js';
 import { showConfirmModal } from '../ui/modals.js';
 import { onViewChange } from '../ui/router.js';
 import { showToast } from '../ui/toast.js';
+import { publiceraStatistik, uppdateraVanantal } from '../core/vanner.js';
 
 /** Säkerhetskopia av lokal data som inte migrerades. Raderas aldrig automatiskt. */
 const LOCAL_BACKUP_KEY = 'repetix_lokal_data_innan_molnet';
@@ -63,7 +64,13 @@ export async function initCloud() {
   // Inkorgen räknas om i synkens takt: en delning som kommit sedan sist
   // syns inom en minut, utan en egen klocka.
   onSyncChange((state) => {
-    if (state.status === 'idle' && state.lastSyncedAt) void uppdateraInkorg();
+    if (state.status !== 'idle' || !state.lastSyncedAt) return;
+    void uppdateraInkorg();
+    void uppdateraVanantal();
+    /* Profilens statistik följer synken av samma skäl: den ska vara lika
+     * färsk som biblioteket i molnet, och den skrivs bara när talen
+     * ändrats — se signaturen i core/vanner.js. */
+    void publiceraStatistik();
   });
   // Nar anvandaren lamnar en repetition eller stanger en modal ar det tryggt
   // att byta in andringar som skjutits upp.
@@ -238,6 +245,8 @@ function updateAccountButton() {
   // Inkorgen finns bara med konto: utan moln finns ingen att få något av.
   const inkorg = document.getElementById('btn-open-inkorg');
   if (inkorg) inkorg.hidden = !getUserId();
+  const vanner = document.getElementById('btn-open-vanner');
+  if (vanner) vanner.hidden = !getUserId();
 
   const btn = document.getElementById('btn-account');
   if (!btn) return;

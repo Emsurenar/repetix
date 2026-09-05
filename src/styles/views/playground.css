@@ -82,23 +82,26 @@
  * räknebara rutor. Den står till vänster som allt annat i vyn, men får inte
  * mer bredd än sina veckor kräver. Antalet veckor räknas i vyn ur den plats
  * som finns. */
-#view-playground .heat {
+.heat {
   display: inline-flex;
   flex-direction: column;
   gap: var(--s3);
 }
 
+/* Kartans regler är inte scopade till Spelhallen: profilen ritar samma
+ * karta med samma klasser (src/ui/aktivitetskarta.js), och .heat är ett
+ * namn ingen annan använder. */
 /* Månaden står vid sin egen första kolumn. Med space-between hamnade
  * etiketterna där jämn fördelning råkade lägga dem, inte där månaden
  * började — "aug" satt längst till höger utan att peka på något. */
-#view-playground .heat-months {
+.heat-months {
   display: grid;
   /* Kolumnantalet sätts av vyn, som vet hur många veckor som fick plats. */
   grid-template-columns: repeat(var(--veckor, 12), 24px);
   padding-left: 26px;
 }
 
-#view-playground .heat-months span {
+.heat-months span {
   font-family: var(--font-data);
   font-size: var(--t-micro);
   letter-spacing: 0.06em;
@@ -108,19 +111,19 @@
   white-space: nowrap;
 }
 
-#view-playground .heat-grid {
+.heat-grid {
   display: flex;
   gap: var(--s2);
 }
 
-#view-playground .heat-days {
+.heat-days {
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 18px;
 }
 
-#view-playground .heat-days span {
+.heat-days span {
   height: 19px;
   font-family: var(--font-data);
   font-size: 10px;
@@ -128,18 +131,18 @@
   color: var(--text-3);
 }
 
-#view-playground .heat-cols {
+.heat-cols {
   display: flex;
   gap: 5px;
 }
 
-#view-playground .heat-col {
+.heat-col {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-#view-playground .heat-cell {
+.heat-cell {
   display: block;
   width: 19px;
   height: 19px;
@@ -150,20 +153,20 @@
 /* Dagen som inte varit. Osynlig i stället för borttagen: rutan håller sin
  * plats i veckokolumnen, så att veckodagsraderna står kvar där etiketterna
  * pekar. Sista synliga rutan är därmed alltid idag. */
-#view-playground .heat-cell.is-kommande {
+.heat-cell.is-kommande {
   visibility: hidden;
 }
 
-#view-playground .heat-cell.is-1 {
+.heat-cell.is-1 {
   background: var(--heat-1);
 }
-#view-playground .heat-cell.is-2 {
+.heat-cell.is-2 {
   background: var(--heat-2);
 }
-#view-playground .heat-cell.is-3 {
+.heat-cell.is-3 {
   background: var(--heat-3);
 }
-#view-playground .heat-cell.is-4 {
+.heat-cell.is-4 {
   background: var(--heat-4);
 }
 
@@ -183,25 +186,25 @@
   }
 }
 
-#view-playground .heat-cols.is-entering .heat-col {
+.heat-cols.is-entering .heat-col {
   animation: heat-in var(--dur-2) var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * var(--dur-1) / 6);
 }
 
-#view-playground .heat-legend {
+.heat-legend {
   display: flex;
   align-items: center;
   gap: var(--s2);
   padding-left: 22px;
 }
 
-#view-playground .heat-legend span {
+.heat-legend span {
   font-family: var(--font-data);
   font-size: 10px;
   color: var(--text-3);
 }
 
-#view-playground .heat-legend .heat-cell {
+.heat-legend .heat-cell {
   width: 10px;
   height: 10px;
   border-radius: 2px;
@@ -581,7 +584,7 @@
 }
 
 @media (max-width: 600px) {
-  #view-playground .heat {
+  .heat {
     overflow-x: auto;
   }
 

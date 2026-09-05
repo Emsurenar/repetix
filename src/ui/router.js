@@ -5,6 +5,7 @@ import { renderLibrary } from './library.js';
 import { renderSidebar } from './modals-wiring.js';
 import { openDeck, openNotebook } from './deck.js';
 import { renderPlayground } from './playground.js';
+import { openVanner } from './vanner.js';
 
 
 // Lyssnare pa vybyte. Molnlagret anvander detta for att veta nar appen ar i
@@ -107,6 +108,12 @@ export const switchView = (viewName, sectionId = null) => {
         updateBreadcrumb([lib, { label: 'Klart!' }]);
     } else if (viewName === 'inkorg') {
         updateBreadcrumb([lib, { label: 'Inkorg' }]);
+    } else if (viewName === 'vanner') {
+        updateBreadcrumb([lib, { label: 'Vänner' }]);
+    } else if (viewName === 'profil') {
+        // Namnet sätts av profilvyn innan den byter hit; utan det står
+        // platshållaren tills svaret kommit, och byts då ut.
+        updateBreadcrumb([lib, { label: 'Vänner', action: () => openVanner() }, { label: S.profilNamn || 'Profil' }]);
     } else if (viewName === 'playground') {
         updateBreadcrumb([lib, { label: 'Spelhallen' }]);
         // Ensure playground content is rendered even if called without openPlayground()

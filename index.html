@@ -106,6 +106,12 @@
                 <span class="sidebar-item-name">Inkorg</span>
                 <span id="inkorg-count" class="sidebar-count num is-zero">0</span>
             </button>
+            <!-- Vännerna. Talet är förfrågningar som väntar på svar. -->
+            <button type="button" id="btn-open-vanner" class="sidebar-item" hidden>
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="5.2" cy="4.6" r="2.2"/><path d="M1.2 12.2a4 4 0 0 1 8 0"/><circle cx="10" cy="5.2" r="1.7"/><path d="M9.6 9.2a3.2 3.2 0 0 1 3.2 3"/></svg>
+                <span class="sidebar-item-name">Vänner</span>
+                <span id="vanner-count" class="sidebar-count num is-zero">0</span>
+            </button>
             <button type="button" id="btn-open-settings" class="sidebar-item">
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M1.5 3.5h11"/><path d="M1.5 10.5h11"/><circle cx="5" cy="3.5" r="1.7"/><circle cx="9.5" cy="10.5" r="1.7"/></svg>
                 <span class="sidebar-item-name">Inställningar</span>
@@ -282,6 +288,69 @@
                 <h2 id="inkorg-skickade-title" class="inkorg-rubrik">Skickade</h2>
                 <ul id="inkorg-skickade" class="inkorg-lista"></ul>
             </section>
+        </section>
+
+        <!-- View: Vänner -->
+        <section id="view-vanner" class="view hidden" aria-labelledby="vanner-title">
+            <div class="view-header">
+                <h1 id="vanner-title">Vänner</h1>
+            </div>
+            <!-- Utan användarnamn kan ingen hitta en. En följd med vägen dit,
+                 inte en instruktion om hur man använder sidan. -->
+            <p id="vanner-namnlos" class="vanner-notis" hidden>
+                <span>Du har inget användarnamn än, så ingen kan hitta dig.</span>
+                <button type="button" id="btn-vanner-till-profil" class="btn">Välj ett i Inställningar</button>
+            </p>
+            <section class="vanner-sektion" aria-labelledby="vanner-sok-title">
+                <h2 id="vanner-sok-title" class="vanner-rubrik">Hitta någon</h2>
+                <form id="form-vanner-sok" class="vanner-sokrad">
+                    <input type="search" id="vanner-sok" placeholder="@användarnamn" autocomplete="off" spellcheck="false" autocapitalize="none" aria-label="Användarnamn att söka på">
+                    <button type="submit" class="btn primary">Sök</button>
+                </form>
+                <ul id="vanner-traffar" class="vanner-lista"></ul>
+            </section>
+            <section class="vanner-sektion" id="vanner-forfragningar-sektion" hidden aria-labelledby="vanner-forfragningar-title">
+                <h2 id="vanner-forfragningar-title" class="vanner-rubrik">Förfrågningar</h2>
+                <ul id="vanner-forfragningar" class="vanner-lista"></ul>
+            </section>
+            <section class="vanner-sektion" aria-labelledby="vanner-lista-title">
+                <h2 id="vanner-lista-title" class="vanner-rubrik">Mina vänner</h2>
+                <ul id="vanner-lista" class="vanner-lista"></ul>
+            </section>
+        </section>
+
+        <!-- View: Profil -->
+        <section id="view-profil" class="view hidden" aria-labelledby="profil-namn">
+            <div class="profil-huvud">
+                <div id="profil-bild" class="profil-bild"></div>
+                <div class="profil-identitet">
+                    <h1 id="profil-namn" class="profil-namn">Profil</h1>
+                    <p id="profil-handtag" class="profil-handtag num"></p>
+                    <p id="profil-sedan" class="profil-meta"></p>
+                </div>
+                <div id="profil-handlingar" class="profil-handlingar"></div>
+            </div>
+            <p id="profil-status" class="profil-tom" hidden></p>
+            <div id="profil-innehall" hidden>
+                <section class="profil-sektion" aria-label="Nyckeltal">
+                    <div id="profil-tal" class="profil-tal"></div>
+                </section>
+                <div class="profil-spalter">
+                    <section class="profil-sektion" aria-labelledby="profil-aktivitet-title">
+                        <h2 id="profil-aktivitet-title" class="profil-rubrik">Aktivitet</h2>
+                        <div id="profil-aktivitet" class="profil-karta"></div>
+                        <p id="profil-uppdaterad" class="profil-uppdaterad"></p>
+                    </section>
+                    <section class="profil-sektion" id="profil-rekord-sektion" aria-labelledby="profil-rekord-title">
+                        <h2 id="profil-rekord-title" class="profil-rubrik">Rekord</h2>
+                        <div id="profil-rekord" class="profil-rekord"></div>
+                    </section>
+                </div>
+                <section class="profil-sektion" id="profil-prestationer-sektion" aria-labelledby="profil-prestationer-title">
+                    <h2 id="profil-prestationer-title" class="profil-rubrik">Prestationer</h2>
+                    <div id="profil-prestationer" class="profil-prestationer"></div>
+                </section>
+            </div>
         </section>
 
         <!-- View: Add Card Form -->
@@ -688,6 +757,57 @@
                         <div class="set-inline">
                             <input type="number" id="settings-budget" class="field" min="0" step="1" inputmode="decimal" placeholder="Inget tak">
                             <button type="button" id="btn-settings-save-budget" class="btn">Spara tak</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profilen: det andra ser. Bara med konto. Fälten sparas med
+                 knappen, inte vid varje tecken: ett användarnamn som sparades
+                 per tangenttryck hade tagit varje halvskrivet namn. -->
+            <section class="settings-section" id="settings-profile-section" aria-labelledby="settings-profile-title" hidden>
+                <div class="settings-section-head">
+                    <h2 id="settings-profile-title" class="settings-section-title">Profil</h2>
+                </div>
+
+                <div class="set-row">
+                    <div class="set-label">Bild</div>
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <div id="settings-avatar" class="settings-avatar"></div>
+                            <button type="button" id="btn-settings-avatar" class="btn">Byt bild</button>
+                            <button type="button" id="btn-settings-avatar-remove" class="btn text" hidden>Ta bort</button>
+                            <input type="file" id="settings-avatar-input" accept="image/jpeg,image/png,image/webp" hidden>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <label class="set-label" for="settings-display-name">Namn</label>
+                    <div class="set-field">
+                        <input type="text" id="settings-display-name" class="field" maxlength="40" autocomplete="nickname">
+                    </div>
+                </div>
+
+                <div class="set-row">
+                    <label class="set-label" for="settings-handle">Användarnamn</label>
+                    <div class="set-field">
+                        <div class="field-row">
+                            <input type="text" id="settings-handle" class="field" maxlength="20" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="anna_s">
+                            <button type="button" id="btn-settings-save-profile" class="btn">Spara</button>
+                        </div>
+                        <!-- Formen är en följd av databasens villkor, inte en
+                             instruktion; utan raden hade felet kommit först
+                             efter sparningen. -->
+                        <p id="settings-profile-status" class="set-hint" role="status">Det andra söker på. Små bokstäver, siffror och understreck.</p>
+                    </div>
+                </div>
+
+                <div class="set-row set-row-bred">
+                    <div class="set-field">
+                        <div class="set-inline">
+                            <button type="button" id="btn-settings-show-profile" class="btn text">Visa min profil</button>
+                            <p class="set-hint">Syns för andra inloggade när den har ett användarnamn. Din e-post visas aldrig.</p>
                         </div>
                     </div>
                 </div>

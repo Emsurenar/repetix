@@ -1,0 +1,400 @@
+/* Vänner och profiler.
+ *
+ * Två vyer och en bild. Vännerna är rader man svarar på, som inkorgen;
+ * profilen är en sida om en person: bild, namn, tal, karta. Allt ur tokens,
+ * inga skuggor, en accent — talen och tillstånden bär den.
+ *
+ * Profilbilden är den enda bilden i appen som inte är innehåll. Stor är den
+ * en panel och får panelens hörn; i en rad är den radens höjd och får
+ * radens hörn, av samma skäl som listraderna har det: 16 pixlar på en
+ * 32 pixlar hög ruta är en kapsel, inte ett hörn. */
+
+/* ======================================================================
+ * BILDEN
+ * ====================================================================== */
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-family: var(--font-data);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.avatar-stor {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--r-md);
+  font-size: var(--t-xl);
+}
+
+/* ======================================================================
+ * VÄNNERNA
+ * ====================================================================== */
+
+#view-vanner .vanner-sektion {
+  margin-bottom: var(--s7);
+}
+
+#view-vanner .vanner-rubrik,
+#view-profil .profil-rubrik {
+  margin: 0 0 var(--s3);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Utan användarnamn kan ingen hitta en. Notisen står överst med vägen dit;
+ * samma form som inställningarnas notis. */
+#view-vanner .vanner-notis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0 0 var(--s6);
+  padding: var(--s4);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+#view-vanner .vanner-sokrad {
+  display: flex;
+  gap: var(--s2);
+  max-width: 32rem;
+  margin-bottom: var(--s3);
+}
+
+#view-vanner .vanner-sokrad input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-h);
+  padding: 0 var(--s3);
+  font: inherit;
+  font-size: var(--t-sm);
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+#view-vanner .vanner-sokrad input:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+
+#view-vanner .vanner-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#view-vanner .vanner-rad {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  /* Listrad, inte knapp — därför den mindre radien, enligt tokens.css. */
+  border-radius: var(--r-sm);
+}
+
+/* Personen är en knapp som öppnar profilen: bilden och namnet tillsammans,
+ * utan egen ram — raden är ramen. */
+#view-vanner .vanner-person {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+  min-height: var(--control-h);
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text-1);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+#view-vanner .vanner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#view-vanner .vanner-namn {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#view-vanner .vanner-handtag {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-vanner .vanner-handlingar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--s2);
+}
+
+#view-vanner .vanner-tom {
+  margin: 0;
+  padding: var(--s3) 0;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+/* ======================================================================
+ * PROFILEN
+ * ====================================================================== */
+
+#view-profil .profil-huvud {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  margin-bottom: var(--s7);
+}
+
+#view-profil .profil-identitet {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#view-profil .profil-namn {
+  margin: 0;
+  font-size: var(--t-xl);
+  overflow-wrap: anywhere;
+}
+
+#view-profil .profil-handtag {
+  margin: var(--s1) 0 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+#view-profil .profil-meta {
+  margin: var(--s1) 0 0;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-profil .profil-handlingar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
+
+/* Tillståndet mellan er, sagt med ord. Vänner bär accenten: det är ett
+ * tillstånd, och tillstånd är det accenten finns för. */
+#view-profil .profil-lage {
+  margin: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+#view-profil .profil-lage.is-vanner {
+  color: var(--accent);
+}
+
+#view-profil .profil-tom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0 0 var(--s6);
+  padding: var(--s4);
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+#view-profil .profil-sektion {
+  margin-bottom: var(--s7);
+}
+
+/* Fem tal under hårfina linjer, som bibliotekets nyckeltal. Inga lodräta
+ * linjer mellan talen — se CLAUDE.md. */
+#view-profil .profil-tal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+
+#view-profil .profil-tal-ruta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+#view-profil .profil-tal-varde {
+  font-size: var(--t-xl);
+  line-height: 1;
+  color: var(--text-1);
+}
+
+#view-profil .profil-tal-etikett {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-profil .profil-spalter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s6);
+}
+
+@media (min-width: 1100px) {
+  #view-profil .profil-spalter {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
+#view-profil .profil-rekord {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+#view-profil .profil-rekord-rad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+
+#view-profil .profil-rekord-tal {
+  font-size: var(--t-lg);
+  line-height: 1;
+  color: var(--accent);
+}
+
+#view-profil .profil-rekord-etikett {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-profil .profil-prestationer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--s2);
+}
+
+#view-profil .profil-prestation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  padding: var(--s3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+#view-profil .profil-prestation-namn {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+#view-profil .profil-prestation-desc {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+#view-profil .profil-uppdaterad {
+  margin: var(--s2) 0 0;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* Kartan ligger i en spalt som kan vara smalare än kartan på en telefon;
+ * då rullar den i sidled i stället för att spränga sidan. */
+#view-profil .profil-karta {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* ======================================================================
+ * INSTÄLLNINGARNA: bilden i sin rad
+ * ====================================================================== */
+
+/* Statusraden under användarnamnet: felet i varningens färg, kvittot i
+ * accentens — samma toner som nyckelstatusen ovanför. */
+#view-settings #settings-profile-status[data-tone='fel'] {
+  color: var(--danger);
+}
+
+#view-settings #settings-profile-status[data-tone='ok'] {
+  color: var(--accent);
+}
+
+#view-settings .settings-avatar {
+  display: flex;
+  align-items: center;
+}
+
+#view-settings .settings-avatar .avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-md);
+  font-size: var(--t-md);
+}
+
+@media (max-width: 600px) {
+  #view-profil .profil-huvud {
+    flex-wrap: wrap;
+    gap: var(--s4);
+  }
+
+  #view-profil .profil-handlingar {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  /* På telefon får raden två våningar: personen över, knapparna under. */
+  #view-vanner .vanner-rad {
+    flex-wrap: wrap;
+  }
+
+  #view-vanner .vanner-person {
+    flex: 1 1 100%;
+  }
+
+  #view-vanner .vanner-handlingar {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+}

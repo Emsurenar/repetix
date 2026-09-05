@@ -10,6 +10,8 @@ export const views = {
     complete: document.getElementById('view-study-complete'),
     playground: document.getElementById('view-playground'),
     inkorg: document.getElementById('view-inkorg'),
+    vanner: document.getElementById('view-vanner'),
+    profil: document.getElementById('view-profil'),
 };
 
 export const deckList = document.getElementById('deck-list');

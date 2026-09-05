@@ -28,6 +28,7 @@ import { S } from '../core/state.js';
 import { escapeHtml } from '../core/utils.js';
 import { cloudConfigured, deleteAccount, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
 import { onSyncChange, sync } from '../core/sync.js';
+import { laddaUppAvatar, minProfil, sparaProfil, taBortAvatar } from '../core/vanner.js';
 import { getLocalDateString } from '../domain/stats.js';
 import { budgetLage, summera } from '../domain/usage.js';
 import { openAuth } from './auth.js';
@@ -35,6 +36,7 @@ import { updateBreadcrumb } from './breadcrumb.js';
 import { fokusera } from './fokus.js';
 import { renderLibrary } from './library.js';
 import { showConfirmModal } from './modals.js';
+import { avatarNod, openProfil } from './profil.js';
 import { showToast } from './toast.js';
 import { renderSidebar } from './modals-wiring.js';
 import { onViewChange, switchView } from './router.js';
@@ -712,9 +714,94 @@ function renderaSynk(state) {
 // Hämtning
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Profilen
+// ---------------------------------------------------------------------------
+
+const PROFILHINT = 'Det andra söker på. Små bokstäver, siffror och understreck.';
+
+/** Ritar profilraderna ur raden i profiles. */
+function renderaProfil(profil) {
+  const sektion = el('settings-profile-section');
+  if (!sektion) return;
+  sektion.hidden = !getUserId();
+
+  const bild = el('settings-avatar');
+  if (bild) {
+    bild.innerHTML = '';
+    bild.appendChild(avatarNod(profil, 'avatar'));
+  }
+  const taBort = el('btn-settings-avatar-remove');
+  if (taBort) taBort.hidden = !profil?.avatar_path;
+
+  const namn = el('settings-display-name');
+  const handtag = el('settings-handle');
+  if (namn && document.activeElement !== namn) namn.value = profil?.display_name ?? '';
+  if (handtag && document.activeElement !== handtag) handtag.value = profil?.handle ?? '';
+}
+
+function profilstatus(text, tone = 'info') {
+  const node = el('settings-profile-status');
+  if (!node) return;
+  node.textContent = text;
+  node.dataset.tone = tone;
+}
+
+async function laddaProfil() {
+  const sektion = el('settings-profile-section');
+  if (!sektion) return;
+  if (!getUserId()) {
+    sektion.hidden = true;
+    return;
+  }
+  const res = await minProfil();
+  if (!res.ok) {
+    sektion.hidden = false;
+    profilstatus(res.fel, 'fel');
+    return;
+  }
+  renderaProfil(res.profil);
+  profilstatus(PROFILHINT);
+}
+
+async function sparaProfilen() {
+  const knapp = el('btn-settings-save-profile');
+  if (!knapp || knapp.disabled) return;
+  knapp.disabled = true;
+  knapp.textContent = 'Sparar...';
+  const res = await sparaProfil({
+    handle: el('settings-handle')?.value ?? '',
+    displayName: el('settings-display-name')?.value ?? '',
+  });
+  knapp.disabled = false;
+  knapp.textContent = 'Spara';
+  if (!res.ok) {
+    profilstatus(res.fel, 'fel');
+    return;
+  }
+  renderaProfil(res.profil);
+  profilstatus('Sparat. Vänner hittar dig nu på användarnamnet.', 'ok');
+}
+
+async function bytAvatar(fil) {
+  const knapp = el('btn-settings-avatar');
+  if (!fil || !knapp) return;
+  knapp.disabled = true;
+  knapp.textContent = 'Laddar upp...';
+  const res = await laddaUppAvatar(fil);
+  knapp.disabled = false;
+  knapp.textContent = 'Byt bild';
+  if (!res.ok) {
+    showToast(res.fel);
+    return;
+  }
+  renderaProfil(res.profil);
+}
+
 /** Läser in val och nyckelstatus. Anropas när vyn öppnas och vid inloggning. */
 async function uppdatera() {
   renderaInloggningslage();
+  void laddaProfil();
 
   if (!getUserId()) {
     // Utan konto finns inget sparat val att läsa. Vi visar leverantörens
@@ -1248,6 +1335,34 @@ export function initSettings() {
     // Kontot finns inte längre; den lokala spegeln får inte ligga kvar och
     // låtsas att det gör det.
     await signOutAndClear({ tyst: true });
+  });
+
+  // Profilen: sparas med knappen, eller med Enter i något av fälten.
+  el('btn-settings-save-profile')?.addEventListener('click', () => void sparaProfilen());
+  for (const id of ['settings-handle', 'settings-display-name']) {
+    el(id)?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      void sparaProfilen();
+    });
+  }
+  el('btn-settings-avatar')?.addEventListener('click', () => el('settings-avatar-input')?.click());
+  el('settings-avatar-input')?.addEventListener('change', () => {
+    const falt = el('settings-avatar-input');
+    const fil = falt?.files?.[0];
+    // Fältet nollställs direkt: väljs samma fil igen utlöses annars ingen
+    // change-händelse, och knappen ser trasig ut.
+    if (falt) falt.value = '';
+    void bytAvatar(fil);
+  });
+  el('btn-settings-avatar-remove')?.addEventListener('click', async () => {
+    const res = await taBortAvatar();
+    if (!res.ok) return showToast(res.fel);
+    renderaProfil(res.profil);
+  });
+  el('btn-settings-show-profile')?.addEventListener('click', () => {
+    const id = getUserId();
+    if (id) openProfil(id);
   });
 
   // Routern känner inte till den här vyn, så den kan inte dölja den åt oss.
