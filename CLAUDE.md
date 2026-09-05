@@ -102,12 +102,18 @@ beskriva vad en sak är, inte för att den ska se annorlunda ut.
   `src/ui/wash.js`. Allt som står i dem använder `--on-wash-*`. Sprid dem
   inte — en mörk yta som återkommer slutar vara en accent.
 - **Inga instruerande stycken** i formulär och modaler. Etiketten bär
-  betydelsen. Status och varningar med konsekvens får finnas.
+  betydelsen. Status och varningar med konsekvens får finnas. Enda undantaget
+  är nyckelguiden under API-nyckelfältet i Inställningar (ägarens beslut
+  2026-09-05): den ber om något man måste hämta hos någon annan, och står
+  hopfälld tills man ber om den.
 - **Vybytet visar aldrig två vyer samtidigt** och tonar aldrig från noll.
 - **Fokusera aldrig ett fält på pekskärm.** Fokus i ett fält är ett uppfällt
   tangentbord, och dialogen knuffas upp över det innan man hunnit läsa den.
   Gå alltid genom `fokusera()` i `src/ui/fokus.js`; anropa aldrig `.focus()`
   på ett fält direkt.
+- **Högerklick på en rad öppnar dess radmeny** (`contextmenu` i
+  `src/ui/library.js`), på samma plats som de tre punkterna. Fält, länkar och
+  verktygsradens AI-meny lämnas åt systemets egen meny.
 - **En radmeny som hänger ut över nästa kort** måste lyfta sitt kort
   (`z-index` på `:has(.row-menu[open])`). Ett kort med transform är en egen
   stackningskontext, och menyn täcks annars av syskonet efter.

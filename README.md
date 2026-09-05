@@ -23,8 +23,9 @@ English so the repository can be read without it.
 - **AI on your own key** — write a deck from a topic, a pasted text or a source
   document saved on the deck, and ask that source a question; have a single
   card's answer or elaboration written, and the folder it belongs in guessed;
-  sort a whole deck into folders; summarise one; get an explanation, an exam
-  question or a tutor mid-review. Anthropic, OpenAI, Google or OpenRouter. The
+  sort a whole deck into folders; get an explanation, an exam question or a
+  tutor mid-review. Every deck also carries a one-sentence summary under its
+  title, rewritten whenever the deck changes. Anthropic, OpenAI, Google or OpenRouter. The
   key is verified against the provider, encrypted with AES-256-GCM and stored
   server-side; only a hint like `sk-ant...4f2a` ever comes back.
 - **Spaced repetition** — a SuperMemo-2 variant with four grades
@@ -98,7 +99,8 @@ The free tier is enough.
 ## AI: bring your own key
 
 No server-side AI key ships with the app. Each user pastes their own under
-*Inställningar → provider → API-nyckel*. It is verified against the provider,
+*Inställningar → provider → API-nyckel*, where a fold-out guide walks through
+getting one from each provider. It is verified against the provider,
 encrypted with AES-256-GCM and stored; only a hint like `sk-ant...4f2a` ever
 comes back to the browser. Calls go through `POST /api/ai`, which derives the
 user from their Supabase token and decrypts the key inside the function.
