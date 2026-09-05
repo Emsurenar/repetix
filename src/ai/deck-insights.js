@@ -3,6 +3,7 @@ import { parseObjekt } from './svarstolk.js';
 import { medTankeutrymme } from './tak.js';
 import { createCard } from '../domain/model.js';
 import { hittaMapp } from '../domain/mappval.js';
+import { enMening, underlagText } from '../domain/sammanfattning.js';
 import { nyttId } from '../core/utils.js';
 import { S } from '../core/state.js';
 import { saveData } from '../core/storage.js';
@@ -14,23 +15,18 @@ import { renderLatex } from '../ui/latex.js';
 import { showToast } from '../ui/toast.js';
 
 
-/* Taket för de två insikterna.
+/* Taket för kortförslaget.
  *
- * Båda stod på 400, satt efter hur mycket text som skulle SYNAS: en
- * sammanfattning på 2-4 meningar är ungefär 150 tokens och ett kortförslag
- * med motivering ungefär 200. Båda slog ändå i taket i praktiken — modellen
- * betalar ur samma budget för allt den skriver, inte bara för det som blir
- * kvar i svaret, och 400 räckte inte till det.
+ * Det stod på 400, satt efter hur mycket text som skulle SYNAS: ett
+ * kortförslag med motivering är ungefär 200 tokens. Det slog ändå i taket i
+ * praktiken — modellen betalar ur samma budget för allt den skriver, inte
+ * bara för det som blir kvar i svaret, och 400 räckte inte till det.
  *
  * 2000 är inte ett behov utan en marginal. Fakturan är användarens egen och
  * bara förbrukade tokens debiteras, så ett tak som aldrig nås kostar
  * ingenting — medan ett för lågt tak kostar hela anropet och ger noll
  * tillbaka. */
 const INSIKT_MAX_TOKENS = medTankeutrymme(2000);
-
-// Cache: { deckId: { cardCount, sectionCount, summaryHtml, timestamp } }
-export const deckSummaryCache = {};
-export const SUMMARY_REGEN_THRESHOLD = 3; // regenerate after this many card changes
 
 const buildDeckCardList = (deck) => {
     const cards = deck.cards.filter(c => c.type !== 'note');
@@ -176,48 +172,34 @@ export function initAiDeckInsights() {
 }
 
 
-export const generateDeckSummary = async () => {
-    const summaryText = document.getElementById('deck-ai-summary-text');
-    const summaryBox = document.getElementById('deck-ai-summary');
-    const deck = S.appData.decks.find(d => d.id === S.currentDeckId);
-    if (!deck) return;
-
-    summaryText.innerHTML = '<div class="ai-shimmer"></div>';
-    visaInsikt(summaryBox);
-
-    const info = buildDeckCardList(deck);
-
-    try {
-        const { text, truncated } = await callAIDetailed({
-            feature: 'summary',
-            system: `Du sammanfattar flashcard-kortlekar med precision och skärpa. Du får hela kortlistan. Skriv en kort, sofistikerad sammanfattning (2-4 meningar) som gör två saker:
-
-1. Fånga kärnan: Vad handlar kortleken egentligen om, på en nivå djupare än titeln antyder?
-2. Identifiera luckor: Nämn specifikt 1-2 ämnen/koncept som logiskt borde finnas med givet resten av materialet, men som saknas.
-
-Tonen ska vara som en kunnig kollega som snabbt ger dig läget — inte en AI som analyserar. Skriv på svenska. Ingen inledning, gå rakt på sak.`,
-            user: `Kortlek: "${deck.title}" (${info.cards.length} kort)${info.sectionInfo}\n\n${info.cardList}`,
-            maxTokens: INSIKT_MAX_TOKENS,
-        });
-
-        /* Den halva meningen får stå kvar — den säger något — men den ska inte
-         * utge sig för att vara hela svaret. Utan raden nedan slutar
-         * sammanfattningen bara mitt i, och det ser ut som appens fel. */
-        const html = safeParse(
-            truncated ? `${text.trim()}\n\n*Svaret avbröts innan det var färdigt.*` : text.trim()
-        );
-        summaryText.innerHTML = html;
-        renderLatex(summaryText);
-        summaryBox.classList.add('deck-ai-loaded');
-        deckSummaryCache[S.currentDeckId] = { cardCount: info.cards.length, sectionCount: info.sections.length, summaryHtml: html, timestamp: Date.now() };
-    } catch (e) {
-        /* Rutan är sitt eget resultatfält, så felet stannar där i stället för
-         * att avbryta med en toast. Nytt försök görs med samma knapp i
-         * verktygsraden som startade det — den står kvar och behöver ingen
-         * kopia inne i felrutan. */
-        summaryText.innerHTML = `<span class="deck-ai-error">${escapeHtml(aiErrorMessage(e))}</span>`;
-        summaryBox.classList.remove('deck-ai-loaded');
-    }
+/**
+ * En mening om vad kortleken handlar om.
+ *
+ * Det var en panel på 2–4 meningar som fylldes av en knapp i verktygsraden.
+ * Den skrevs sällan, för den krävde att man bad om den — och stod sedan kvar
+ * som ett stycke ovanför korten man kom för att se. Nu är den en rad under
+ * titeln som skrivs av sig själv när leken ändrats (src/ui/sammanfattning.js
+ * avgör när), och då ska den kosta så lite som en rad kan: låg ansträngning,
+ * ett urval av korten och ett tak för en mening — inte för ett resonemang.
+ *
+ * Svaret är löpande text, aldrig markdown: raden sätts som textContent, så
+ * ett svar med formatering hade visat sina stjärnor.
+ *
+ * @param {object} deck
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<string>} meningen, städad
+ * @throws {AiError}
+ */
+export const hamtaSammanfattning = async (deck, signal) => {
+    const { text } = await callAIDetailed({
+        feature: 'summary',
+        system: `Du skriver EN mening som säger vad en samling flashcards handlar om. Meningen ska vara konkret och specifik: nämn ämnet och vad korten faktiskt övar, på en nivå djupare än titeln. Högst 25 ord. Löpande text utan markdown, utan citattecken, utan inledning och utan orden "kortlek" eller "flashcards". Skriv på svenska, på samma nivå som en kunnig kollega som beskriver materialet för en annan.`,
+        user: underlagText(deck),
+        maxTokens: medTankeutrymme(120),
+        effort: 'low',
+        signal,
+    });
+    return enMening(text);
 };
 
 export const generateDeckSuggestion = async () => {

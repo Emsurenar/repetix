@@ -28,6 +28,20 @@
   color: var(--text-3);
 }
 
+/* Meningen om vad leken handlar om. Den står mellan titeln och talen, i
+ * gränssnittets grotesk och en nivå tystare än titeln: den är en beskrivning
+ * av innehållet, inte innehåll — därför inte serifen, som korten har. Måttet
+ * är ett läsmått och inte spaltens bredd; en mening på 25 ord som sträcks
+ * över 1200 pixlar blir en linje ögat tappar. */
+.deck-heading-sammanfattning {
+  margin: 0;
+  max-width: 62ch;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
 .deck-heading-due {
   margin-left: var(--s2);
   font-weight: 500;
@@ -152,25 +166,22 @@
 }
 
 /* ======================================================================
- * AI-INSIKTER
+ * AI-INSIKT
  *
- * Två paneler med samma vikt. Rubrikerna är etiketter och inte rubriker:
- * det är innehållet som ska läsas, inte att det kommer från en modell.
+ * Kortförslaget. Rubriken är en etikett och inte en rubrik: det är
+ * innehållet som ska läsas, inte att det kommer från en modell.
+ * Sammanfattningen som stod bredvid i en egen panel är nu en rad under
+ * titeln (.deck-heading-sammanfattning) och skrivs av sig själv.
  * ====================================================================== */
 
 .deck-ai-insights {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s4);
   margin-bottom: var(--s7);
 }
 
-.deck-ai-summary,
 .deck-ai-suggestion {
   padding: var(--s4);
 }
 
-.deck-ai-summary-header,
 .deck-ai-suggestion-header {
   display: flex;
   align-items: center;
@@ -183,29 +194,15 @@
   color: var(--text-3);
 }
 
-.deck-ai-summary-header svg,
 .deck-ai-suggestion-header svg {
   flex: 0 0 auto;
   color: var(--accent);
 }
 
-.deck-ai-summary-text,
 .deck-ai-suggestion-content {
   font-size: var(--t-sm);
   line-height: var(--lh-normal);
   color: var(--text-2);
-}
-
-/* Panelerna är rena utdata. Handlingen som fyller dem står i verktygsraden
- * ovanför, tillsammans med kortlekens övriga handlingar — en panel som var
- * sin egen knapp läste sig som en knapp i en knapp, och lämnade två tomma
- * ramar mitt i vyn så länge man inte tryckt på dem.
- *
- * Därför visas en panel först när den har något att visa, och den som står
- * ensam tar hela bredden i stället för att lämna en tom halva bredvid sig. */
-.deck-ai-summary:has(+ .deck-ai-suggestion[hidden]),
-.deck-ai-summary[hidden] + .deck-ai-suggestion {
-  grid-column: 1 / -1;
 }
 
 /* Felet stannar i panelen; nytt försök görs med samma knapp i verktygsraden.
@@ -216,28 +213,6 @@
   margin-bottom: var(--s3);
   font-size: var(--t-sm);
   color: var(--text-3);
-}
-
-/* LADDAT: UTDATAN
- *
- * Sammanfattningen är markdown och kan bära formler, kod och tabeller. Utan
- * det här spränger de spalten i sidled precis som de gjorde i kortets
- * AI-ruta, och då är texten oläslig på telefon. Det breda scrollar i sig
- * självt; texten stannar i spalten. */
-.deck-ai-summary-text {
-  overflow-wrap: anywhere;
-}
-
-.deck-ai-summary-text pre,
-.deck-ai-summary-text table {
-  display: block;
-  overflow-x: auto;
-}
-
-.deck-ai-summary-text .katex-display {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: var(--s1);
 }
 
 /* Förslaget bär kortets röst: frågan i serifen som kort har i resten av
@@ -684,19 +659,7 @@
  * ====================================================================== */
 
 @media (max-width: 768px) {
-  /* De två rutorna delar rad i stället för att stå på varandra.
-   *
-   * Under varandra tog de fyra våningar — två rubriker och två knappar — mitt
-   * emellan kortlekens ingång och dess kort, alltså den plats man kom hit för
-   * att se. Bredvid varandra är de två.
-   *
-   * Den lilla versalrubriken faller bort på köpet. Knappen under den heter
-   * "Sammanfatta kortleken", och rubriken sade "SAMMANFATTNING" — samma ord
-   * en gång till, ovanför det som redan bar det. */
-  /* En sammanfattning i en halv spalt på 375 pixlar går inte att läsa. */
   .deck-ai-insights {
-    grid-template-columns: 1fr;
-    gap: var(--s3);
     margin-bottom: var(--s5);
   }
 }

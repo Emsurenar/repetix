@@ -169,6 +169,10 @@
                 <div class="deck-heading">
                     <button id="btn-back-library" class="btn text" style="display:none">← Tillbaka</button>
                     <h1 id="current-deck-title">Kortlek</h1>
+                    <!-- En mening om vad leken handlar om, skriven av modellen
+                         när leken ändrats. Dold tills den finns: en tom rad
+                         under titeln är en fråga ingen ställt. -->
+                    <p id="deck-sammanfattning" class="deck-heading-sammanfattning" hidden></p>
                     <p id="current-deck-meta" class="deck-heading-meta num"></p>
                 </div>
             </div>
@@ -189,7 +193,7 @@
                 <button id="btn-add-card" class="btn">Nytt kort</button>
                 <button id="btn-add-note-card" class="btn hidden">Ny anteckning</button>
                 <button id="btn-add-section" class="btn">Ny mapp</button>
-                <!-- De fem AI-handlingarna. På en bred skärm står de i raden;
+                <!-- De fyra AI-handlingarna. På en bred skärm står de i raden;
                      på telefon döljs de och nås i stället genom menyn nedanför,
                      vars val trycker på dem. Sju knappar på 375 pixlar blev
                      fyra rader kontroller ovanför korten man kom för att se. -->
@@ -200,13 +204,12 @@
                      <input type="file"> går inte att forma efter appens
                      kontroller, och accept begränsar väljaren till PDF. -->
                 <input type="file" id="input-kalla-fil" accept="application/pdf,.pdf" hidden>
-                <!-- De två insikterna hör hemma här, bland kortlekens övriga
-                     handlingar, och inte i var sin stor ruta på en egen rad.
-                     Fyllda för att skilja det som kostar ett AI-anrop från det
-                     som bara öppnar ett formulär. Korta ord: raden bär redan
-                     fem knappar, och i en kortlek behövs inte "kortleken" sägas
-                     en gång till. -->
-                <button id="btn-ai-summary" class="btn primary deck-tool-ai" data-ai-generate="summary">Sammanfatta</button>
+                <!-- Kortförslaget hör hemma här, bland kortlekens övriga
+                     handlingar, och inte i en stor ruta på en egen rad. Fylld
+                     för att skilja det som kostar ett AI-anrop från det som
+                     bara öppnar ett formulär. Sammanfattningen som stod bredvid
+                     är ingen handling längre: den skrivs av sig själv under
+                     titeln när leken ändrats. -->
                 <button id="btn-ai-suggest" class="btn primary deck-tool-ai" data-ai-generate="suggestion">Föreslå kort</button>
                 <!-- Telefonens meny. Samma radmeny som korten bär, med ett ord
                      på knappen i stället för tre punkter: här är den en av
@@ -221,7 +224,6 @@
                     <div class="row-menu-items">
                         <button type="button" data-proxy="btn-open-topic-generator">Generera kort</button>
                         <button type="button" data-proxy="btn-ai-sort">Sortera i mappar</button>
-                        <button type="button" data-proxy="btn-ai-summary">Sammanfatta</button>
                         <button type="button" data-proxy="btn-ai-suggest">Föreslå kort</button>
                         <button type="button" data-proxy="btn-lagg-till-kalla">Lägg till PDF</button>
                     </div>
@@ -231,16 +233,9 @@
             <!-- Kortlekens källor. Tom lista döljer hela raden — en rubrik över
                  ingenting är brus. -->
             <ul id="deck-kallor" class="deck-kallor" hidden></ul>
-            <!-- Rena utdatapaneler: de visas först när de har ett svar att
-                 bära. Knapparna som fyller dem står i raden ovanför. -->
+            <!-- Ren utdatapanel: den visas först när den har ett svar att
+                 bära. Knappen som fyller den står i raden ovanför. -->
             <div id="deck-ai-insights" class="deck-ai-insights hidden">
-                <section id="deck-ai-summary" class="panel deck-ai-summary" aria-labelledby="deck-ai-summary-title">
-                    <div class="deck-ai-summary-header">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        <span id="deck-ai-summary-title">Sammanfattning</span>
-                    </div>
-                    <div id="deck-ai-summary-text" class="deck-ai-summary-text"></div>
-                </section>
                 <section id="deck-ai-suggestion" class="panel deck-ai-suggestion" aria-labelledby="deck-ai-suggestion-title">
                     <div class="deck-ai-suggestion-header">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>

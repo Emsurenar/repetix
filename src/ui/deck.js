@@ -1,5 +1,4 @@
 import { deleteSection, openCardModal, openEditCardModal, openMoveCardModal, openMoveSectionModal, openNoteCardModal, openSectionModal } from '../ai/client.js';
-import { SUMMARY_REGEN_THRESHOLD, deckSummaryCache } from '../ai/deck-insights.js';
 import { aiErrorMessage } from '../ai/call.js';
 import { fragaKallan } from '../ai/kallfraga.js';
 import { laggTill } from '../domain/fragehistorik.js';
@@ -8,6 +7,7 @@ import { hamtaKallor, taBortKalla } from '../core/sources.js';
 import { kortIVyn, sektionerIVyn } from '../domain/deck-view.js';
 import { saveData } from '../core/storage.js';
 import { escapeHtml } from '../core/utils.js';
+import { visaSammanfattning } from './sammanfattning.js';
 import { cardList } from './dom.js';
 import { fokusera } from './fokus.js';
 import { safeParse } from './images.js';
@@ -215,14 +215,11 @@ function ritaHistorik() {
 }
 
 // Update existing renderDecks calls to renderLibrary
-/* De två AI-handlingarna står i verktygsraden och inte i panelerna. De döljs
- * på samma villkor som panelerna: under två kort finns det inget att
- * sammanfatta och ingen lucka att peka på. */
+/* Kortförslaget står i verktygsraden och inte i panelen. Det döljs på samma
+ * villkor som panelen: under två kort finns det ingen lucka att peka på. */
 const aiKnapparSynliga = (synliga) => {
-    for (const id of ['btn-ai-summary', 'btn-ai-suggest']) {
-        const knapp = document.getElementById(id);
-        if (knapp) knapp.hidden = !synliga;
-    }
+    const knapp = document.getElementById('btn-ai-suggest');
+    if (knapp) knapp.hidden = !synliga;
     synkaVerktygsmenyn();
 };
 
@@ -374,31 +371,14 @@ export const openDeck = (id, sectionId = null) => {
     renderCards(displayCards);
     switchView('deck', sectionId);
 
-    // Show AI insight boxes (click-to-generate, not auto)
+    /* Kortförslaget: handlingen bor i verktygsraden, panelen är ett rent
+     * utdatafack som syns först när den har något att visa. En tom ruta med
+     * en knapp i var en ruta i en ruta, och den tog en egen våning mellan
+     * lekens ingång och dess kort. */
     const insightsContainer = document.getElementById('deck-ai-insights');
     const deckCards = deck.cards.filter(c => c.type !== 'note');
     if (!sectionId && deckCards.length >= 2) {
-        /* Handlingarna bor i verktygsraden; panelerna är rena utdatafack och
-         * syns bara när de har något att visa. En tom ruta med en knapp i var
-         * en ruta i en ruta, och två av dem tog en egen våning mellan lekens
-         * ingång och dess kort. */
         aiKnapparSynliga(true);
-
-        const cached = deckSummaryCache[id];
-        const summaryText = document.getElementById('deck-ai-summary-text');
-        const summaryBox = document.getElementById('deck-ai-summary');
-        const harCache =
-            cached &&
-            cached.summaryHtml &&
-            Math.abs(deckCards.length - cached.cardCount) < SUMMARY_REGEN_THRESHOLD;
-        if (harCache) {
-            summaryText.innerHTML = cached.summaryHtml;
-            renderLatex(summaryText);
-        } else {
-            summaryText.innerHTML = '';
-        }
-        summaryBox.classList.toggle('deck-ai-loaded', Boolean(harCache));
-        summaryBox.hidden = !harCache;
 
         // Förslaget är alltid nytt: det gamla gällde en kortlek som kan ha
         // ändrats sedan dess.
@@ -407,12 +387,16 @@ export const openDeck = (id, sectionId = null) => {
         suggestionContent.innerHTML = '';
         suggestionBox.classList.remove('deck-ai-loaded');
         suggestionBox.hidden = true;
-
-        insightsContainer.classList.toggle('hidden', !harCache);
     } else {
-        insightsContainer.classList.add('hidden');
         aiKnapparSynliga(false);
     }
+    insightsContainer.classList.add('hidden');
+
+    /* Meningen under titeln. openDeck körs efter varje ändring i leken, så
+     * det här är det enda stället regeln "ny mening när leken ändrats"
+     * behöver. I en mapp döljs den: titeln är då mappens, och meningen
+     * beskriver hela leken. */
+    visaSammanfattning(deck, { visa: !sectionId });
 };
 
 const renderCardItem = (card, deck) => {
