@@ -19,6 +19,22 @@
  * @property {string[]} models  Kända modell-id. Får vara tom.
  * @property {string} defaultModel  Används när användaren inte valt något.
  * @property {string} placeholder   Exempel i fritextfältet för eget modell-id.
+ * @property {Nyckelguide} nyckelguide  Hur man skaffar en nyckel hos leverantören.
+ */
+
+/**
+ * Vägen till en nyckel, steg för steg, med länkarna som tar en dit.
+ *
+ * Guiden ligger i katalogen och inte i inställningsvyn av samma skäl som
+ * modellistan: den beskriver leverantören, och det som beskriver
+ * leverantören ska bo på ett ställe. Stegen är skrivna för någon som aldrig
+ * sett en utvecklarkonsol — vad man ska göra, i den ordning man gör det, och
+ * det som brukar gå fel (inget saldo, nyckeln som bara visas en gång).
+ *
+ * @typedef {object} Nyckelguide
+ * @property {string[]} steg       I den ordning man gör dem.
+ * @property {{label: string, url: string}[]} lankar  Öppnas i ny flik.
+ * @property {string} format       Hur nyckeln ser ut, så att man vet att man kopierat rätt sak.
  */
 
 /** @type {Leverantor[]} */
@@ -35,6 +51,19 @@ export const PROVIDERS = [
     ],
     defaultModel: 'claude-opus-5',
     placeholder: 'claude-opus-5',
+    nyckelguide: {
+      steg: [
+        'Skapa ett konto på console.anthropic.com, eller logga in med det du har.',
+        'Lägg in ett saldo under Billing. Nyckeln svarar inte utan pengar på kontot, och fem dollar räcker till hundratals kort.',
+        'Öppna API keys, tryck Create Key och döp den till Repetix.',
+        'Kopiera nyckeln medan den visas — den går inte att se igen — och klistra in den i fältet ovan.',
+      ],
+      lankar: [
+        { label: 'Skapa nyckel', url: 'https://console.anthropic.com/settings/keys' },
+        { label: 'Fyll på saldo', url: 'https://console.anthropic.com/settings/billing' },
+      ],
+      format: 'Nyckeln börjar med sk-ant-.',
+    },
   },
   {
     id: 'openai',
@@ -42,6 +71,19 @@ export const PROVIDERS = [
     models: ['gpt-5.1', 'gpt-5.1-mini', 'gpt-5'],
     defaultModel: 'gpt-5.1',
     placeholder: 'gpt-5.1',
+    nyckelguide: {
+      steg: [
+        'Skapa ett konto på platform.openai.com. Det är inte samma sak som ChatGPT Plus — API:et betalas för sig.',
+        'Lägg in ett saldo under Billing. Utan saldo avvisas varje anrop.',
+        'Öppna API keys och tryck Create new secret key.',
+        'Kopiera nyckeln medan den visas — den går inte att se igen — och klistra in den i fältet ovan.',
+      ],
+      lankar: [
+        { label: 'Skapa nyckel', url: 'https://platform.openai.com/api-keys' },
+        { label: 'Fyll på saldo', url: 'https://platform.openai.com/settings/organization/billing/overview' },
+      ],
+      format: 'Nyckeln börjar med sk-.',
+    },
   },
   {
     id: 'google',
@@ -49,6 +91,19 @@ export const PROVIDERS = [
     models: ['gemini-3-pro', 'gemini-3-flash'],
     defaultModel: 'gemini-3-pro',
     placeholder: 'gemini-3-pro',
+    nyckelguide: {
+      steg: [
+        'Logga in med ditt Google-konto på Google AI Studio.',
+        'Tryck Create API key. Ett projekt skapas åt dig om du inte har något.',
+        'Kopiera nyckeln och klistra in den i fältet ovan.',
+        'Gratisnivån räcker långt för en person. Vill du ha högre gränser kopplar du fakturering till projektet i Google Cloud.',
+      ],
+      lankar: [
+        { label: 'Skapa nyckel', url: 'https://aistudio.google.com/apikey' },
+        { label: 'Priser och gränser', url: 'https://ai.google.dev/pricing' },
+      ],
+      format: 'Nyckeln börjar med AIza.',
+    },
   },
   {
     // OpenRouter förmedlar vidare till hundratals modeller hos andra
@@ -59,6 +114,20 @@ export const PROVIDERS = [
     models: [],
     defaultModel: '',
     placeholder: 'anthropic/claude-opus-5',
+    nyckelguide: {
+      steg: [
+        'Skapa ett konto på openrouter.ai — det går med Google eller GitHub.',
+        'Lägg in ett saldo under Credits. En del modeller är gratis, de flesta drar av saldot.',
+        'Öppna Keys och tryck Create Key.',
+        'Kopiera nyckeln och klistra in den i fältet ovan. Skriv sedan modellens id på formen leverantör/modell, till exempel anthropic/claude-opus-5.',
+      ],
+      lankar: [
+        { label: 'Skapa nyckel', url: 'https://openrouter.ai/settings/keys' },
+        { label: 'Fyll på saldo', url: 'https://openrouter.ai/settings/credits' },
+        { label: 'Modeller', url: 'https://openrouter.ai/models' },
+      ],
+      format: 'Nyckeln börjar med sk-or-.',
+    },
   },
 ];
 
@@ -76,6 +145,16 @@ export const DEFAULT_MODEL = 'claude-opus-5';
  */
 export function getProvider(id) {
   return PROVIDERS.find((p) => p.id === id) ?? null;
+}
+
+/**
+ * Guiden för att skaffa en nyckel hos leverantören, eller null.
+ *
+ * @param {string} providerId
+ * @returns {Nyckelguide|null}
+ */
+export function nyckelguideFor(providerId) {
+  return getProvider(providerId)?.nyckelguide ?? null;
 }
 
 /**

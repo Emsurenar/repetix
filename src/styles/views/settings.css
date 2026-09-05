@@ -177,6 +177,88 @@
   color: var(--text-3);
 }
 
+/* ======================================================================
+ * NYCKELGUIDEN
+ *
+ * Vägen till en nyckel, hopfälld under fältet. Ett <details> och inte en
+ * dialog: man ska kunna läsa stegen och klistra in nyckeln i samma blick.
+ * Hopfälld är den en rad i fältets höjd med samma hörn som allt annat;
+ * utfälld en numrerad lista i hintens ton och länkarna som knappar, så att
+ * de går att träffa med ett finger.
+ * ====================================================================== */
+
+#view-settings .key-guide {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+
+#view-settings .key-guide-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  min-height: var(--control-h);
+  padding: 0 var(--s4);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-1);
+  cursor: pointer;
+  list-style: none;
+}
+
+#view-settings .key-guide-toggle::-webkit-details-marker {
+  display: none;
+}
+
+#view-settings .key-guide-toggle svg {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+
+#view-settings .key-guide[open] .key-guide-toggle svg {
+  transform: rotate(180deg);
+}
+
+#view-settings .key-guide-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4) var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+#view-settings .key-guide-steg {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding-left: 1.6em;
+  font-size: var(--t-sm);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
+}
+
+/* Siffran i datatypsnittet, som alla andra tal i appen. */
+#view-settings .key-guide-steg li::marker {
+  font-family: var(--font-data);
+  color: var(--text-3);
+}
+
+#view-settings .key-guide-lankar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+#view-settings .key-guide-lankar .btn {
+  text-decoration: none;
+}
+
+#view-settings .key-guide-lankar .btn svg {
+  color: var(--text-3);
+}
+
 /* Backupraden står tom i markupen tills core/backup.js hunnit fylla den. Ett
  * tomt stycke är ändå ett flexbarn och hade lämnat ett gap efter sig. */
 #view-settings #backup-status:empty {

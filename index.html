@@ -577,6 +577,20 @@
                         <!-- Var nyckeln tar vägen är en följd av att spara den,
                              inte en instruktion om hur man gör. -->
                         <p class="set-hint">Nyckeln lagras krypterad på servern och når aldrig webbläsaren.</p>
+                        <!-- Vägen till en nyckel. Det är undantaget från regeln
+                             att formulär inte instruerar: fältet ber om något
+                             man måste hämta hos någon annan, och den som aldrig
+                             sett en utvecklarkonsol vet inte var. Hopfälld tills
+                             man ber om den, så att raden förblir ett fält och
+                             inte en artikel. Innehållet ritas av
+                             src/ui/settings.js ur katalogen i src/ai/models.js. -->
+                        <details id="settings-key-guide" class="key-guide">
+                            <summary class="key-guide-toggle">
+                                <span id="settings-key-guide-label">Så skaffar du en nyckel</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                            </summary>
+                            <div id="settings-key-guide-body" class="key-guide-body"></div>
+                        </details>
                     </div>
                 </div>
 

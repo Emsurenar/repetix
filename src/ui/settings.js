@@ -21,9 +21,11 @@ import {
   getProvider,
   isKnownProvider,
   modelsFor,
+  nyckelguideFor,
   providerLabel,
 } from '../ai/models.js';
 import { S } from '../core/state.js';
+import { escapeHtml } from '../core/utils.js';
 import { cloudConfigured, deleteAccount, getUser, getUserId, onAuthChange, supabase } from '../core/supabase.js';
 import { onSyncChange, sync } from '../core/sync.js';
 import { getLocalDateString } from '../domain/stats.js';
@@ -432,6 +434,37 @@ function renderaLeverantorer() {
 }
 
 /**
+ * Ritar guiden för att skaffa en nyckel hos vald leverantör.
+ *
+ * Länkarna öppnas i ny flik: man ska kunna ha konsolen och fältet framme
+ * samtidigt, och en nyckel som visas bara en gång ska inte hamna bakom en
+ * tillbakaknapp. rel="noopener" så att fliken inte får ett handtag hit.
+ *
+ * @param {string} providerId
+ */
+function renderaNyckelguide(providerId) {
+  const guide = el('settings-key-guide');
+  const rubrik = el('settings-key-guide-label');
+  const kropp = el('settings-key-guide-body');
+  if (!guide || !rubrik || !kropp) return;
+
+  const innehall = nyckelguideFor(providerId);
+  guide.hidden = !innehall;
+  if (!innehall) return;
+
+  rubrik.textContent = `Så skaffar du en nyckel hos ${providerLabel(providerId)}`;
+  kropp.innerHTML = `
+    <ol class="key-guide-steg">${innehall.steg.map((steg) => `<li>${escapeHtml(steg)}</li>`).join('')}</ol>
+    <p class="set-hint">${escapeHtml(innehall.format)}</p>
+    <div class="key-guide-lankar">${innehall.lankar
+      .map(
+        (l) =>
+          `<a class="btn" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>`
+      )
+      .join('')}</div>`;
+}
+
+/**
  * Fyller modellväljaren för vald leverantör och ställer in fritextfältet.
  *
  * @param {string} providerId
@@ -683,6 +716,7 @@ async function uppdatera() {
   valjLeverantor(isKnownProvider(val?.provider) ? val.provider : PROVIDERS[0].id);
   const providerId = valdLeverantor();
   renderaModeller(providerId, val?.model || defaultModelFor(providerId));
+  renderaNyckelguide(providerId);
 
   await laddaNyckelstatus();
   await renderaAnvandning();
@@ -1081,6 +1115,9 @@ export function initSettings() {
   if (!view) return;
 
   renderaLeverantorer();
+  // Guiden står redo för förvalet redan innan kontot lästs: utan konto körs
+  // aldrig laddningen, och det är just då man behöver veta hur man börjar.
+  renderaNyckelguide(PROVIDERS[0].id);
 
   el('btn-open-settings')?.addEventListener('click', () => openSettings());
 
@@ -1098,6 +1135,7 @@ export function initSettings() {
   el('settings-provider')?.addEventListener('change', () => {
     const providerId = valdLeverantor();
     renderaModeller(providerId, defaultModelFor(providerId));
+    renderaNyckelguide(providerId);
     renderaNyckelstatus();
     doljMeddelande();
     void sparaValetNu();
