@@ -256,7 +256,9 @@ export const renderStudyCard = () => {
     
     const frontTextEl = document.getElementById('study-front-text');
     if (card._jeopardy) {
-        frontTextEl.innerHTML = `<div style="font-size: 0.85rem; font-weight: 700; color: var(--primary-color); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; opacity: 0.8;">SVAR (Fråga eftersöks)</div>` + safeParse(card.front);
+        // Etiketten bar sina stilar i markupen mot tokens som inte finns:
+        // den ritades i standardfärg utan linje. Nu en klass i study.css.
+        frontTextEl.innerHTML = `<div class="study-jeopardy-etikett">Svar — fråga eftersöks</div>` + safeParse(card.front);
     } else {
         frontTextEl.innerHTML = safeParse(card.front);
     }

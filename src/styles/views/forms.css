@@ -715,6 +715,15 @@
   padding-left: var(--s7);
 }
 
+/* Tomt läge i flyttdialogen. Bar tidigare sina stilar i markupen, mot en
+ * token som inte finns. */
+.move-target-empty {
+  padding: var(--s6) 0;
+  font-size: var(--t-sm);
+  text-align: center;
+  color: var(--text-3);
+}
+
 .move-target-list {
   max-height: 22rem;
   overflow-y: auto;
@@ -1055,6 +1064,95 @@
 .preview-card-back {
   font-size: var(--t-sm);
   color: var(--text-2);
+}
+
+/* Dagbokens kort: texten och krysset överst, de tre väljarna under. Varje
+ * väljare har sin etikett ovanför, i hintens ton — "Kortlek:" som ett ord
+ * bredvid fältet bröt raden på telefon och blev ett fält utan namn. */
+.preview-card.diary-card {
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.diary-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  width: 100%;
+}
+
+.diary-card-val {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  gap: var(--s2);
+  width: 100%;
+}
+
+.diary-val {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.diary-val-label {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* Sorteringens förhandsvisning: en grupp per mapp, namnet i knappens vikt,
+ * antalet i datatypsnittet och korten som tysta rader under. */
+.sort-grupp {
+  margin-bottom: var(--s4);
+}
+
+.sort-grupp-huvud {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.sort-grupp-namn {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Ett tillstånd, inte en handling: accenten som ton på en chip. */
+.sort-grupp-ny {
+  flex: 0 0 auto;
+  padding: 0 var(--s2);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.8;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-pill);
+}
+
+.sort-grupp-antal {
+  margin-left: auto;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.sort-grupp-kort {
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--s4);
+}
+
+.sort-kort {
+  padding: var(--s2) 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.sort-kort:last-child {
+  border-bottom: 0;
 }
 
 .preview-card-remove {

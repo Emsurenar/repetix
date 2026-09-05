@@ -928,3 +928,17 @@
     max-width: none;
   }
 }
+
+/* Jeopardys omvända kort: svaret visas och frågan eftersöks. Etiketten
+ * säger det i samma form som appens andra små rubriker. */
+.study-jeopardy-etikett {
+  margin-bottom: var(--s3);
+  padding-bottom: var(--s2);
+  font-family: var(--font-data);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--line);
+}

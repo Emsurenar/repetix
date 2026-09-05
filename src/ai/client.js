@@ -102,7 +102,7 @@ export const renderMoveTargets = (filterText = '') => {
     });
 
     if (container.children.length === 0) {
-        container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary); opacity: 0.6;">Inga matchningar hittades</div>';
+        container.innerHTML = '<div class="move-target-empty">Inga matchningar hittades</div>';
     }
 };
 

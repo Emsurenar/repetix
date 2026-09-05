@@ -3,6 +3,7 @@ import { parseKortlista } from './svarstolk.js';
 import { medTankeutrymme } from './tak.js';
 import { S } from '../core/state.js';
 import { fixLatexInCards, safeParse } from '../ui/images.js';
+import { initSelect } from '../ui/select.js';
 import { renderLatex } from '../ui/latex.js';
 import { showToast } from '../ui/toast.js';
 
@@ -67,9 +68,7 @@ const renderDiaryCards = () => {
 
     S.proposedDiaryCards.forEach((card, index) => {
         const div = document.createElement('div');
-        div.className = 'preview-card';
-        div.style.flexDirection = 'column';
-        div.style.gap = '0.5rem';
+        div.className = 'preview-card diary-card';
 
         const optionsHtml = deckNames.map(name =>
             `<option value="${name}" ${name === card.suggestedDeck ? 'selected' : ''}>${name}</option>`
@@ -88,42 +87,40 @@ const renderDiaryCards = () => {
         ).join('');
         const hasSectionMatch = sectionNames.includes(card.suggestedSection);
 
+        /* Tre väljare under kortet, med etikett ovanför var och en. De bar
+         * tidigare sina stilar i markupen, mot tokens som inte finns — fälten
+         * ritades utan kant och utan bakgrund — och klädde sig aldrig i
+         * appens egen väljare, så systemets rullista stod mitt i dialogen. */
+        const val = (namn, klass, id, alternativ) => `
+            <div class="diary-val">
+                <label class="diary-val-label" for="${id}">${namn}</label>
+                <span class="select-wrap"><select id="${id}" class="${klass} field" data-index="${index}">${alternativ}</select></span>
+            </div>`;
         div.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div class="diary-card-top">
                 <div class="preview-card-content">
                     <div class="preview-card-front">${safeParse(card.front)}</div>
                     <div class="preview-card-back">${safeParse(card.back)}</div>
                 </div>
                 <button type="button" class="preview-card-remove" data-index="${index}" title="Ta bort"></button>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.4rem; width: 100%; margin-top: 0.25rem;">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">Kortlek:</span>
-                    <select class="diary-deck-select" data-index="${index}" style="flex: 1; min-width: 0; padding: 0.4rem 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.85rem; outline: none; background: var(--bg-color);">
+            <div class="diary-card-val">
+                ${val('Kortlek', 'diary-deck-select', `diary-deck-${index}`, `
                         ${!hasMatch ? `<option value="__new__:${card.suggestedDeck}" selected>Ny: ${card.suggestedDeck}</option>` : ''}
-                        ${optionsHtml}
-                    </select>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">Bokhylla:</span>
-                    <select class="diary-bookshelf-select" data-index="${index}" style="flex: 1; min-width: 0; padding: 0.4rem 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.85rem; outline: none; background: var(--bg-color);">
+                        ${optionsHtml}`)}
+                ${val('Bokhylla', 'diary-bookshelf-select', `diary-bookshelf-${index}`, `
                         <option value="">Ingen</option>
                         ${card.suggestedBookshelf && !hasBookshelfMatch ? `<option value="__new__:${card.suggestedBookshelf}" selected>Ny: ${card.suggestedBookshelf}</option>` : ''}
-                        ${bookshelfOptionsHtml}
-                    </select>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">Mapp:</span>
-                    <select class="diary-section-select" data-index="${index}" style="flex: 1; min-width: 0; padding: 0.4rem 0.6rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.85rem; outline: none; background: var(--bg-color);">
+                        ${bookshelfOptionsHtml}`)}
+                ${val('Mapp', 'diary-section-select', `diary-section-${index}`, `
                         <option value="">Ingen</option>
                         ${card.suggestedSection && !hasSectionMatch ? `<option value="__new__:${card.suggestedSection}" selected>Ny: ${card.suggestedSection}</option>` : ''}
-                        ${sectionOptionsHtml}
-                    </select>
-                </div>
+                        ${sectionOptionsHtml}`)}
             </div>
         `;
         container.appendChild(div);
         renderLatex(div);
+        div.querySelectorAll('select').forEach((sel) => initSelect(sel));
     });
 
     container.querySelectorAll('.preview-card-remove').forEach(btn => {

@@ -80,16 +80,20 @@ export const fetchAiSort = async (deck) => {
         preview.innerHTML = '';
         Object.entries(sectionGroups).forEach(([sectionName, cards]) => {
             const isExisting = existingSections.includes(sectionName);
+            /* Klasser, inte inline-stilar: de gamla pekade på tokens som inte
+             * finns, så raderna ritades utan linje och märket "Ny mapp" utan
+             * färg. Mappnamnet är modellens text och escapas; korten går genom
+             * safeParse som överallt annars. */
             const groupEl = document.createElement('div');
-            groupEl.style.cssText = 'margin-bottom: 1rem;';
+            groupEl.className = 'sort-grupp';
             groupEl.innerHTML = `
-                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                    ${escapeHtml(sectionName)}
-                    ${!isExisting ? '<span style="font-size: 0.75rem; color: var(--primary-color); font-weight: 500; background: var(--primary-light); padding: 0.1rem 0.5rem; border-radius: 999px;">Ny mapp</span>' : ''}
+                <div class="sort-grupp-huvud">
+                    <span class="sort-grupp-namn">${escapeHtml(sectionName)}</span>
+                    ${!isExisting ? '<span class="sort-grupp-ny">Ny mapp</span>' : ''}
+                    <span class="sort-grupp-antal num">${cards.length}</span>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 0.25rem; padding-left: 1.5rem;">
-                    ${cards.map(c => `<div style="font-size: 0.85rem; color: var(--text-secondary); padding: 0.3rem 0; border-bottom: 1px solid var(--border-color);">${safeParse(c.front)}</div>`).join('')}
+                <div class="sort-grupp-kort">
+                    ${cards.map(c => `<div class="sort-kort">${safeParse(c.front)}</div>`).join('')}
                 </div>
             `;
             preview.appendChild(groupEl);
