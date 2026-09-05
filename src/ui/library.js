@@ -532,6 +532,41 @@ export function initUiLibrary() {
       if (e.key === 'Escape') closeRowMenus(null);
   });
 
+  /* Högerklick öppnar radens egen meny.
+   *
+   * Menyn hör till kortleken, inte till de tre punkterna: punkterna är bara
+   * den plats där den går att nå med ett finger. Med mus är hela kortet en
+   * större och närmare träffyta, och högerklick är det man redan provar. Den
+   * öppnas på sin vanliga plats vid punkterna i stället för vid pekaren, så
+   * att den mäts och vänds av samma regel som alla andra gånger.
+   *
+   * Bäraren letas upp genom att gå uppåt tills en nod innehåller EXAKT en
+   * radmeny. Första träffen räcker inte: rutnätet innehåller trettio menyer,
+   * och då hade ett högerklick i luften mellan två kort öppnat den första
+   * lekens meny.
+   *
+   * Fält och länkar lämnas ifred — där är systemets egen meny det man är ute
+   * efter — och verktygsradens AI-meny är inte en rads meny. */
+  document.addEventListener('contextmenu', (e) => {
+      const mal = e.target;
+      if (!(mal instanceof Element)) return;
+      if (mal.closest('input, textarea, [contenteditable], a[href], .row-menu')) return;
+
+      let meny = null;
+      for (let nod = mal; nod && nod !== document.body; nod = nod.parentElement) {
+          const menyer = nod.querySelectorAll('.row-menu:not(.deck-toolbar-menu)');
+          if (menyer.length === 1) {
+              meny = menyer[0];
+              break;
+          }
+      }
+      if (!meny) return;
+
+      e.preventDefault();
+      closeRowMenus(meny);
+      meny.setAttribute('open', '');
+  });
+
   /* Menyn fälls uppåt när det inte finns plats nedåt.
    *
    * Panelen är absolut placerad under sin knapp och visste ingenting om
