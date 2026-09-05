@@ -223,7 +223,14 @@ export const renderPlayground = ({ tona = true } = {}) => {
     };
 
     const MANADER = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-    const manadFor = (vecka) => MANADER[vecka[0].date.getMonth()];
+    /* Kolumnen bär namnet på den månad den går in i: veckan som innehåller en
+     * 1:a ÄR månadens första kolumn. Räknades namnet ur veckans första dag
+     * hoppade en månad som börjar mitt i veckan över en hel kolumn — och den
+     * innevarande månaden fick inget namn alls förrän dess första måndag
+     * passerat. Kartan slutade alltså läsas som en historik som tog slut
+     * någon gång i förrgår: sista etiketten sa "aug" i september. */
+    const manadFor = (vecka) =>
+        MANADER[(vecka.find((c) => c.date.getDate() === 1) ?? vecka[0]).date.getMonth()];
     /* En etikett per veckokolumn, men namnet skrivs bara ut där månaden
      * byts — annars upprepas "jun" fyra gånger i rad. Tre etiketter utspridda
      * med space-between hamnade där jämn fördelning råkade lägga dem och
@@ -235,9 +242,13 @@ export const renderPlayground = ({ tona = true } = {}) => {
 
     const heatCell = (cell) => {
         const d = cell.date;
-        const titel = cell.isFuture
-            ? `${d.getDate()}/${d.getMonth() + 1} — kommande`
-            : `${d.getDate()}/${d.getMonth() + 1}: ${cell.count} repetitioner`;
+        /* Kartan slutar på idag. Dagarna som återstår av veckan ritas inte —
+         * de såg ut som dagar utan repetitioner, alltså som ett misslyckande
+         * som ännu inte hunnit inträffa. Platsen står kvar osynlig, eftersom
+         * kolumnen är veckans sju rader: tas rutan bort ur DOM:en glider
+         * resten av veckan uppåt och hamnar på fel veckodagsrad. */
+        if (cell.isFuture) return '<i class="heat-cell is-kommande" aria-hidden="true"></i>';
+        const titel = `${d.getDate()}/${d.getMonth() + 1}: ${cell.count} repetitioner`;
         return `<i class="heat-cell${heatLevel(cell.count)}" title="${titel}"></i>`;
     };
 

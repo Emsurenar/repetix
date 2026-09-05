@@ -147,6 +147,13 @@
   background: var(--heat-0);
 }
 
+/* Dagen som inte varit. Osynlig i stället för borttagen: rutan håller sin
+ * plats i veckokolumnen, så att veckodagsraderna står kvar där etiketterna
+ * pekar. Sista synliga rutan är därmed alltid idag. */
+#view-playground .heat-cell.is-kommande {
+  visibility: hidden;
+}
+
 #view-playground .heat-cell.is-1 {
   background: var(--heat-1);
 }
