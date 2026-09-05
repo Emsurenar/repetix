@@ -57,8 +57,18 @@ const rad = () => document.getElementById('deck-sammanfattning');
 const visaRad = (text) => {
   const p = rad();
   if (!p) return;
+  /* En mening som dyker upp mitt i en sida man redan läser ska komma in,
+   * inte slå på. Klassen sätts bara när raden går från tom till text — en
+   * mening som byts ut mot en ny ska inte blinka. Den tas bort efteråt så
+   * att nästa gång kan spela igen. */
+  const nyRad = Boolean(text) && !p.textContent;
   p.textContent = text;
   p.hidden = !text;
+  if (nyRad) {
+    p.classList.remove('is-ny');
+    void p.offsetWidth;
+    p.classList.add('is-ny');
+  }
 };
 
 /**
