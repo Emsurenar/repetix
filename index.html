@@ -185,50 +185,51 @@
                 <!-- Populated by JS -->
             </section>
             
-            <!-- Utan ikoner, som bibliotekets åtgärdsrad. Ikonerna sade
-                 inget som orden inte redan sade, och en rad av fem likadana
-                 ikonknappar har ingen tyngdpunkt. Huvudhandlingen bär panelen
-                 ovanför. -->
+            <!-- Verktygsraden: två handlingar och en ingång. Nytt kort och Ny
+                 mapp är det man gör i en kortlek; de fyra AI-verktygen är det
+                 man gör ibland. Sex knappar i rad gjorde de två första till
+                 två bland sex, och på telefon tog raden fyra våningar ovanför
+                 korten man kom för att se. Verktygen ligger nu i en remsa som
+                 fälls ut under raden — samma knapp och samma remsa med mus
+                 och finger, bara ett annat antal spalter. Utan ikoner, som
+                 bibliotekets åtgärdsrad. Huvudhandlingen bär panelen ovanför. -->
             <div class="deck-toolbar">
                 <button id="btn-add-card" class="btn">Nytt kort</button>
                 <button id="btn-add-note-card" class="btn hidden">Ny anteckning</button>
                 <button id="btn-add-section" class="btn">Ny mapp</button>
-                <!-- De fyra AI-handlingarna. På en bred skärm står de i raden;
-                     på telefon döljs de och nås i stället genom menyn nedanför,
-                     vars val trycker på dem. Sju knappar på 375 pixlar blev
-                     fyra rader kontroller ovanför korten man kom för att se. -->
-                <button id="btn-open-topic-generator" class="btn deck-tool-ai">AI-generera</button>
-                <button id="btn-ai-sort" class="btn deck-tool-ai">AI-sortera</button>
-                <button id="btn-lagg-till-kalla" class="btn deck-tool-ai">Lägg till PDF</button>
-                <!-- Filinmatningen är dold och triggas av knappen: en naken
-                     <input type="file"> går inte att forma efter appens
-                     kontroller, och accept begränsar väljaren till PDF. -->
-                <input type="file" id="input-kalla-fil" accept="application/pdf,.pdf" hidden>
-                <!-- Kortförslaget hör hemma här, bland kortlekens övriga
-                     handlingar, och inte i en stor ruta på en egen rad. Fylld
-                     för att skilja det som kostar ett AI-anrop från det som
-                     bara öppnar ett formulär. Sammanfattningen som stod bredvid
-                     är ingen handling längre: den skrivs av sig själv under
-                     titeln när leken ändrats. -->
-                <button id="btn-ai-suggest" class="btn primary deck-tool-ai" data-ai-generate="suggestion">Föreslå kort</button>
-                <!-- Telefonens meny. Samma radmeny som korten bär, med ett ord
-                     på knappen i stället för tre punkter: här är den en av
-                     radens tre handlingar, inte ett hörn på ett kort. Varje val
-                     pekar på knappen det står för, och src/ui/deck.js döljer
-                     valet när dess knapp är dold. -->
-                <details class="row-menu deck-toolbar-menu" id="deck-toolbar-menu">
-                    <summary class="btn primary deck-toolbar-menu-toggle">
-                        AI
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-                    </summary>
-                    <div class="row-menu-items">
-                        <button type="button" data-proxy="btn-open-topic-generator">Generera kort</button>
-                        <button type="button" data-proxy="btn-ai-sort">Sortera i mappar</button>
-                        <button type="button" data-proxy="btn-ai-suggest">Föreslå kort</button>
-                        <button type="button" data-proxy="btn-lagg-till-kalla">Lägg till PDF</button>
-                    </div>
-                </details>
+                <button type="button" id="btn-deck-ai" class="btn primary deck-ai-toggle" aria-expanded="false" aria-controls="deck-ai-strip">
+                    AI
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
                 <button id="btn-study" hidden></button> <!-- Bär repetitionen; panelen ovanför trycker på den -->
+            </div>
+            <!-- AI-remsan. Varje verktyg är en knapp med ett namn och en rad
+                 om vad den gör: ett ord räckte inte när fyra står bredvid
+                 varandra utan ikoner. Sortera och Föreslå döljs av
+                 src/ui/deck.js när de inte har något att göra. Filinmatningen
+                 är dold och triggas av PDF-knappen: en naken <input type="file">
+                 går inte att forma efter appens kontroller, och accept
+                 begränsar väljaren till PDF. -->
+            <div id="deck-ai-strip" class="deck-ai-strip">
+                <div class="deck-ai-strip-inner">
+                    <button type="button" id="btn-open-topic-generator" class="deck-ai-tool">
+                        <span class="deck-ai-tool-name">Generera kort</span>
+                        <span class="deck-ai-tool-desc">Ur ett ämne, en text eller en PDF.</span>
+                    </button>
+                    <button type="button" id="btn-ai-sort" class="deck-ai-tool">
+                        <span class="deck-ai-tool-name">Sortera i mappar</span>
+                        <span class="deck-ai-tool-desc">Lägger de osorterade korten i mappar.</span>
+                    </button>
+                    <button type="button" id="btn-ai-suggest" class="deck-ai-tool" data-ai-generate="suggestion">
+                        <span class="deck-ai-tool-name">Föreslå kort</span>
+                        <span class="deck-ai-tool-desc">Kortet som saknas, givet de som finns.</span>
+                    </button>
+                    <button type="button" id="btn-lagg-till-kalla" class="deck-ai-tool">
+                        <span class="deck-ai-tool-name">Lägg till PDF</span>
+                        <span class="deck-ai-tool-desc">Texten läses in i webbläsaren och blir underlag att generera ur och fråga.</span>
+                    </button>
+                    <input type="file" id="input-kalla-fil" accept="application/pdf,.pdf" hidden>
+                </div>
             </div>
             <!-- Kortlekens källor. Tom lista döljer hela raden — en rubrik över
                  ingenting är brus. -->

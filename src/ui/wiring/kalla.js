@@ -33,8 +33,11 @@ export function initUiWiringKalla() {
         falt.value = '';
         if (!fil) return;
 
+        // Bara namnet byts. textContent på hela knappen hade tagit
+        // beskrivningen under med sig.
+        const namn = knapp.querySelector('.deck-ai-tool-name') ?? knapp;
         knapp.disabled = true;
-        knapp.textContent = 'Läser...';
+        namn.textContent = 'Läser...';
 
         try {
             const { text, pages, chars } = await laesPdf(fil);
@@ -64,7 +67,7 @@ export function initUiWiringKalla() {
             showToast('Kunde inte läsa PDF:en.');
         } finally {
             knapp.disabled = false;
-            knapp.textContent = 'Lägg till PDF';
+            namn.textContent = 'Lägg till PDF';
         }
     });
 }

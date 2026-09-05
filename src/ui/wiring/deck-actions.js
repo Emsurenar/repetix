@@ -44,11 +44,11 @@ export function initUiWiringDeckActions() {
       document.getElementById('btn-test-harder').addEventListener('click', () => handleModifierClick('harder'));
 
       // Topic Generator Handlers
-      /* Kortförslaget. Delegering på raden i stället för en lyssnare på
-       * knappen: raden ritas inte om, och det gör det uppenbart att det bara
+      /* Kortförslaget. Delegering på remsan i stället för en lyssnare på
+       * knappen: remsan ritas inte om, och det gör det uppenbart att det bara
        * finns EN väg in. Sammanfattningen, som stod bredvid, skrivs numera av
        * sig själv under titeln — se src/ui/sammanfattning.js. */
-      document.querySelector('.deck-toolbar')?.addEventListener('click', (e) => {
+      document.getElementById('deck-ai-strip')?.addEventListener('click', (e) => {
           if (e.target.closest('[data-ai-generate]')) generateDeckSuggestion();
       });
 

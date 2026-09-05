@@ -150,19 +150,93 @@
   margin-bottom: var(--s5);
 }
 
-/* Telefonens AI-meny finns bara på telefon. Med mus står de fem handlingarna
- * i raden, där de får plats, och en meny hade gömt dem i onödan. */
-.deck-toolbar-menu {
-  display: none;
-}
-
-.deck-toolbar-menu-toggle svg {
+.deck-ai-toggle svg {
   flex: 0 0 auto;
   transition: transform var(--dur-2) var(--ease-out);
 }
 
-.deck-toolbar-menu[open] .deck-toolbar-menu-toggle svg {
+.deck-ai-toggle[aria-expanded='true'] svg {
   transform: rotate(180deg);
+}
+
+/* AI-REMSAN
+ *
+ * Fälls ut under verktygsraden med samma rutnätsteknik som mappen och
+ * kortets svar: raden växer från 0fr till innehållets höjd, vilket är det
+ * enda sättet att animera "så högt som innehållet är" utan att räkna pixlar.
+ * Barnet måste ha min-height: 0 och overflow: hidden, annars krymper inget.
+ *
+ * visibility och inte display: en dold remsa ska inte gå att tabba in i,
+ * men display går inte att animera. Fördröjningen på visibility gäller bara
+ * vid stängning — vid öppning ska remsan synas från första bildrutan. */
+.deck-ai-strip {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-bottom: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--dur-2) var(--ease-out),
+    margin-bottom var(--dur-2) var(--ease-out),
+    visibility 0s linear var(--dur-2);
+}
+
+.deck-ai-strip.is-open {
+  grid-template-rows: 1fr;
+  margin-bottom: var(--s5);
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* Så många spalter som får plats: fyra med mus, en eller två på telefon.
+ * min() gör att ett verktyg aldrig blir bredare än spalten på en smal skärm. */
+.deck-ai-strip-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  gap: var(--s2);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Ett verktyg är en knapp med två rader: namnet i knappens vikt och en rad
+ * under i hintens ton. Samma kant, yta och hörn som .btn — det är en knapp,
+ * bara högre, och ska kännas igen som en. */
+.deck-ai-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s1);
+  min-height: var(--control-h);
+  padding: var(--s2) var(--s3);
+  font: inherit;
+  text-align: left;
+  color: var(--text-1);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.deck-ai-tool:hover {
+  background: var(--surface-2);
+}
+
+.deck-ai-tool:disabled {
+  color: var(--text-3);
+  cursor: progress;
+}
+
+.deck-ai-tool-name {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.deck-ai-tool-desc {
+  font-size: var(--t-xs);
+  line-height: var(--lh-normal);
+  color: var(--text-3);
 }
 
 /* ======================================================================
@@ -687,23 +761,10 @@
     flex: 1 1 auto;
   }
 
-  .deck-toolbar > .deck-tool-ai {
-    display: none;
-  }
-
-  .deck-toolbar-menu {
-    display: block;
-    flex: 1 1 auto;
-  }
-
-  .deck-toolbar-menu > summary {
-    width: 100%;
-  }
-
-  /* Menyn fälls ut under hela raden, inte bara under sin knapp: valen är
-   * meningar, och en spalt lika smal som ordet AI hade brutit dem. */
-  .deck-toolbar-menu .row-menu-items {
-    min-width: 14rem;
+  /* Tre knappar på en rad, lika breda: raden ska se avsiktlig ut på 360
+   * pixlar och inte som tre knappar som råkade få plats. */
+  .deck-toolbar > .btn {
+    flex: 1 1 0;
   }
 
   #card-list {

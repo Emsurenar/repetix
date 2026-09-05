@@ -215,42 +215,35 @@ function ritaHistorik() {
 }
 
 // Update existing renderDecks calls to renderLibrary
-/* Kortförslaget står i verktygsraden och inte i panelen. Det döljs på samma
+/* Kortförslaget står i AI-remsan och inte i panelen. Det döljs på samma
  * villkor som panelen: under två kort finns det ingen lucka att peka på. */
 const aiKnapparSynliga = (synliga) => {
     const knapp = document.getElementById('btn-ai-suggest');
     if (knapp) knapp.hidden = !synliga;
-    synkaVerktygsmenyn();
 };
 
-/* Telefonens AI-meny speglar knapparna i raden.
+/* AI-remsan under verktygsraden.
  *
- * Varje val pekar på en knapp med data-proxy och trycker på den. Knapparna
- * döljs och visas på flera ställen — sortering när det finns osorterade kort,
- * insikterna när leken har minst två — och menyn måste följa med, annars
- * står "Sortera i mappar" kvar i menyn som ett val som bara kan misslyckas.
- * Därför räknas synligheten om vid varje tillfälle som rör knapparna, ur
- * knapparna själva, i stället för att varje ställe också ska minnas menyn. */
-const synkaVerktygsmenyn = () => {
-    const meny = document.getElementById('deck-toolbar-menu');
-    if (!meny) return;
-    for (const val of meny.querySelectorAll('[data-proxy]')) {
-        const mal = document.getElementById(val.dataset.proxy);
-        val.hidden = !mal || mal.hidden || mal.classList.contains('hidden');
-    }
+ * Läget lever i modulen och inte i DOM:en, och nollställs INTE när man byter
+ * kortlek: den som öppnat remsan för att generera kort i tre lekar i rad ska
+ * inte behöva öppna den tre gånger. Stängd vid sidladdning — det är
+ * normalfallet raden är byggd för. */
+let remsaOppen = false;
+
+const ritaAiRemsa = () => {
+    const knapp = document.getElementById('btn-deck-ai');
+    const remsa = document.getElementById('deck-ai-strip');
+    if (!knapp || !remsa) return;
+    knapp.setAttribute('aria-expanded', String(remsaOppen));
+    remsa.classList.toggle('is-open', remsaOppen);
 };
 
-export function initDeckToolbarMenu() {
-    const meny = document.getElementById('deck-toolbar-menu');
-    if (!meny) return;
-    meny.addEventListener('click', (e) => {
-        const val = e.target.closest('[data-proxy]');
-        if (!val) return;
-        // Menyn stängs innan knappen trycks: dialogen som öppnas ska inte
-        // lämna en utfälld meny bakom sig.
-        meny.removeAttribute('open');
-        document.getElementById(val.dataset.proxy)?.click();
+export function initDeckAiStrip() {
+    document.getElementById('btn-deck-ai')?.addEventListener('click', () => {
+        remsaOppen = !remsaOppen;
+        ritaAiRemsa();
     });
+    ritaAiRemsa();
 }
 
 /** Panelen visas först när den har något att visa. */
@@ -544,7 +537,6 @@ export const renderCards = (cards) => {
     const osorterade = deck.cards.filter(c => !c.sectionId && c.type !== 'note').length;
     const sortBtn = document.getElementById('btn-ai-sort');
     if (sortBtn) sortBtn.hidden = osorterade === 0;
-    synkaVerktygsmenyn();
 
     /* Vyn är den delmängd anroparen skickade in, inte hela leken.
      *

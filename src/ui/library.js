@@ -546,7 +546,7 @@ export function initUiLibrary() {
    * lekens meny.
    *
    * Fält och länkar lämnas ifred — där är systemets egen meny det man är ute
-   * efter — och verktygsradens AI-meny är inte en rads meny. */
+   * efter. */
   document.addEventListener('contextmenu', (e) => {
       const mal = e.target;
       if (!(mal instanceof Element)) return;
@@ -554,7 +554,7 @@ export function initUiLibrary() {
 
       let meny = null;
       for (let nod = mal; nod && nod !== document.body; nod = nod.parentElement) {
-          const menyer = nod.querySelectorAll('.row-menu:not(.deck-toolbar-menu)');
+          const menyer = nod.querySelectorAll('.row-menu');
           if (menyer.length === 1) {
               meny = menyer[0];
               break;
