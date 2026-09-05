@@ -54,6 +54,8 @@ English so the repository can be read without it.
 - **Markdown and LaTeX** on both sides of a card; KaTeX loads only when a card
   actually contains maths.
 - **Eight practice modes**, images on cards, and in-app account deletion.
+- **A what's-new dialog** once per account after each release, so nobody
+  has to read a changelog to find the new things.
 
 ## Run it locally
 

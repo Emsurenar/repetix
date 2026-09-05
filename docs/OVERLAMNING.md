@@ -621,6 +621,44 @@ profilen). Delningen fick sorter (kortlek, mapp, kort) och mottagare per id.
   ladda upp en bild, sök på handtaget från ett andra konto, skicka en
   förfrågan, acceptera, dela en mapp, ta emot den i en befintlig lek.
 
+#### Genomgången inför 3.1 (2026-09-05, kväll)
+
+Ägaren bad om en läsning av varje fil med åtta frågor — estetik, friktion,
+AI-prompter och kostnad, korrekthet, spelen, saknade förväntade funktioner,
+uppdateringseffekter, säkerhet — och en utbyggnad utifrån svaren. Nio
+commits. Det som hittades och gjordes:
+
+- **Säkerhet.** Flyttdialogen renderade kortlekstiteln oescapad (mapparna
+  bredvid escapade sina). 0011 fick tre tätningar: avsändaren av en
+  vänförfrågan måste ha handtag (annars såg mottagaren en förfrågan från
+  ingen), utgångna id-adresserade delningar döljs (lasten hade annars gått
+  att läsa fast svaret nekas), och `send_friend_request` returnerar via en
+  egen variabel.
+- **AI-kostnad.** Kortförslaget läser ett urval av 120 kort (`underlagText`
+  med tak), sorteringen klipper sidorna och sätter taket efter antalet,
+  generatorn listar 200 befintliga frågor i stället för alla. Låg
+  ansträngning för sortering, mappval, dagbok och generering ur text.
+- **Estetik.** Dagboken, sorteringen, flyttdialogen och Jeopardys etikett
+  bar inline-stilar mot tokens som inte finns (`--text-secondary`,
+  `--border-color`, …); de ritades utan kant och färg. Nu klasser i
+  forms.css/study.css, och dagbokens väljare klär sig i appens egen.
+  **Regel: inga `var(--…)` i JS-genererad markup — klasser.**
+- **Vänner.** Vänlistan visar veckans repetitioner och streak per vän ur
+  statistikbilderna, sorterad på veckan, med ens egen rad överst.
+- **Interaktion.** Högerklick på ett mapphuvud öppnar mappens meny (öppnade
+  förut Nytt kort). Sammanfattningsraden tonar in i stället för att klippa.
+- **Nyhetsrutan.** `src/ui/nyheter.js` visar "Repetix 3.1" en gång per
+  konto; kvittot i `profiles.seen_release` (0011) med localStorage som
+  reserv. Texten bor i `index.html`; höj `VERSION` och byt texten vid nästa
+  release. `package.json` säger 3.1.0.
+- **Spelen** lästes för lyssnar- och timerläckor: alla åtta plockar bort
+  sina keydown-lyssnare i cleanup, och alla betyg går genom
+  `processRating`. Inget ändrat; inget provspelat.
+
+Fortfarande overifierat i webbläsare — maskinen saknar Node. Allt är
+syntaxkontrollerat med JavaScriptCore och domänmodulerna körda där (38 + 59
++ 21 påståenden).
+
 #### Lanseringschecklista — kräver ägaren
 
 1. Kör migration `0003` till och med `0011` i Supabases SQL Editor, i

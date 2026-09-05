@@ -70,6 +70,9 @@ tolkning, och användaren underkände resultatet med orden "detta är ju inte de
 
 - `src/styles/tokens.css` är **enda** stället där en färg, ett typsnittssteg
   eller ett avstånd får definieras. Noll hårdkodade hexvärden utanför den.
+  **Inga `var(--…)` i JS-genererad markup** — en token som inte finns ger
+  ingen varning, bara ett fält utan kant. Ge elementet en klass och skriv
+  regeln i rätt stilmall.
 - Noll `!important`. Behövs specificitet: använd id-scope.
 - Enbart ljust läge. **Aldrig blått** — accenten är verdigris `#0E6A5E`.
 - Inga skuggor. Djup skapas av ytkontrast och 1px-linjer.
@@ -112,9 +115,12 @@ beskriva vad en sak är, inte för att den ska se annorlunda ut.
   Gå alltid genom `fokusera()` i `src/ui/fokus.js`; anropa aldrig `.focus()`
   på ett fält direkt.
 - **Högerklick på en rad öppnar dess radmeny** (`contextmenu` i
-  `src/ui/library.js`), på samma plats som de tre punkterna. I sidopanelen,
-  som saknar radmenyer, öppnas samma val vid pekaren (`src/ui/kontextmeny.js`).
-  Fält och länkar lämnas åt systemets egen meny.
+  `src/ui/library.js`), på samma plats som de tre punkterna — kortlekar,
+  bokhyllor, mappar och kort. I sidopanelen, som saknar radmenyer, öppnas
+  samma val vid pekaren (`src/ui/kontextmeny.js`). Fält och länkar lämnas
+  åt systemets egen meny. Ge aldrig högerklick en annan betydelse.
+- **Nyheterna visas en gång per konto** (`src/ui/nyheter.js`, texten i
+  `index.html`). Vid nästa release: höj `VERSION`, byt texten.
 - **Kortlekens verktygsrad är tre knappar**: Nytt kort, Ny mapp, AI. De fyra
   AI-verktygen ligger i en remsa som fälls ut under raden, likadant med mus
   och finger. Lägg inte tillbaka verktyg i raden.
