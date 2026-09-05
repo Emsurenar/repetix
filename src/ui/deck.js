@@ -747,11 +747,11 @@ export const renderCards = (cards) => {
             deleteSection(section.id);
         });
 
-        sectionEl.querySelector('.section-header').addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            S.preselectSectionId = section.id;
-            document.getElementById('btn-add-card').click();
-        });
+        /* Högerklick på mapphuvudet öppnar mappens meny, genom den allmänna
+         * regeln i library.js. Det öppnade tidigare "Nytt kort" i mappen —
+         * en genväg ingen kunde gissa, och det enda stället i appen där
+         * högerklick betydde något annat än menyn. Plusknappen står kvar för
+         * det nya kortet. */
 
         cardList.appendChild(sectionEl);
     });
